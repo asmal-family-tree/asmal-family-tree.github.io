@@ -218,6 +218,7 @@
   .star-badge circle{ fill:#fff; stroke:#E08A00; stroke-width:1.6px; }
   .star-badge text{ font-size:15px; fill:#E08A00; text-anchor:middle; dominant-baseline:middle; }
   .node.is-focal .plus-badge, .node.is-focal .minus-badge{ display:none !important; }
+  .role-limited .minus-badge{ display:none !important; }
   .node.is-focal .star-badge{ display:block !important; }
   .node.is-focal circle[class^="avatar-"]{ fill:#FF8C00 !important; stroke:#B0600A !important; }
   .node.is-focal .tag-text{ fill:#E07A00 !important; }
@@ -430,6 +431,24 @@
   </div>
 </div>
 
+<div id="usersPanel" class="bottom-panel">
+  <label class="f-label">إضافة مستخدم جديد</label>
+  <input type="text" id="newUserName" class="f-input" placeholder="اسم المستخدم" style="margin-bottom:8px;">
+  <input type="text" id="newUserPassword" class="f-input" placeholder="كلمة المرور" style="margin-bottom:8px;">
+  <div style="position:relative">
+    <input type="text" id="newUserScopeInput" class="f-input" placeholder="اسم الشخص (النقطة المسموحة)، ثم اختر من القائمة" style="margin-bottom:8px;">
+    <div id="newUserScopeDropdown" class="autocomplete-dropdown"></div>
+  </div>
+  <button id="newUserAddBtn" class="f-btn-sm" style="width:100%">➕ إضافة مستخدم</button>
+  <div id="newUserStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+
+  <label class="f-label" style="margin-top:14px; display:block;">المستخدمون الحاليون</label>
+  <div id="usersList" style="max-height:160px; overflow-y:auto;"></div>
+
+  <label class="f-label" style="margin-top:14px; display:block;">📋 إضافات بانتظار الاعتماد</label>
+  <div id="pendingList" style="max-height:220px; overflow-y:auto;"></div>
+</div>
+
 <div id="bottomBar">
   <button id="searchToggle" title="بحث">🔍</button>
   <button id="relToggle" title="حاسبة العلاقة">🧮</button>
@@ -438,6 +457,7 @@
   <button id="bgToggle" title="خلفية الشجرة">🖼️</button>
   <button id="toggleTree" title="إخفاء/إظهار المشجرة">🙈</button>
   <button id="toggleManual" title="ترتيب يدوي">🖐️</button>
+  <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
 </div>
 
 <div id="backdrop"></div>
@@ -535,6 +555,7 @@ const firebaseConfig = {
   measurementId: "G-5W6N75Q1PS"
 };
 firebase.initializeApp(firebaseConfig);
+const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -645,19 +666,27 @@ auth.onAuthStateChanged((fbUser) => {
   }
 });
 
-function isDbBacked(){ return currentUser && currentUser.role === "admin" && !!treeData.id; }
+function isDbBacked(){ return currentUser && !!treeData.id; }
+function canAddUnder(parentDataNode){
+  if (!currentUser) return false;
+  if (currentUser.role === "admin") return true;
+  if (!currentUser.scopePersonId) return false;
+  const ids = parentDataNode.ancestorIds || [];
+  return parentDataNode.id === currentUser.scopePersonId || ids.includes(currentUser.scopePersonId);
+}
 
 async function firestoreAddPerson(parentDataNode, name, type){
   const parentId = parentDataNode.id || null;
   const parentAncestorIds = parentDataNode.ancestorIds || [];
   const ref = db.collection("persons").doc();
   const ancestorIds = parentAncestorIds.concat([ref.id]);
+  const pending = currentUser.role !== "admin";
   await ref.set({
     name, type, parentId: parentId,
-    ancestorIds, isJoinPoint: false, pendingApproval: false,
+    ancestorIds, isJoinPoint: false, pendingApproval: pending,
     addedBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-  return { id: ref.id, ancestorIds };
+  return { id: ref.id, ancestorIds, pending };
 }
 
 async function firestoreDeletePerson(dataNode){
@@ -673,9 +702,14 @@ async function firestoreDeletePerson(dataNode){
 }
 
 function applyRolePermissions(){
-  // مرحلة لاحقة: هنا بنتحكم بإظهار/إخفاء الأزرار وصلاحية +/- حسب currentUser.role
-  if (currentUser && currentUser.role === "admin"){
+  if (!currentUser) return;
+  document.body.classList.toggle("role-limited", currentUser.role !== "admin");
+  if (currentUser.role === "admin"){
     document.getElementById("migrateRow").style.display = "flex";
+    document.getElementById("usersToggle").style.display = "";
+  } else {
+    document.getElementById("usersToggle").style.display = "none";
+    document.getElementById("bgToggle").style.display = "none";
   }
   checkMigrationStatusAndLoad();
 }
@@ -759,9 +793,11 @@ document.getElementById("migrateBtn").onclick = async function(){
 async function loadTreeFromFirestore(){
   const snap = await db.collection("persons").get();
   if (snap.empty) return;
+  const isAdminView = currentUser && currentUser.role === "admin";
   const byId = new Map();
   snap.forEach(doc => {
     const d = doc.data();
+    if (!isAdminView && d.pendingApproval) return; // إخفاء الإضافات المعلّقة عن غير المشرف
     byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], children: [] });
   });
   let rootNode = null;
@@ -787,6 +823,120 @@ async function loadTreeFromFirestore(){
   treeData.children = cleaned.children || [];
   refreshView();
   document.getElementById("migrateStatus").textContent = "✅ البيانات محمّلة من قاعدة البيانات مباشرة";
+}
+
+// ============ إدارة المستخدمين (مرحلة ٤) ============
+let selectedScopePerson = null; // { id, name, ancestorIds }
+
+const newUserScopeInput = document.getElementById("newUserScopeInput");
+const newUserScopeDropdown = document.getElementById("newUserScopeDropdown");
+newUserScopeInput.addEventListener("input", () => {
+  selectedScopePerson = null;
+  const q = newUserScopeInput.value.trim();
+  newUserScopeDropdown.innerHTML = "";
+  if (!q){ newUserScopeDropdown.classList.remove("show"); return; }
+  const matches = root.descendants().filter(d => d.data.name.includes(q)).slice(0, 10);
+  if (!matches.length){ newUserScopeDropdown.classList.remove("show"); return; }
+  matches.forEach(m => {
+    const item = document.createElement("div");
+    item.className = "autocomplete-item";
+    item.innerHTML = `${m.data.name}<span class="chain-sub">${chainNames(m).join(" بن ")}</span>`;
+    item.onclick = () => {
+      selectedScopePerson = { id: m.data.id, name: m.data.name, ancestorIds: m.data.ancestorIds || [] };
+      newUserScopeInput.value = chainNames(m).slice(0, 3).join(" ");
+      newUserScopeDropdown.classList.remove("show");
+    };
+    newUserScopeDropdown.appendChild(item);
+  });
+  newUserScopeDropdown.classList.add("show");
+});
+
+document.getElementById("newUserAddBtn").onclick = async function(){
+  const username = document.getElementById("newUserName").value.trim();
+  const password = document.getElementById("newUserPassword").value;
+  const statusEl = document.getElementById("newUserStatus");
+  if (!username || !password){ statusEl.textContent = "أدخل اسم المستخدم وكلمة المرور"; return; }
+  if (password.length < 6){ statusEl.textContent = "كلمة المرور يجب أن تكون ٦ أحرف على الأقل"; return; }
+  if (!selectedScopePerson){ statusEl.textContent = "اختر النقطة (اسم الشخص) من القائمة المنسدلة"; return; }
+  statusEl.textContent = "جارِ الإنشاء…";
+  const email = usernameToEmail(username);
+  try{
+    const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+    await db.collection("users").doc(cred.user.uid).set({
+      role: "limited", displayName: username, scopePersonId: selectedScopePerson.id,
+      scopePersonName: selectedScopePerson.name,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await secondaryApp.auth().signOut();
+    statusEl.textContent = `✅ تم إنشاء المستخدم "${username}" بنطاق "${selectedScopePerson.name}"`;
+    document.getElementById("newUserName").value = "";
+    document.getElementById("newUserPassword").value = "";
+    newUserScopeInput.value = "";
+    selectedScopePerson = null;
+    refreshUsersAndPendingLists();
+  }catch(e){
+    statusEl.textContent = "خطأ: " + (e.message || e.code);
+  }
+};
+
+async function refreshUsersAndPendingLists(){
+  if (!currentUser || currentUser.role !== "admin") return;
+  const usersListEl = document.getElementById("usersList");
+  const pendingListEl = document.getElementById("pendingList");
+  usersListEl.innerHTML = "جارِ التحميل…";
+  pendingListEl.innerHTML = "جارِ التحميل…";
+
+  try{
+    const usersSnap = await db.collection("users").where("role", "==", "limited").get();
+    if (usersSnap.empty){
+      usersListEl.innerHTML = `<span style="color:#999;font-size:13px">لا يوجد مستخدمون محدودون بعد</span>`;
+    } else {
+      usersListEl.innerHTML = "";
+      usersSnap.forEach(doc => {
+        const u = doc.data();
+        const row = document.createElement("div");
+        row.className = "chip";
+        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; width:100%; box-sizing:border-box;";
+        row.innerHTML = `<span>${u.displayName} — نطاقه: ${u.scopePersonName || "؟"}</span><span class="chip-x" title="حذف">✕</span>`;
+        row.querySelector(".chip-x").onclick = async () => {
+          if (!confirm(`حذف المستخدم "${u.displayName}"؟ (هذا يمنعه من الدخول، ولا يحذف إضافاته السابقة)`)) return;
+          await db.collection("users").doc(doc.id).delete();
+          refreshUsersAndPendingLists();
+        };
+        usersListEl.appendChild(row);
+      });
+    }
+  }catch(e){
+    usersListEl.innerHTML = "تعذّر التحميل: " + (e.message || e.code);
+  }
+
+  try{
+    const pendingSnap = await db.collection("persons").where("pendingApproval", "==", true).get();
+    if (pendingSnap.empty){
+      pendingListEl.innerHTML = `<span style="color:#999;font-size:13px">لا يوجد إضافات بانتظار الاعتماد</span>`;
+    } else {
+      pendingListEl.innerHTML = "";
+      pendingSnap.forEach(doc => {
+        const p = doc.data();
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:8px; background:#FFF8E1; border-radius:8px;";
+        row.innerHTML = `<span>${p.name}</span><span><button class="f-btn-sm approve-btn" style="margin-left:6px;">✅ اعتماد</button><button class="f-btn-sm reject-btn" style="background:#8B1E1E;">✕ رفض</button></span>`;
+        row.querySelector(".approve-btn").onclick = async () => {
+          await db.collection("persons").doc(doc.id).update({ pendingApproval: false });
+          refreshUsersAndPendingLists();
+          await loadTreeFromFirestore();
+        };
+        row.querySelector(".reject-btn").onclick = async () => {
+          if (!confirm(`رفض وحذف "${p.name}"؟`)) return;
+          await db.collection("persons").doc(doc.id).delete();
+          refreshUsersAndPendingLists();
+        };
+        pendingListEl.appendChild(row);
+      });
+    }
+  }catch(e){
+    pendingListEl.innerHTML = "تعذّر التحميل: " + (e.message || e.code);
+  }
 }
 
 const treeData = {
@@ -3917,7 +4067,7 @@ document.getElementById("zoomOut").onclick = () => svg.transition().call(zoom.sc
 document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.transform, centerOnRoot());
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
-const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel"].map(id => document.getElementById(id));
+const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel"].map(id => document.getElementById(id));
 function openOnlyPanel(panel){
   const willOpen = !panel.classList.contains("show");
   bottomPanels.forEach(p => p.classList.remove("show"));
@@ -3943,6 +4093,10 @@ ioToggle.onclick = () => openOnlyPanel(ioPanel);
 const bgToggle = document.getElementById("bgToggle");
 const bgPanel = document.getElementById("bgPanel");
 bgToggle.onclick = () => openOnlyPanel(bgPanel);
+
+const usersToggle = document.getElementById("usersToggle");
+const usersPanel = document.getElementById("usersPanel");
+usersToggle.onclick = () => { openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); };
 
 
 // ---------- شجرتي الخاصة ----------
@@ -5018,10 +5172,11 @@ function renderCurrentSons(){
     const chip = document.createElement("div");
     chip.className = "chip";
     const hasKids = k.children && k.children.length;
-    chip.innerHTML = k.data.manuallyAdded
+    const canDeleteThis = k.data.manuallyAdded && currentUser && currentUser.role === "admin";
+    chip.innerHTML = canDeleteThis
       ? `<span>${k.data.name}</span><span class="chip-x" title="حذف">✕</span>`
       : `<span>${k.data.name}</span>`;
-    if (k.data.manuallyAdded){
+    if (canDeleteThis){
       chip.querySelector(".chip-x").onclick = async () => {
         const msg = hasKids
           ? `"${k.data.name}" له أبناء بالشجرة — حذفه بيحذف كل ذريته أيضًا. متأكد؟`
@@ -5048,11 +5203,20 @@ document.getElementById("f-newSonAdd").onclick = async () => {
   const input = document.getElementById("f-newSonInput");
   const name = input.value.trim();
   if (!name) return;
+  if (isDbBacked() && !canAddUnder(modalNode.data)){
+    alert("ما تقدر تضيف هنا — الإضافة مسموحة بس داخل النطاق المحدد لك.");
+    return;
+  }
   const newType = modalNode.data.type === "root" ? "trunk" : modalNode.data.type;
   const newChild = { name, type: newType, manuallyAdded: true };
   if (isDbBacked()){
     try{
-      const { id, ancestorIds } = await firestoreAddPerson(modalNode.data, name, newType);
+      const { id, ancestorIds, pending } = await firestoreAddPerson(modalNode.data, name, newType);
+      if (pending){
+        alert(`تمت إضافة "${name}" وهي الآن بانتظار اعتماد محمد رشاد. لن تظهر بالشجرة حتى يعتمدها.`);
+        input.value = "";
+        return; // لا نضيفها للعرض المحلي — تبقى مخفية لحد الاعتماد
+      }
       newChild.id = id;
       newChild.ancestorIds = ancestorIds;
     }catch(e){
