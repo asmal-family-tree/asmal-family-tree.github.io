@@ -645,6 +645,33 @@ auth.onAuthStateChanged((fbUser) => {
   }
 });
 
+function isDbBacked(){ return currentUser && currentUser.role === "admin" && !!treeData.id; }
+
+async function firestoreAddPerson(parentDataNode, name, type){
+  const parentId = parentDataNode.id || null;
+  const parentAncestorIds = parentDataNode.ancestorIds || [];
+  const ref = db.collection("persons").doc();
+  const ancestorIds = parentAncestorIds.concat([ref.id]);
+  await ref.set({
+    name, type, parentId: parentId,
+    ancestorIds, isJoinPoint: false, pendingApproval: false,
+    addedBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  return { id: ref.id, ancestorIds };
+}
+
+async function firestoreDeletePerson(dataNode){
+  const ids = [];
+  function collect(n){ if (n.id) ids.push(n.id); (n.children || []).forEach(collect); }
+  collect(dataNode);
+  const BATCH_SIZE = 400;
+  for (let i = 0; i < ids.length; i += BATCH_SIZE){
+    const batch = db.batch();
+    ids.slice(i, i + BATCH_SIZE).forEach(id => batch.delete(db.collection("persons").doc(id)));
+    await batch.commit();
+  }
+}
+
 function applyRolePermissions(){
   // مرحلة لاحقة: هنا بنتحكم بإظهار/إخفاء الأزرار وصلاحية +/- حسب currentUser.role
   if (currentUser && currentUser.role === "admin"){
@@ -735,7 +762,7 @@ async function loadTreeFromFirestore(){
   const byId = new Map();
   snap.forEach(doc => {
     const d = doc.data();
-    byId.set(doc.id, { name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, children: [] });
+    byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], children: [] });
   });
   let rootNode = null;
   byId.forEach((node, id) => {
@@ -747,7 +774,7 @@ async function loadTreeFromFirestore(){
   });
   if (!rootNode) return;
   function clean(n){
-    const out = { name: n.name, type: n.type };
+    const out = { name: n.name, type: n.type, id: n.id, ancestorIds: n.ancestorIds };
     if (n.isJoinPoint) out.isJoinPoint = true;
     if (n.children.length) out.children = n.children.map(clean);
     return out;
@@ -755,6 +782,8 @@ async function loadTreeFromFirestore(){
   const cleaned = clean(rootNode);
   treeData.name = cleaned.name;
   treeData.type = cleaned.type;
+  treeData.id = cleaned.id;
+  treeData.ancestorIds = cleaned.ancestorIds;
   treeData.children = cleaned.children || [];
   refreshView();
   document.getElementById("migrateStatus").textContent = "✅ البيانات محمّلة من قاعدة البيانات مباشرة";
@@ -4783,7 +4812,7 @@ document.getElementById("f-photo").addEventListener("change", (e) => {
   reader.readAsDataURL(file);
 });
 
-function confirmDeletePerson(d){
+async function confirmDeletePerson(d){
   const name = d.data.name;
   const childCount = (d.data.children || []).length;
   const warnExtra = childCount ? `\nسيتم حذف ${childCount} من أبنائه وكل ذريتهم أيضًا!` : "";
@@ -4792,6 +4821,10 @@ function confirmDeletePerson(d){
   if (!d.parent){
     alert("لا يمكن حذف الجذر الرئيسي للشجرة.");
     return;
+  }
+  if (isDbBacked() && d.data.id){
+    try{ await firestoreDeletePerson(d.data); }
+    catch(e){ alert("تعذّر الحذف من قاعدة البيانات: " + (e.message || e.code)); return; }
   }
   const siblingsArr = d.parent.data.children;
   const idx = siblingsArr.indexOf(d.data);
@@ -4989,11 +5022,15 @@ function renderCurrentSons(){
       ? `<span>${k.data.name}</span><span class="chip-x" title="حذف">✕</span>`
       : `<span>${k.data.name}</span>`;
     if (k.data.manuallyAdded){
-      chip.querySelector(".chip-x").onclick = () => {
+      chip.querySelector(".chip-x").onclick = async () => {
         const msg = hasKids
           ? `"${k.data.name}" له أبناء بالشجرة — حذفه بيحذف كل ذريته أيضًا. متأكد؟`
           : `حذف "${k.data.name}"؟`;
         if (!confirm(msg)) return;
+        if (isDbBacked() && k.data.id){
+          try{ await firestoreDeletePerson(k.data); }
+          catch(e){ alert("تعذّر الحذف من قاعدة البيانات: " + (e.message || e.code)); return; }
+        }
         modalNode.data.children.splice(idx, 1);
         const myDataRef = modalNode.data;
         refreshView();
@@ -5007,13 +5044,24 @@ function renderCurrentSons(){
   });
 }
 
-document.getElementById("f-newSonAdd").onclick = () => {
+document.getElementById("f-newSonAdd").onclick = async () => {
   const input = document.getElementById("f-newSonInput");
   const name = input.value.trim();
   if (!name) return;
   const newType = modalNode.data.type === "root" ? "trunk" : modalNode.data.type;
+  const newChild = { name, type: newType, manuallyAdded: true };
+  if (isDbBacked()){
+    try{
+      const { id, ancestorIds } = await firestoreAddPerson(modalNode.data, name, newType);
+      newChild.id = id;
+      newChild.ancestorIds = ancestorIds;
+    }catch(e){
+      alert("تعذّر حفظ الإضافة بقاعدة البيانات: " + (e.message || e.code));
+      return;
+    }
+  }
   modalNode.data.children = modalNode.data.children || [];
-  modalNode.data.children.push({ name, type: newType, manuallyAdded: true });
+  modalNode.data.children.push(newChild);
   const myDataRef = modalNode.data;
   refreshView();
   modalNode = root.descendants().find(n => n.data === myDataRef);
