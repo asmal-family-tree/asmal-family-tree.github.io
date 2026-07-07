@@ -191,6 +191,9 @@
   #ip-card .ip-bio{ font-size:13px; color:#444; line-height:1.9; margin-top:10px; background:#FAF4E6; padding:12px 14px; border-radius:12px; }
   #ip-card .ip-notaries{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   #ip-card .ip-notary-chip{ background:#F1E9D8; border-radius:14px; padding:5px 12px; font-size:12px; color:#6a5636; font-weight:600; }
+  #ip-card .ip-sadaha{ display:flex; flex-direction:column; gap:4px; margin:4px 0 10px; }
+  #ip-card .ip-sadaha-item{ background:#F7F2E7; border-radius:8px; padding:6px 10px; font-size:13px; color:#4a3f2a; }
+  #ip-card .ip-sadaha-item b{ color:#8B4A1E; }
   #ip-card .ip-empty{ color:#bbb; font-size:12.5px; margin-top:10px; text-align:center; padding:8px 0; }
   #backdrop{ position:fixed; inset:0; background:rgba(20,14,8,.35); z-index:25; opacity:0; pointer-events:none; transition:opacity .2s; }
   #backdrop.show{ opacity:1; pointer-events:auto; }
@@ -532,6 +535,14 @@
 
     <label class="f-label">الوظيفة</label>
     <input type="text" id="f-job" class="f-input" placeholder="الوظيفة">
+
+    <div id="husbandWrap" style="display:none">
+      <label class="f-label">زوجها (الصهر)</label>
+      <input type="text" id="f-husband" class="f-input" placeholder="اسم الزوج">
+      <label style="display:flex; align-items:center; gap:6px; font-size:14px; margin:6px 0;">
+        <input type="checkbox" id="f-husbandDivorced"> مطلّقة
+      </label>
+    </div>
 
     <label class="f-label">عدد الأبناء الذكور</label>
     <div class="f-age" id="f-sonsCount">0</div>
@@ -4149,6 +4160,7 @@ function runSearch(){
       item.innerHTML = `${m.data.name}<span class="chain-sub">${chainNames(m).join(" بن ")}</span>`;
       item.onclick = () => {
         searchDropdown.classList.remove("show"); searchDropdown.innerHTML = "";
+        searchPanel.classList.remove("show");
         showInfo(m);
       };
       searchDropdown.appendChild(item);
@@ -4187,25 +4199,77 @@ searchInput.addEventListener("keydown", (e) => {
 const sheet = document.getElementById("sheet");
 const backdrop = document.getElementById("backdrop");
 backdrop.onclick = () => { sheet.classList.remove("show"); backdrop.classList.remove("show"); };
+const CURRENT_HIJRI_YEAR = 1447; // تقريبي لعام ٢٠٢٦م، يُستخدم لحساب العمر فقط
+
 function showInfo(d){
   document.getElementById("ip-name").textContent = d.data.name;
   let chain = []; let a = d;
   while(a){ chain.push(a.data.name); a = a.parent; }
-  document.getElementById("ip-path").textContent = "سلسلة النسب: " + chain.join(" بن ");
+  document.getElementById("ip-path").innerHTML = "سلسلة النسب: " + chain.join(" بن ") + `<span id="ip-rahimahu" style="color:#1E7A4C; font-weight:700; display:none;"> — رحمه الله</span>`;
   sheet.classList.add("show"); backdrop.classList.add("show");
 
   const card = document.getElementById("ip-card");
   card.innerHTML = `<div class="ip-empty">جارٍ التحميل…</div>`;
-  loadPersonData(personId(d)).then(data => {
-    const hasAny = data.birthYear || data.job || data.bio || data.photo || (data.notaries && data.notaries.length) || data.deathStatus === "dead";
+
+  const sonsInTree = d.children ? d.children.filter(c => c.data.type !== "female").length : 0;
+  const daughters = d.children ? d.children.filter(c => c.data.type === "female") : [];
+
+  Promise.all([
+    loadPersonData(personId(d)),
+    Promise.all(daughters.map(dt => loadPersonData(personId(dt))))
+  ]).then(async ([data, daughtersData]) => {
+    document.getElementById("ip-rahimahu").style.display = data.deathStatus === "dead" ? "inline" : "none";
+
+    let unclesHtml = "";
+    if (data.mother && data.mother.fatherId){
+      const mgf = root.descendants().find(n => personId(n) === data.mother.fatherId);
+      if (mgf){
+        const uncles = (mgf.children || []).filter(c => c.data.type !== "female").map(c => c.data.name);
+        if (uncles.length) unclesHtml = `<div class="ip-row"><span class="ip-label">الأخوال</span><span class="ip-value">${uncles.join("، ")}</span></div>`;
+      }
+    }
+
+    // الأصهار: زوج ابنة / والد زوجة / أخ زوجة / نسيب (العديل)
+    const sadahaList = [];
+    daughtersData.forEach(dd => { if (dd.husband && !dd.husbandDivorced) sadahaList.push({ label: "زوج ابنة", name: dd.husband }); });
+
+    const insideWives = (data.wives || []).filter(w => w.type === "inside" && w.fatherId);
+    for (const w of insideWives){
+      const wifeFatherNode = root.descendants().find(n => personId(n) === w.fatherId);
+      if (!wifeFatherNode) continue;
+      if (w.fatherName) sadahaList.push({ label: "والد زوجة", name: w.fatherName });
+      (wifeFatherNode.children || []).filter(c => c.data.type !== "female").forEach(b => {
+        sadahaList.push({ label: "أخ زوجة", name: b.data.name });
+      });
+      const sisters = (wifeFatherNode.children || []).filter(c => c.data.type === "female");
+      for (const sis of sisters){
+        const sisData = await loadPersonData(personId(sis));
+        if (sisData.husband && !sisData.husbandDivorced && sisData.husband !== d.data.name){
+          sadahaList.push({ label: "نسيب (العديل)", name: sisData.husband });
+        }
+      }
+    }
+    const sadahaHtml = sadahaList.length
+      ? `<div class="ip-row"><span class="ip-label">الأصهار</span></div>` +
+        `<div class="ip-sadaha">${sadahaList.map(s => `<div class="ip-sadaha-item"><b>${s.label}:</b> ${s.name}</div>`).join("")}</div>`
+      : "";
+
+    const hasAny = data.birthYear || data.job || data.bio || data.photo || (data.notaries && data.notaries.length) || data.deathStatus === "dead" || sonsInTree || unclesHtml || sadahaHtml;
     if (!hasAny){ card.innerHTML = `<div class="ip-empty">لا توجد معلومات إضافية مضافة لهذا الشخص بعد.</div>`; return; }
     let html = "";
     if (data.photo) html += `<img class="ip-photo" src="${data.photo}">`;
-    if (data.birthYear) html += `<div class="ip-row"><span class="ip-label">تاريخ الميلاد</span><span class="ip-value">${data.birthYear} هـ</span></div>`;
+    if (data.birthYear){
+      const age = CURRENT_HIJRI_YEAR - parseInt(data.birthYear);
+      html += `<div class="ip-row"><span class="ip-label">تاريخ الميلاد</span><span class="ip-value">${data.birthYear} هـ</span></div>`;
+      if (age > 0 && age < 130) html += `<div class="ip-row"><span class="ip-label">العمر</span><span class="ip-value">${age} سنة تقريبًا</span></div>`;
+    }
     html += `<div class="ip-row"><span class="ip-label">الحالة</span><span class="ip-value">${data.deathStatus === "dead" ? ("متوفى" + (data.deathYear ? " — " + data.deathYear + " هـ" : "")) : "حي يرزق"}</span></div>`;
     if (data.job) html += `<div class="ip-row"><span class="ip-label">الوظيفة</span><span class="ip-value">${data.job}</span></div>`;
+    html += `<div class="ip-row"><span class="ip-label">عدد الأبناء بالمشجرة</span><span class="ip-value">${sonsInTree}</span></div>`;
+    html += unclesHtml;
+    html += sadahaHtml;
     if (data.notaries && data.notaries.length){
-      html += `<div class="ip-row"><span class="ip-label">العدلاء</span></div>`;
+      html += `<div class="ip-row"><span class="ip-label">العدلاء من أبناء القبيلة</span></div>`;
       html += `<div class="ip-notaries">${data.notaries.map(n => `<span class="ip-notary-chip">${n.chain3 || n.name}</span>`).join("")}</div>`;
     }
     if (data.bio) html += `<div class="ip-bio">${data.bio}</div>`;
@@ -5317,6 +5381,10 @@ async function openInfoModal(d){
   document.getElementById("deathYearWrap").style.display = data.deathStatus === "dead" ? "block" : "none";
   document.getElementById("f-deathYear").value = data.deathYear || "";
   document.getElementById("f-job").value = data.job || "";
+  const isFemale = d.data.type === "female";
+  document.getElementById("husbandWrap").style.display = isFemale ? "block" : "none";
+  document.getElementById("f-husband").value = data.husband || "";
+  document.getElementById("f-husbandDivorced").checked = !!data.husbandDivorced;
   document.getElementById("f-sonsCount").textContent = modalNode.children ? modalNode.children.filter(c => c.data.type !== "female").length : 0;
   document.getElementById("f-bio").value = data.bio || "";
   photoDataUrl = data.photo || "";
@@ -5426,7 +5494,9 @@ document.getElementById("f-save").onclick = async () => {
     photo: photoDataUrl,
     mother: motherState,
     notaries: notaryState,
-    wives: wivesState
+    wives: wivesState,
+    husband: modalNode.data.type === "female" ? document.getElementById("f-husband").value : undefined,
+    husbandDivorced: modalNode.data.type === "female" ? document.getElementById("f-husbandDivorced").checked : undefined
   };
   const myId = personId(modalNode);
   await savePersonData(myId, data);
