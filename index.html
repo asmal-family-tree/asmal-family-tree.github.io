@@ -228,7 +228,16 @@
     font-family:'Tajawal',sans-serif; display:none;
   }
   #myTreeInfoPanel.show{ display:block; }
+  #mtiClose{ position:absolute; top:6px; left:10px; cursor:pointer; font-size:15px; color:#999; }
+  #mtiClose:hover{ color:#8B1E1E; }
   #myTreeInfoPanel h4{ margin:0 0 8px 0; font-size:16px; color:#241a10; text-align:center; }
+  #currentUserBadge{
+    position:fixed; top:10px; left:10px; z-index:55; background:rgba(255,253,246,0.95); border:1px solid #ddd;
+    border-radius:20px; padding:5px 12px; font-family:'Tajawal',sans-serif; font-size:12px; color:#333;
+    box-shadow:0 2px 8px rgba(0,0,0,0.12); display:none; align-items:center; gap:8px;
+  }
+  #currentUserBadge.show{ display:flex; }
+  #currentUserBadge button{ border:none; background:#eee; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer; color:#555; }
   #myTreeInfoPanel .mti-row{ font-size:14px; color:#444; margin:4px 0; display:flex; justify-content:space-between; gap:12px; }
   #myTreeInfoPanel button{
     width:100%; margin-top:10px; padding:8px; border:none; border-radius:8px; background:#B8860B;
@@ -359,6 +368,10 @@
     <div id="authLoading" style="display:none">جارِ التحقق…</div>
   </div>
 </div>
+<div id="currentUserBadge">
+  <span id="currentUserName"></span>
+  <button id="logoutBtn">خروج</button>
+</div>
 <div id="artBackground"><img id="bgImg" alt=""></div>
 <div id="ornateFrame"></div>
 
@@ -373,6 +386,7 @@
 </div>
 
 <div id="myTreeInfoPanel">
+  <span id="mtiClose" title="إغلاق">✕</span>
   <h4 id="mtiName"></h4>
   <div class="mti-row"><span>عدد الأبناء</span><span id="mtiChildren">0</span></div>
   <div class="mti-row"><span>عدد الأحفاد</span><span id="mtiGrandchildren">0</span></div>
@@ -649,12 +663,21 @@ async function afterSignIn(fbUser){
     role: "limited", displayName: (fbUser.email || "").split("@")[0], scopePersonId: null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-  currentUser = { uid: fbUser.uid, role: userDoc.role, scopePersonId: userDoc.scopePersonId || null, displayName: userDoc.displayName };
+  currentUser = { uid: fbUser.uid, role: userDoc.role, scopePersonId: userDoc.scopePersonId || null,
+    scopePersonName: userDoc.scopePersonName || null, displayName: userDoc.displayName };
   window.currentUser = currentUser;
   document.getElementById("authOverlay").classList.add("hidden");
   setAuthLoading(false);
+  document.getElementById("currentUserName").textContent = "👤 " + currentUser.displayName;
+  document.getElementById("currentUserBadge").classList.add("show");
+  document.getElementById("tree-wrap").classList.remove("tree-hidden");
   applyRolePermissions();
 }
+
+document.getElementById("logoutBtn").onclick = () => {
+  auth.signOut();
+  document.getElementById("currentUserBadge").classList.remove("show");
+};
 
 auth.onAuthStateChanged((fbUser) => {
   if (fbUser){
@@ -707,9 +730,16 @@ function applyRolePermissions(){
   if (currentUser.role === "admin"){
     document.getElementById("migrateRow").style.display = "flex";
     document.getElementById("usersToggle").style.display = "";
+    document.getElementById("ioToggle").style.display = "";
+    document.getElementById("toggleTree").style.display = "";
+    document.getElementById("toggleManual").style.display = "";
+    document.getElementById("bgToggle").style.display = "";
   } else {
     document.getElementById("usersToggle").style.display = "none";
     document.getElementById("bgToggle").style.display = "none";
+    document.getElementById("ioToggle").style.display = "none";
+    document.getElementById("toggleTree").style.display = "none";
+    document.getElementById("toggleManual").style.display = "none";
   }
   checkMigrationStatusAndLoad();
 }
@@ -809,6 +839,13 @@ async function loadTreeFromFirestore(){
     }
   });
   if (!rootNode) return;
+
+  // للمستخدم المحدود: نعرض بس من نقطته (شخصه) نزولًا لأبنائه وأحفاده
+  if (!isAdminView && currentUser && currentUser.scopePersonId){
+    const scopeNode = byId.get(currentUser.scopePersonId);
+    if (scopeNode) rootNode = scopeNode;
+  }
+
   function clean(n){
     const out = { name: n.name, type: n.type, id: n.id, ancestorIds: n.ancestorIds };
     if (n.isJoinPoint) out.isJoinPoint = true;
@@ -5003,6 +5040,10 @@ async function confirmDeletePerson(d){
 function saveTreeDataEdits(){
   try{ localStorage.setItem("tree-data-edits", JSON.stringify(treeData)); }catch(e){}
 }
+
+document.getElementById("mtiClose").onclick = function(){
+  document.getElementById("myTreeInfoPanel").classList.remove("show");
+};
 
 document.getElementById("mtiExportBtn").onclick = async function(){
   if (!personalTreeActive) return;
