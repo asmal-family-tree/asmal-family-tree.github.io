@@ -108,7 +108,7 @@
   #tree-wrap{ position:relative; width:100%; height:100vh; min-height:420px; overflow:hidden; touch-action:none; cursor:grab; }
   #tree-wrap:active{ cursor:grabbing; }
   svg{ width:100%; height:100%; display:block; }
-  .zoom-fab{ position:absolute; left:14px; bottom:calc(78px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px; z-index:15; }
+  .zoom-fab{ position:absolute; left:14px; bottom:calc(var(--barh, 64px) + 14px); display:flex; flex-direction:column; gap:10px; z-index:15; }
   .zoom-fab button{
     width:46px; height:46px; border-radius:50%; border:1px solid #EFE6D6; background:#fff; color:var(--trunk-ring); font-size:19px;
     box-shadow:var(--card-shadow); cursor:pointer; transition:transform .1s;
@@ -129,7 +129,7 @@
   #bottomBar button.active{ background:rgba(212,175,55,.18); border-color:var(--gold-bright); }
 
   .bottom-panel{
-    position:fixed; left:0; right:0; bottom:calc(64px + env(safe-area-inset-bottom)); z-index:31;
+    position:fixed; left:0; right:0; bottom:var(--barh, 64px); z-index:31;
     display:none; margin:0 auto; max-width:420px; padding:0 14px;
   }
   .bottom-panel.show{ display:block; }
@@ -173,9 +173,9 @@
   .node.path-highlight .tag{ stroke:#C9971F; stroke-width:2px; }
 
   #sheet{
-    position:fixed; left:0; right:0; bottom:0; z-index:30; background:#FDFBF7; border-top:1px solid #EFE6D6;
+    position:fixed; left:0; right:0; bottom:var(--barh, 64px); z-index:30; background:#FDFBF7; border-top:1px solid #EFE6D6;
     border-radius:24px 24px 0 0; box-shadow:var(--card-shadow-lg);
-    padding:12px 22px calc(22px + env(safe-area-inset-bottom)); transform:translateY(110%); transition:transform .3s cubic-bezier(.22,.9,.34,1);
+    padding:12px 22px 22px; transform:translateY(110%); transition:transform .3s cubic-bezier(.22,.9,.34,1);
     max-height:82vh; overflow-y:auto;
   }
   #sheet.show{ transform:translateY(0); }
