@@ -5511,6 +5511,12 @@ function updateBarHeight(){
 updateBarHeight();
 window.addEventListener("resize", updateBarHeight);
 window.addEventListener("orientationchange", updateBarHeight);
+setTimeout(updateBarHeight, 300);
+setTimeout(updateBarHeight, 1000);
+if (window.ResizeObserver){
+  const barEl = document.getElementById("bottomBar");
+  if (barEl) new ResizeObserver(updateBarHeight).observe(barEl);
+}
 
 let bgScale = 1, bgX = 0, bgY = 0;
 function applyBgTransform(){
