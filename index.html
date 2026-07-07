@@ -244,6 +244,11 @@
   }
   #currentUserBadge.show{ display:flex; }
   #currentUserBadge button{ border:none; background:#eee; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer; color:#555; }
+  #noViewMsg{
+    position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center;
+    background:#FFFFFF; font-family:'Tajawal',sans-serif; font-size:16px; color:#8B1E1E; text-align:center; padding:30px;
+  }
+  #noViewMsg.show{ display:flex; }
   #myTreeInfoPanel .mti-row{ font-size:14px; color:#444; margin:4px 0; display:flex; justify-content:space-between; gap:12px; }
   #myTreeInfoPanel button{
     width:100%; margin-top:10px; padding:8px; border:none; border-radius:8px; background:#B8860B;
@@ -378,6 +383,7 @@
   <span id="currentUserName"></span>
   <button id="logoutBtn">خروج</button>
 </div>
+<div id="noViewMsg">🚫 لا تملك حاليًا صلاحية عرض المشجرة. تواصل مع محمد رشاد.</div>
 <div id="artBackground"><img id="bgImg" alt=""></div>
 <div id="ornateFrame"></div>
 
@@ -476,7 +482,6 @@
   <button id="ioToggle" title="استيراد وتصدير">📁</button>
   <button id="bgToggle" title="خلفية الشجرة">🖼️</button>
   <button id="toggleTree" title="إخفاء/إظهار المشجرة">🙈</button>
-  <button id="toggleManual" title="ترتيب يدوي">🖐️</button>
   <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
 </div>
 
@@ -667,15 +672,17 @@ async function afterSignIn(fbUser){
   if (window.__adminBootstrapping) return;
   const userDoc = await ensureUserDoc(fbUser.uid, {
     role: "limited", displayName: (fbUser.email || "").split("@")[0], scopePersonId: null,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    canView: true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
   currentUser = { uid: fbUser.uid, role: userDoc.role, scopePersonId: userDoc.scopePersonId || null,
-    scopePersonName: userDoc.scopePersonName || null, displayName: userDoc.displayName };
+    scopePersonName: userDoc.scopePersonName || null, displayName: userDoc.displayName,
+    canView: userDoc.canView !== false };
   window.currentUser = currentUser;
   document.getElementById("authOverlay").classList.add("hidden");
   setAuthLoading(false);
   document.getElementById("currentUserName").textContent = "👤 " + currentUser.displayName;
   document.getElementById("currentUserBadge").classList.add("show");
+  document.getElementById("noViewMsg").classList.remove("show");
   document.getElementById("tree-wrap").classList.remove("tree-hidden");
   applyRolePermissions();
 }
@@ -738,14 +745,17 @@ function applyRolePermissions(){
     document.getElementById("usersToggle").style.display = "";
     document.getElementById("ioToggle").style.display = "";
     document.getElementById("toggleTree").style.display = "";
-    document.getElementById("toggleManual").style.display = "";
     document.getElementById("bgToggle").style.display = "";
   } else {
     document.getElementById("usersToggle").style.display = "none";
     document.getElementById("bgToggle").style.display = "none";
     document.getElementById("ioToggle").style.display = "none";
     document.getElementById("toggleTree").style.display = "none";
-    document.getElementById("toggleManual").style.display = "none";
+    if (currentUser.canView === false){
+      document.getElementById("tree-wrap").classList.add("tree-hidden");
+      document.getElementById("noViewMsg").classList.add("show");
+      return;
+    }
   }
   checkMigrationStatusAndLoad();
 }
@@ -955,10 +965,19 @@ async function refreshUsersAndPendingLists(){
       usersListEl.innerHTML = "";
       usersSnap.forEach(doc => {
         const u = doc.data();
+        const canView = u.canView !== false;
         const row = document.createElement("div");
         row.className = "chip";
         row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; width:100%; box-sizing:border-box;";
-        row.innerHTML = `<span>${u.displayName} — نطاقه: ${u.scopePersonName || "؟"}</span><span class="chip-x" title="حذف">✕</span>`;
+        row.innerHTML = `<span>${u.displayName} — نطاقه: ${u.scopePersonName || "؟"}</span>
+          <span style="display:flex; gap:8px; align-items:center;">
+            <span class="view-toggle" style="cursor:pointer; font-size:12px; padding:3px 8px; border-radius:10px; background:${canView ? "#E4F3EA" : "#FCE4E4"}; color:${canView ? "#1E7A4C" : "#8B1E1E"};">${canView ? "👁️ يشاهد" : "🚫 ممنوع"}</span>
+            <span class="chip-x" title="حذف">✕</span>
+          </span>`;
+        row.querySelector(".view-toggle").onclick = async () => {
+          await db.collection("users").doc(doc.id).update({ canView: !canView });
+          refreshUsersAndPendingLists();
+        };
         row.querySelector(".chip-x").onclick = async () => {
           if (!confirm(`حذف المستخدم "${u.displayName}"؟ (هذا يمنعه من الدخول، ولا يحذف إضافاته السابقة)`)) return;
           await db.collection("users").doc(doc.id).delete();
@@ -3927,12 +3946,6 @@ const dragBehavior = d3.drag()
     buildAndRender();
   });
 
-document.getElementById("toggleManual").onclick = function(){
-  manualMode = !manualMode;
-  this.classList.toggle("active", manualMode);
-  document.getElementById("tree-wrap").classList.toggle("manual-mode", manualMode);
-};
-
 function buildAndRender(){
   root = d3.hierarchy(treeData);
   d3.tree().nodeSize([dx, dy])(root);
@@ -4771,7 +4784,7 @@ function currentHijriYear(){
 
 let modalNode = null;
 let notaryState = [];   // [{id, name, selectedWife}]
-let wivesState = [];    // [{type:'inside', wifeName, fatherId, fatherName, fatherChain, children:[]}] or [{type:'outside', freeText, children:[]}]
+let wivesState = [];    // [{type:'inside', wifeName, fatherId, fatherName, fatherChain, children:[]}] or [{type:'outside', notaries:[{id,name,chain3}], children:[]}]
 let motherState = null; // {fatherId, fatherName, fatherChain, auto}
 let photoDataUrl = "";
 
@@ -4822,7 +4835,7 @@ function renderNotaryChips(){
     nameSpan.textContent = n.chain3 || n.name;
     nameSpan.onclick = async () => {
       const otherData = await loadPersonData(n.id);
-      const wives = (otherData.wives || []).map(w => w.type === "inside" ? w.wifeName : w.freeText).filter(Boolean);
+      const wives = (otherData.wives || []).filter(w => w.type === "inside" && w.wifeName).map(w => w.wifeName);
       if (!wives.length){ alert("لا توجد زوجات مضافة لهذا الشخص بعد."); return; }
       const sel = document.createElement("select");
       sel.innerHTML = `<option value="">اختر زوجة العديل</option>` + wives.map(w => `<option ${w===n.selectedWife?"selected":""}>${w}</option>`).join("");
@@ -5026,12 +5039,31 @@ function renderWives(){
       divorceLbl.append("مطلقة");
       block.appendChild(divorceLbl);
     } else {
-      const freeInput = document.createElement("input");
-      freeInput.className = "f-input";
-      freeInput.placeholder = "الاسم الثلاثي";
-      freeInput.value = w.freeText || "";
-      freeInput.oninput = () => { wivesState[wi].freeText = freeInput.value; };
-      block.appendChild(freeInput);
+      const notaryTitle = document.createElement("label");
+      notaryTitle.className = "f-label";
+      notaryTitle.textContent = "إدخال العدلاء من القبيلة";
+      block.appendChild(notaryTitle);
+
+      const searchBox = makePersonSearchBox("اكتب اسم من القبيلة، ثم اضغط عليه من القائمة", (m) => {
+        w.notaries = w.notaries || [];
+        const id = personId(m);
+        if (!w.notaries.some(x => x.id === id)){
+          w.notaries.push({ id, name: m.data.name, chain3: chainNames(m).slice(0,3).join(" بن ") });
+        }
+        renderWives();
+      });
+      block.appendChild(searchBox);
+
+      const chipList = document.createElement("div");
+      chipList.className = "chip-list";
+      (w.notaries || []).forEach((n, ni) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.innerHTML = `<span>${n.chain3 || n.name}</span><span class="chip-x">✕</span>`;
+        chip.querySelector(".chip-x").onclick = () => { w.notaries.splice(ni, 1); renderWives(); };
+        chipList.appendChild(chip);
+      });
+      block.appendChild(chipList);
     }
 
     const childWrap = document.createElement("div");
@@ -5079,7 +5111,7 @@ document.getElementById("wifeTypeInside").onclick = () => {
   renderWives();
 };
 document.getElementById("wifeTypeOutside").onclick = () => {
-  wivesState.push({ type: "outside", freeText: "", children: [] });
+  wivesState.push({ type: "outside", notaries: [], children: [] });
   document.getElementById("wifeTypeChooser").style.display = "none";
   renderWives();
 };
