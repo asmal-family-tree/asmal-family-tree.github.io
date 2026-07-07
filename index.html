@@ -214,6 +214,12 @@
   .minus-badge circle{ fill:#fff; stroke:#8B1E1E; stroke-width:1.6px; }
   .minus-badge text{ font-size:15px; font-weight:800; fill:#8B1E1E; text-anchor:middle; dominant-baseline:middle; }
   .minus-badge{ cursor:pointer; }
+  .approve-badge circle{ fill:#fff; stroke:#1E7A4C; stroke-width:1.8px; }
+  .approve-badge text{ font-size:14px; font-weight:800; fill:#1E7A4C; text-anchor:middle; dominant-baseline:middle; }
+  .approve-badge{ cursor:pointer; }
+  .reject-badge circle{ fill:#fff; stroke:#8B1E1E; stroke-width:1.8px; }
+  .reject-badge text{ font-size:14px; font-weight:800; fill:#8B1E1E; text-anchor:middle; dominant-baseline:middle; }
+  .reject-badge{ cursor:pointer; }
   .star-badge{ display:none; cursor:default; }
   .star-badge circle{ fill:#fff; stroke:#E08A00; stroke-width:1.6px; }
   .star-badge text{ font-size:15px; fill:#E08A00; text-anchor:middle; dominant-baseline:middle; }
@@ -828,7 +834,7 @@ async function loadTreeFromFirestore(){
   snap.forEach(doc => {
     const d = doc.data();
     if (!isAdminView && d.pendingApproval) return; // إخفاء الإضافات المعلّقة عن غير المشرف
-    byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], children: [] });
+    byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], pendingApproval: !!d.pendingApproval, children: [] });
   });
   let rootNode = null;
   byId.forEach((node, id) => {
@@ -849,6 +855,7 @@ async function loadTreeFromFirestore(){
   function clean(n){
     const out = { name: n.name, type: n.type, id: n.id, ancestorIds: n.ancestorIds };
     if (n.isJoinPoint) out.isJoinPoint = true;
+    if (n.pendingApproval) out.pendingApproval = true;
     if (n.children.length) out.children = n.children.map(clean);
     return out;
   }
@@ -935,8 +942,13 @@ async function refreshUsersAndPendingLists(){
   usersListEl.innerHTML = "جارِ التحميل…";
   pendingListEl.innerHTML = "جارِ التحميل…";
 
+  // خريطة uid -> اسم المستخدم (تُستخدم لعرض "أضافه فلان" بقائمة الاعتماد)
+  const uidToName = new Map();
+  uidToName.set(currentUser.uid, currentUser.displayName);
+
   try{
     const usersSnap = await db.collection("users").where("role", "==", "limited").get();
+    usersSnap.forEach(doc => uidToName.set(doc.id, doc.data().displayName));
     if (usersSnap.empty){
       usersListEl.innerHTML = `<span style="color:#999;font-size:13px">لا يوجد مستخدمون محدودون بعد</span>`;
     } else {
@@ -965,23 +977,38 @@ async function refreshUsersAndPendingLists(){
       pendingListEl.innerHTML = `<span style="color:#999;font-size:13px">لا يوجد إضافات بانتظار الاعتماد</span>`;
     } else {
       pendingListEl.innerHTML = "";
-      pendingSnap.forEach(doc => {
+      for (const doc of pendingSnap.docs){
         const p = doc.data();
+        let parentName = "؟";
+        if (p.parentId){
+          try{
+            const parentSnap = await db.collection("persons").doc(p.parentId).get();
+            if (parentSnap.exists) parentName = parentSnap.data().name;
+          }catch(e){}
+        }
+        const adderName = uidToName.get(p.addedBy) || "غير معروف";
         const row = document.createElement("div");
-        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:8px; background:#FFF8E1; border-radius:8px;";
-        row.innerHTML = `<span>${p.name}</span><span><button class="f-btn-sm approve-btn" style="margin-left:6px;">✅ اعتماد</button><button class="f-btn-sm reject-btn" style="background:#8B1E1E;">✕ رفض</button></span>`;
-        row.querySelector(".approve-btn").onclick = async () => {
+        row.style.cssText = "display:flex; flex-direction:column; gap:6px; margin-bottom:8px; padding:8px; background:#FFF8E1; border-radius:8px; cursor:pointer;";
+        row.innerHTML = `
+          <div><b>${p.name}</b> — ابن لـ <b>${parentName}</b></div>
+          <div style="font-size:12px; color:#777;">أضافه: ${adderName} — اضغط لعرض موقعه بالخريطة 📍</div>
+          <div><button class="f-btn-sm approve-btn" style="margin-left:6px;">✅ اعتماد</button><button class="f-btn-sm reject-btn" style="background:#8B1E1E;">✕ رفض</button></div>
+        `;
+        row.onclick = () => jumpToPerson(doc.id);
+        row.querySelector(".approve-btn").onclick = async (event) => {
+          event.stopPropagation();
           await db.collection("persons").doc(doc.id).update({ pendingApproval: false });
           refreshUsersAndPendingLists();
           await loadTreeFromFirestore();
         };
-        row.querySelector(".reject-btn").onclick = async () => {
+        row.querySelector(".reject-btn").onclick = async (event) => {
+          event.stopPropagation();
           if (!confirm(`رفض وحذف "${p.name}"؟`)) return;
           await db.collection("persons").doc(doc.id).delete();
           refreshUsersAndPendingLists();
         };
         pendingListEl.appendChild(row);
-      });
+      }
     }
   }catch(e){
     pendingListEl.innerHTML = "تعذّر التحميل: " + (e.message || e.code);
@@ -3844,6 +3871,38 @@ function centerOnRoot(){
     .scale(initScale);
 }
 
+function jumpToPerson(personId){
+  document.getElementById("usersPanel").classList.remove("show");
+  document.getElementById("tree-wrap").classList.remove("tree-hidden");
+  exitFocusMode();
+  const d = root.descendants().find(n => n.data.id === personId);
+  if (!d){ alert("تعذّر إيجاد الشخص بالشجرة الحالية."); return; }
+  const w = svg.node().clientWidth, h = svg.node().clientHeight;
+  const targetScale = 1;
+  const t = d3.zoomIdentity.translate(w/2 - sx(d)*targetScale, h/2 - sy(d)*targetScale).scale(targetScale);
+  svg.transition().duration(600).call(zoom.transform, t);
+  node.select(".ring").classed("show", n => n === d);
+  setTimeout(() => { node.select(".ring").classed("show", false); }, 3000);
+}
+
+async function approvePendingPerson(d){
+  if (!confirm(`اعتماد "${d.data.name}"؟`)) return;
+  try{
+    await db.collection("persons").doc(d.data.id).update({ pendingApproval: false });
+    await loadTreeFromFirestore();
+    refreshUsersAndPendingLists();
+  }catch(e){ alert("تعذّر الاعتماد: " + (e.message || e.code)); }
+}
+
+async function rejectPendingPerson(d){
+  if (!confirm(`رفض وحذف "${d.data.name}"؟`)) return;
+  try{
+    await db.collection("persons").doc(d.data.id).delete();
+    await loadTreeFromFirestore();
+    refreshUsersAndPendingLists();
+  }catch(e){ alert("تعذّر الرفض: " + (e.message || e.code)); }
+}
+
 const R = { root:26, trunk:21, leaf:17, joinpoint:30, "trunk-red":21, "trunk-green":21, "trunk-blue":21, "trunk-gold":21, "female":15 };
 let busYByParent, node;
 
@@ -3937,8 +3996,38 @@ function buildAndRender(){
       .attr("d", `M ${-r*0.42},${r*0.5} Q ${-r*0.42},${r*0.02} 0,${r*0.02} Q ${r*0.42},${r*0.02} ${r*0.42},${r*0.5} Z`);
   });
 
+  // ثلاث خطوط حمراء فوق كل شخص "بانتظار الاعتماد" (تظهر لمحمد رشاد فقط)
+  node.filter(d => d.data.pendingApproval).each(function(d){
+    const r = R[d.data.type];
+    const s = d3.select(this);
+    const g2 = s.append("g").attr("class","pending-mark");
+    [-r*0.55, 0, r*0.55].forEach(offsetY => {
+      g2.append("line")
+        .attr("x1", -r*0.85).attr("x2", r*0.85)
+        .attr("y1", offsetY).attr("y2", offsetY)
+        .attr("stroke", "#D6262A").attr("stroke-width", 2.4).attr("stroke-linecap", "round");
+    });
+  });
+
+  // اعتماد ✅ / رفض ✕ مباشرة من الخريطة لكل شخص بانتظار الاعتماد
+  node.filter(d => d.data.pendingApproval).each(function(d){
+    const r = R[d.data.type];
+    const s = d3.select(this);
+    const approveBadge = s.append("g").attr("class","approve-badge")
+      .attr("transform", `translate(${r*0.68},${-r*0.68})`)
+      .on("click", (event) => { event.stopPropagation(); approvePendingPerson(d); });
+    approveBadge.append("circle").attr("r", 10);
+    approveBadge.append("text").attr("y", 0.5).text("✓");
+
+    const rejectBadge = s.append("g").attr("class","reject-badge")
+      .attr("transform", `translate(${-r*0.68},${-r*0.68})`)
+      .on("click", (event) => { event.stopPropagation(); rejectPendingPerson(d); });
+    rejectBadge.append("circle").attr("r", 10);
+    rejectBadge.append("text").attr("y", 0.5).text("✕");
+  });
+
   // علامة + لفتح نافذة المعلومات
-  node.each(function(d){
+  node.filter(d => !d.data.pendingApproval).each(function(d){
     const r = R[d.data.type];
     const s = d3.select(this);
     const badge = s.append("g").attr("class","plus-badge")
@@ -3949,7 +4038,7 @@ function buildAndRender(){
   });
 
   // علامة - للحذف (مع تأكيد)
-  node.each(function(d){
+  node.filter(d => !d.data.pendingApproval).each(function(d){
     const r = R[d.data.type];
     const s = d3.select(this);
     const badge = s.append("g").attr("class","minus-badge")
