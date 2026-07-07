@@ -835,7 +835,19 @@ newUserScopeInput.addEventListener("input", () => {
   const q = newUserScopeInput.value.trim();
   newUserScopeDropdown.innerHTML = "";
   if (!q){ newUserScopeDropdown.classList.remove("show"); return; }
-  const matches = root.descendants().filter(d => d.data.name.includes(q)).slice(0, 10);
+  const parts = q.split(/\s+/).filter(Boolean);
+  let matches;
+  if (parts.length > 1){
+    matches = root.descendants().filter(d => {
+      const chain = chainNames(d);
+      if (chain.length < parts.length) return false;
+      for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
+      return true;
+    });
+  } else {
+    matches = root.descendants().filter(d => d.data.name.includes(q));
+  }
+  matches = matches.slice(0, 30);
   if (!matches.length){ newUserScopeDropdown.classList.remove("show"); return; }
   matches.forEach(m => {
     const item = document.createElement("div");
