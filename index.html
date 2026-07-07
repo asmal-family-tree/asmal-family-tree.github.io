@@ -587,19 +587,21 @@ document.getElementById("authLoginBtn").onclick = async function(){
   try{
     const cred = await withTimeout(auth.signInWithEmailAndPassword(email, password), 12000,
       "تعذّر الاتصال بالخادم. جرّب فتح الملف من متصفح Chrome مباشرة (مو معاينة ملفات التنزيلات)، وتأكد من اتصال الإنترنت.");
-    await afterSignIn(cred.user, username);
   }catch(err){
     if (err.code === "timeout"){ setAuthLoading(false); showAuthError(err.message); return; }
     if ((err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials")
         && username === ADMIN_USERNAME && password === ADMIN_BOOTSTRAP_PASSWORD){
       try{
+        window.__adminBootstrapping = true;
         const cred = await withTimeout(auth.createUserWithEmailAndPassword(email, password), 12000,
           "تعذّر الاتصال بالخادم. جرّب فتح الملف من متصفح Chrome مباشرة، وتأكد من اتصال الإنترنت.");
         await db.collection("users").doc(cred.user.uid).set({
           role: "admin", displayName: ADMIN_USERNAME, scopePersonId: null, createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        await afterSignIn(cred.user, ADMIN_USERNAME);
+        window.__adminBootstrapping = false;
+        await afterSignIn(cred.user);
       }catch(err2){
+        window.__adminBootstrapping = false;
         setAuthLoading(false);
         showAuthError(err2.code === "timeout" ? err2.message : ("تعذّر إنشاء حساب المشرف: " + (err2.message || err2.code)));
       }
@@ -620,12 +622,13 @@ document.getElementById("authPassword").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("authLoginBtn").click();
 });
 
-async function afterSignIn(fbUser, usernameTyped){
+async function afterSignIn(fbUser){
+  if (window.__adminBootstrapping) return;
   const userDoc = await ensureUserDoc(fbUser.uid, {
-    role: "limited", displayName: usernameTyped, scopePersonId: null,
+    role: "limited", displayName: (fbUser.email || "").split("@")[0], scopePersonId: null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-  currentUser = { uid: fbUser.uid, role: userDoc.role, scopePersonId: userDoc.scopePersonId || null, displayName: userDoc.displayName || usernameTyped };
+  currentUser = { uid: fbUser.uid, role: userDoc.role, scopePersonId: userDoc.scopePersonId || null, displayName: userDoc.displayName };
   window.currentUser = currentUser;
   document.getElementById("authOverlay").classList.add("hidden");
   setAuthLoading(false);
@@ -633,7 +636,11 @@ async function afterSignIn(fbUser, usernameTyped){
 }
 
 auth.onAuthStateChanged((fbUser) => {
-  if (!fbUser){
+  if (fbUser){
+    afterSignIn(fbUser);
+  } else {
+    currentUser = null;
+    window.currentUser = null;
     document.getElementById("authOverlay").classList.remove("hidden");
   }
 });
