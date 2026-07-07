@@ -540,14 +540,14 @@
     <div id="motherBox" style="position:relative"></div>
     <div id="motherResult" class="father-search-result"></div>
 
-    <label class="f-label">العدلاء</label>
+    <label class="f-label">العدلاء من أبناء القبيلة</label>
     <div class="f-row" style="position:relative">
       <input type="text" id="f-notaryInput" class="f-input" placeholder="اكتب الاسم الرباعي، ثم اضغط على الاسم من القائمة لإضافته">
       <div id="notaryDropdown" class="autocomplete-dropdown"></div>
     </div>
     <div id="notaryList" class="chip-list"></div>
 
-    <label class="f-label">عدد الزوجات</label>
+    <label class="f-label">بيانات الزوجة والأبناء</label>
     <div id="wivesList"></div>
     <button id="f-wifeAdd" class="f-btn-sm">+ إضافة زوجة</button>
     <div id="wifeTypeChooser" class="wife-type-chooser" style="display:none;">
@@ -5039,9 +5039,15 @@ function renderWives(){
       divorceLbl.append("مطلقة");
       block.appendChild(divorceLbl);
     } else {
+      w.autoName = "زوجة " + modalNode.data.name;
+      const nameLabel = document.createElement("div");
+      nameLabel.style.cssText = "font-weight:700; color:#333; font-size:14px; margin-bottom:8px;";
+      nameLabel.textContent = w.autoName;
+      block.appendChild(nameLabel);
+
       const notaryTitle = document.createElement("label");
       notaryTitle.className = "f-label";
-      notaryTitle.textContent = "إدخال العدلاء من القبيلة";
+      notaryTitle.textContent = "العدلاء من أبناء القبيلة";
       block.appendChild(notaryTitle);
 
       const searchBox = makePersonSearchBox("اكتب اسم من القبيلة، ثم اضغط عليه من القائمة", (m) => {
