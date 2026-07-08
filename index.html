@@ -582,6 +582,7 @@
     <div id="photoPreviewWrap"></div>
 
     <button id="f-save" class="f-save-btn">حفظ المعلومات</button>
+    <button id="f-clearAll" style="width:100%; margin-top:8px; padding:10px; border:1.5px solid #8B1E1E; border-radius:10px; background:#fff; color:#8B1E1E; font-family:'Tajawal',sans-serif; font-weight:700; cursor:pointer;">🗑️ مسح كل المعلومات المضافة</button>
     <div id="f-saveMsg"></div>
   </div>
 </div>
@@ -5644,6 +5645,25 @@ document.getElementById("f-save").onclick = async () => {
 
   const msg = document.getElementById("f-saveMsg");
   msg.textContent = "تم الحفظ ✅";
+  setTimeout(() => { msg.textContent = ""; }, 2500);
+};
+
+document.getElementById("f-clearAll").onclick = async () => {
+  const ok = confirm(`مسح جميع المعلومات المضافة لـ "${modalNode.data.name}" (تاريخ الميلاد، الوظيفة، الأم، العدلاء، الزوجات، إلخ)؟\nهذا لا يحذف الشخص نفسه من الشجرة، بس يمسح بياناته الإضافية.\nهذا الإجراء لا يمكن التراجع عنه.`);
+  if (!ok) return;
+  const emptyData = {
+    birthYear: "", deathStatus: "alive", deathYear: "", job: "", sonsCount: "", bio: "", photo: null,
+    mother: null, notaries: [], wives: [], husband: "", husbandDivorced: false
+  };
+  const myId = personId(modalNode);
+  await savePersonData(myId, emptyData);
+  photoDataUrl = null;
+  motherState = null;
+  notaryState = [];
+  wivesState = [];
+  await openInfoModal(modalNode);
+  const msg = document.getElementById("f-saveMsg");
+  msg.textContent = "تم مسح كل المعلومات 🗑️";
   setTimeout(() => { msg.textContent = ""; }, 2500);
 };
 
