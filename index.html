@@ -5056,10 +5056,20 @@ async function loadPersonData(id){
     return {};
   }
 }
+function stripUndefined(obj){
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(stripUndefined);
+  const out = {};
+  for (const k in obj) out[k] = stripUndefined(obj[k]);
+  return out;
+}
+
 async function savePersonData(id, data){
-  personDataCache.set(id, data);
+  const cleaned = stripUndefined(data);
+  personDataCache.set(id, cleaned);
   try{
-    await db.collection("personInfo").doc(firestorePersonInfoId(id)).set(data, { merge: false });
+    await db.collection("personInfo").doc(firestorePersonInfoId(id)).set(cleaned, { merge: false });
   } catch(e){
     console.error("تعذر الحفظ بقاعدة البيانات", e);
     alert("تعذر حفظ البيانات بقاعدة البيانات — تأكد من اتصال الإنترنت وصلاحياتك.\n" + (e.message || e.code));
@@ -6041,8 +6051,8 @@ document.getElementById("f-save").onclick = async () => {
     mother: motherState,
     notaries: notaryState,
     wives: wivesState,
-    husband: modalNode.data.type === "female" ? document.getElementById("f-husband").value : undefined,
-    husbandDivorced: modalNode.data.type === "female" ? document.getElementById("f-husbandDivorced").checked : undefined
+    husband: modalNode.data.type === "female" ? document.getElementById("f-husband").value : null,
+    husbandDivorced: modalNode.data.type === "female" ? document.getElementById("f-husbandDivorced").checked : null
   };
   const myId = personId(modalNode);
   await savePersonData(myId, data);
