@@ -488,6 +488,7 @@
 
 <div id="recordsPanel" class="bottom-panel">
   <label class="f-label">الملفات التي فيها بيانات مسجّلة</label>
+  <button id="exportAllRecordsBtn" class="f-btn-sm" style="width:100%; margin-bottom:10px; background:#0B3D2E;">⬇️ تصدير الكل بملف PDF واحد</button>
   <div id="recordsList" style="max-height:60vh; overflow-y:auto;"></div>
 </div>
 
@@ -737,17 +738,17 @@ function canAddUnder(parentDataNode){
   return parentDataNode.id === currentUser.scopePersonId || ids.includes(currentUser.scopePersonId);
 }
 
-async function firestoreAddPerson(parentDataNode, name, type){
+async function firestoreAddPerson(parentDataNode, name, type, extraFields){
   const parentId = parentDataNode.id || null;
   const parentAncestorIds = parentDataNode.ancestorIds || [];
   const ref = db.collection("persons").doc();
   const ancestorIds = parentAncestorIds.concat([ref.id]);
   const pending = currentUser.role !== "admin";
-  await ref.set({
+  await ref.set(Object.assign({
     name, type, parentId: parentId,
     ancestorIds, isJoinPoint: false, pendingApproval: pending,
     addedBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  }, extraFields || {}));
   return { id: ref.id, ancestorIds, pending };
 }
 
@@ -872,7 +873,7 @@ async function loadTreeFromFirestore(){
   snap.forEach(doc => {
     const d = doc.data();
     if (!isAdminView && d.pendingApproval) return; // إخفاء الإضافات المعلّقة عن غير المشرف
-    byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], pendingApproval: !!d.pendingApproval, children: [] });
+    byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], pendingApproval: !!d.pendingApproval, wifeId: d.wifeId || null, children: [] });
   });
   let rootNode = null;
   byId.forEach((node, id) => {
@@ -894,6 +895,7 @@ async function loadTreeFromFirestore(){
     const out = { name: n.name, type: n.type, id: n.id, ancestorIds: n.ancestorIds };
     if (n.isJoinPoint) out.isJoinPoint = true;
     if (n.pendingApproval) out.pendingApproval = true;
+    if (n.wifeId) out.wifeId = n.wifeId;
     if (n.children.length) out.children = n.children.map(clean);
     return out;
   }
@@ -1003,7 +1005,7 @@ async function refreshRecordsList(){
   });
 }
 
-async function exportPersonPdf(personNode, preloadedData){
+async function buildPersonPageDataUrl(personNode, preloadedData){
   const data = preloadedData || await loadPersonData(personId(personNode));
   const fiveName = chainNames(personNode).slice(0, 5).join(" ");
 
@@ -1084,24 +1086,58 @@ async function exportPersonPdf(personNode, preloadedData){
   const svgText = new XMLSerializer().serializeToString(page);
   const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const img = new Image();
-  img.onload = function(){
-    const scale = 2;
-    const canvas = document.createElement("canvas");
-    canvas.width = PAGE_W * scale; canvas.height = PAGE_H * scale;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
-    const imgData = canvas.toDataURL("image/png");
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-    pdf.addImage(imgData, "PNG", 0, 0, PAGE_W, PAGE_H);
-    pdf.save(`${fiveName}.pdf`);
-  };
-  img.src = url;
+  const imgData = await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function(){
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = PAGE_W * scale; canvas.height = PAGE_H * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = url;
+  });
+  return { imgData, fiveName, PAGE_W, PAGE_H };
 }
+
+async function exportPersonPdf(personNode, preloadedData){
+  const { imgData, fiveName, PAGE_W, PAGE_H } = await buildPersonPageDataUrl(personNode, preloadedData);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+  pdf.addImage(imgData, "PNG", 0, 0, PAGE_W, PAGE_H);
+  pdf.save(`${fiveName}.pdf`);
+}
+
+async function exportAllRecordsPdf(){
+  const btn = document.getElementById("exportAllRecordsBtn");
+  const original = btn.textContent;
+  btn.disabled = true;
+  const filled = [];
+  for (const n of root.descendants()){
+    const data = await loadPersonData(personId(n));
+    if (isPersonDataFilled(data)) filled.push({ node: n, data });
+  }
+  if (!filled.length){
+    alert("لا يوجد أي ملف فيه بيانات مسجّلة بعد.");
+    btn.disabled = false; btn.textContent = original;
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+  for (let i = 0; i < filled.length; i++){
+    btn.textContent = `جارِ التجهيز… (${i+1}/${filled.length})`;
+    const { imgData, PAGE_W, PAGE_H } = await buildPersonPageDataUrl(filled[i].node, filled[i].data);
+    if (i > 0) pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, 0, PAGE_W, PAGE_H);
+  }
+  pdf.save("كل_الملفات_المسجّلة.pdf");
+  btn.disabled = false; btn.textContent = original;
+}
+document.getElementById("exportAllRecordsBtn").onclick = exportAllRecordsPdf;
 
 async function refreshUsersAndPendingLists(){
   if (!currentUser || currentUser.role !== "admin") return;
@@ -5250,17 +5286,37 @@ function makePersonSearchBox(placeholder, onSelect){
   return wrap;
 }
 
-function getOrCreateDaughterNode(fatherNode, wifeId, wifeName){
+async function getOrCreateDaughterNode(fatherNode, wifeId, wifeName){
   fatherNode.data.children = fatherNode.data.children || [];
   let femaleData = fatherNode.data.children.find(c => c.type === "female" && c.wifeId === wifeId);
-  if (!femaleData){
-    femaleData = { name: wifeName || "أم", type: "female", gender: "female", wifeId };
-    fatherNode.data.children.push(femaleData);
-    buildAndRender();
-  } else if (wifeName && femaleData.name !== wifeName){
-    femaleData.name = wifeName;
-    buildAndRender();
+  if (femaleData){
+    if (wifeName && femaleData.name !== wifeName){
+      femaleData.name = wifeName;
+      if (femaleData.id){
+        try{ await db.collection("persons").doc(femaleData.id).update({ name: wifeName }); }catch(e){}
+      }
+      buildAndRender();
+    }
+    return femaleData;
   }
+  // ما لقيناها بالشجرة المحمّلة حاليًا — نتأكد من قاعدة البيانات قبل إنشاء واحدة جديدة (تفادي التكرار)
+  try{
+    const q = await db.collection("persons").where("wifeId", "==", wifeId).limit(1).get();
+    if (!q.empty){
+      const doc = q.docs[0];
+      const d = doc.data();
+      femaleData = { id: doc.id, name: d.name, type: "female", gender: "female", wifeId };
+      fatherNode.data.children.push(femaleData);
+      buildAndRender();
+      return femaleData;
+    }
+  }catch(e){ console.error("تعذر التحقق من وجود الأم بقاعدة البيانات", e); }
+
+  const name = wifeName || "أم";
+  const created = await firestoreAddPerson(fatherNode.data, name, "female", { wifeId });
+  femaleData = { id: created.id, name, type: "female", gender: "female", wifeId, ancestorIds: created.ancestorIds };
+  fatherNode.data.children.push(femaleData);
+  buildAndRender();
   return femaleData;
 }
 
@@ -5283,7 +5339,7 @@ async function ensureWifeEntryOnFather(fatherNode, sharedMother){
     });
     await savePersonData(fid, fData);
   }
-  getOrCreateDaughterNode(fatherNode, sharedMother.wifeId, sharedMother.wifeName);
+  await getOrCreateDaughterNode(fatherNode, sharedMother.wifeId, sharedMother.wifeName);
 }
 
 async function assignMotherToSiblingNode(siblingNode, sharedMother){
@@ -5449,7 +5505,7 @@ function renderMotherBox(){
       motherState.sourcePersonId = myId;
       motherState.sourceName = modalTitleChain(modalNode).join(" ");
       const fNode = root.descendants().find(n => personId(n) === motherState.fatherId);
-      if (fNode) getOrCreateDaughterNode(fNode, newWifeId, motherState.wifeName);
+      if (fNode) await getOrCreateDaughterNode(fNode, newWifeId, motherState.wifeName);
       await saveMotherState();
       if (modalNode.parent) await ensureWifeEntryOnFather(modalNode.parent, motherState);
       renderMotherBox();
@@ -5520,21 +5576,12 @@ function generateWifeId(){
   return "wf_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 }
 
-function ensureWifeNode(wi){
+async function ensureWifeNode(wi){
   const w = wivesState[wi];
   if (w.type !== "inside" || !w.fatherId || !w.wifeId) return;
   const fatherNode = root.descendants().find(n => personId(n) === w.fatherId);
   if (!fatherNode) return;
-  fatherNode.data.children = fatherNode.data.children || [];
-  let femaleData = fatherNode.data.children.find(c => c.type === "female" && c.wifeId === w.wifeId);
-  if (!femaleData){
-    const existingFemales = fatherNode.data.children.filter(c => c.type === "female").length;
-    const autoName = "ابنة" + toArabicDigits(existingFemales + 1);
-    femaleData = { name: w.wifeName || autoName, type: "female", gender: "female", wifeId: w.wifeId };
-    fatherNode.data.children.push(femaleData);
-  } else if (w.wifeName && femaleData.name !== w.wifeName){
-    femaleData.name = w.wifeName;
-  }
+  const femaleData = await getOrCreateDaughterNode(fatherNode, w.wifeId, w.wifeName);
   w._femaleNodeData = femaleData;
   const myDataRef = modalNode.data;
   buildAndRender();
@@ -5582,10 +5629,10 @@ function renderWives(){
           const btn = document.createElement("button");
           btn.className = "f-btn-sm";
           btn.textContent = fd.name;
-          btn.onclick = () => {
+          btn.onclick = async () => {
             wivesState[wi].wifeId = fd.wifeId;
             wivesState[wi].wifeName = fd.name;
-            ensureWifeNode(wi);
+            await ensureWifeNode(wi);
             renderWives();
           };
           chooseWrap.appendChild(btn);
@@ -5594,9 +5641,9 @@ function renderWives(){
         newBtn.className = "f-btn-sm";
         newBtn.style.background = "#0B3D2E";
         newBtn.textContent = "+ بنت جديدة (أخت أخرى)";
-        newBtn.onclick = () => {
+        newBtn.onclick = async () => {
           wivesState[wi].wifeId = generateWifeId();
-          ensureWifeNode(wi);
+          await ensureWifeNode(wi);
           renderWives();
         };
         chooseWrap.appendChild(newBtn);
