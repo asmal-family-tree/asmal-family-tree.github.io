@@ -988,10 +988,10 @@ async function refreshRecordsList(){
     if (isPersonDataFilled(data)) filled.push({ node: n, data });
   }
   if (!filled.length){
-    listEl.innerHTML = `<span style="color:#999; font-size:13px">لا يوجد أي ملف فيه بيانات مسجّلة بعد (بهذا الجهاز)</span>`;
+    listEl.innerHTML = `<span style="color:#999; font-size:13px">لا يوجد أي ملف فيه بيانات مسجّلة بعد بقاعدة البيانات</span>`;
     return;
   }
-  listEl.innerHTML = `<div style="font-size:11px;color:#999;margin-bottom:8px">ملاحظة: هذي القائمة تعرض البيانات المسجّلة بهذا الجهاز فقط.</div>`;
+  listEl.innerHTML = "";
   filled.forEach(({ node, data }) => {
     const row = document.createElement("div");
     row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:8px; background:#F7F2E7; border-radius:8px;";
