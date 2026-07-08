@@ -486,6 +486,11 @@
   <div id="pendingList" style="max-height:220px; overflow-y:auto;"></div>
 </div>
 
+<div id="recordsPanel" class="bottom-panel">
+  <label class="f-label">الملفات التي فيها بيانات مسجّلة</label>
+  <div id="recordsList" style="max-height:60vh; overflow-y:auto;"></div>
+</div>
+
 <div id="bottomBar">
   <button id="searchToggle" title="بحث">🔍</button>
   <button id="relToggle" title="حاسبة العلاقة">🧮</button>
@@ -494,6 +499,7 @@
   <button id="bgToggle" title="خلفية الشجرة">🖼️</button>
   <button id="toggleTree" title="إخفاء/إظهار المشجرة">🙈</button>
   <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
+  <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
 </div>
 
 <div id="backdrop"></div>
@@ -763,11 +769,13 @@ function applyRolePermissions(){
   if (currentUser.role === "admin"){
     document.getElementById("migrateRow").style.display = "flex";
     document.getElementById("usersToggle").style.display = "";
+    document.getElementById("recordsToggle").style.display = "";
     document.getElementById("ioToggle").style.display = "";
     document.getElementById("toggleTree").style.display = "";
     document.getElementById("bgToggle").style.display = "";
   } else {
     document.getElementById("usersToggle").style.display = "none";
+    document.getElementById("recordsToggle").style.display = "none";
     document.getElementById("bgToggle").style.display = "none";
     document.getElementById("ioToggle").style.display = "none";
     document.getElementById("toggleTree").style.display = "none";
@@ -964,6 +972,136 @@ document.getElementById("newUserAddBtn").onclick = async function(){
     statusEl.textContent = "خطأ: " + (e.message || e.code);
   }
 };
+
+function isPersonDataFilled(data){
+  return !!(data.birthYear || data.job || data.bio || data.photo || data.mother ||
+    (data.notaries && data.notaries.length) || (data.wives && data.wives.length) ||
+    data.deathStatus === "dead" || data.husband);
+}
+
+async function refreshRecordsList(){
+  const listEl = document.getElementById("recordsList");
+  listEl.innerHTML = "جارِ البحث بكل الملفات…";
+  const filled = [];
+  for (const n of root.descendants()){
+    const data = await loadPersonData(personId(n));
+    if (isPersonDataFilled(data)) filled.push({ node: n, data });
+  }
+  if (!filled.length){
+    listEl.innerHTML = `<span style="color:#999; font-size:13px">لا يوجد أي ملف فيه بيانات مسجّلة بعد (بهذا الجهاز)</span>`;
+    return;
+  }
+  listEl.innerHTML = `<div style="font-size:11px;color:#999;margin-bottom:8px">ملاحظة: هذي القائمة تعرض البيانات المسجّلة بهذا الجهاز فقط.</div>`;
+  filled.forEach(({ node, data }) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:8px; background:#F7F2E7; border-radius:8px;";
+    row.innerHTML = `<span style="cursor:pointer">${chainNames(node).slice(0,3).join(" ")}</span>
+      <span><button class="f-btn-sm records-open-btn" style="margin-left:6px;">فتح</button><button class="f-btn-sm records-pdf-btn">⬇️ PDF</button></span>`;
+    row.querySelector(".records-open-btn").onclick = () => { recordsPanel.classList.remove("show"); showInfo(node); };
+    row.querySelector(".records-pdf-btn").onclick = () => exportPersonPdf(node, data);
+    listEl.appendChild(row);
+  });
+}
+
+async function exportPersonPdf(personNode, preloadedData){
+  const data = preloadedData || await loadPersonData(personId(personNode));
+  const fiveName = chainNames(personNode).slice(0, 5).join(" ");
+
+  const sonsInTree = personNode.children ? personNode.children.filter(c => c.data.type !== "female").length : 0;
+  let unclesLine = "";
+  if (data.mother && data.mother.fatherId){
+    const mgf = root.descendants().find(n => personId(n) === data.mother.fatherId);
+    if (mgf){
+      const uncles = (mgf.children || []).filter(c => c.data.type !== "female").map(c => c.data.name);
+      if (uncles.length) unclesLine = uncles.join("، ");
+    }
+  }
+  const sameMother = await findSameMotherSiblings(personNode);
+  const halfSiblingsLine = sameMother.siblings.map(s => s.name).join("، ");
+
+  const lines = [];
+  lines.push({ label: "الاسم", value: fiveName });
+  if (data.birthYear){
+    const age = CURRENT_HIJRI_YEAR - parseInt(data.birthYear);
+    lines.push({ label: "تاريخ الميلاد", value: data.birthYear + " هـ" });
+    if (age > 0 && age < 130) lines.push({ label: "العمر", value: age + " سنة تقريبًا" });
+  }
+  lines.push({ label: "الحالة", value: data.deathStatus === "dead" ? "متوفى" : "حي يرزق" });
+  if (data.job) lines.push({ label: "الوظيفة", value: data.job });
+  lines.push({ label: "عدد الأبناء بالمشجرة", value: String(sonsInTree) });
+  if (unclesLine) lines.push({ label: "الأخوال", value: unclesLine });
+  if (halfSiblingsLine) lines.push({ label: "الإخوة من الأم", value: halfSiblingsLine });
+  if (data.notaries && data.notaries.length) lines.push({ label: "العدلاء من أبناء القبيلة", value: data.notaries.map(n => n.chain3 || n.name).join("، ") });
+  if (data.bio) lines.push({ label: "نبذة", value: data.bio });
+
+  const PAGE_W = 595, PAGE_H = 842, margin = 40;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const page = document.createElementNS(svgNS, "svg");
+  page.setAttribute("xmlns", svgNS);
+  page.setAttribute("width", PAGE_W); page.setAttribute("height", PAGE_H);
+  page.setAttribute("viewBox", `0 0 ${PAGE_W} ${PAGE_H}`);
+  const styleEl = document.createElementNS(svgNS, "style");
+  styleEl.textContent = "text{font-family:'Tajawal',sans-serif;}";
+  page.appendChild(styleEl);
+
+  const bg = document.createElementNS(svgNS, "rect");
+  bg.setAttribute("width", PAGE_W); bg.setAttribute("height", PAGE_H); bg.setAttribute("fill", "#FFFDF6");
+  page.appendChild(bg);
+  const frame = document.createElementNS(svgNS, "rect");
+  frame.setAttribute("x", 20); frame.setAttribute("y", 20);
+  frame.setAttribute("width", PAGE_W-40); frame.setAttribute("height", PAGE_H-40);
+  frame.setAttribute("fill", "none"); frame.setAttribute("stroke", "#B8860B"); frame.setAttribute("stroke-width", 2);
+  page.appendChild(frame);
+
+  const title = document.createElementNS(svgNS, "text");
+  title.setAttribute("x", PAGE_W/2); title.setAttribute("y", 70);
+  title.setAttribute("text-anchor", "middle"); title.setAttribute("font-size", "22"); title.setAttribute("font-weight", "700");
+  title.setAttribute("fill", "#0B3D2E");
+  title.textContent = fiveName;
+  page.appendChild(title);
+
+  let y = 120;
+  lines.slice(1).forEach(l => {
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", PAGE_W - margin); t.setAttribute("y", y);
+    t.setAttribute("text-anchor", "end"); t.setAttribute("font-size", "15"); t.setAttribute("font-weight", "700"); t.setAttribute("fill", "#8B4A1E");
+    t.textContent = l.label + ":";
+    page.appendChild(t);
+    const v = document.createElementNS(svgNS, "text");
+    v.setAttribute("x", PAGE_W - margin); v.setAttribute("y", y + 22);
+    v.setAttribute("text-anchor", "end"); v.setAttribute("font-size", "14"); v.setAttribute("fill", "#333");
+    v.textContent = l.value;
+    page.appendChild(v);
+    y += 55;
+  });
+
+  const dateT = document.createElementNS(svgNS, "text");
+  dateT.setAttribute("x", margin); dateT.setAttribute("y", PAGE_H - 30);
+  dateT.setAttribute("font-size", "11"); dateT.setAttribute("fill", "#999");
+  dateT.textContent = "تاريخ التصدير: " + new Date().toLocaleDateString("ar-SA");
+  page.appendChild(dateT);
+
+  const svgText = new XMLSerializer().serializeToString(page);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function(){
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = PAGE_W * scale; canvas.height = PAGE_H * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+    pdf.addImage(imgData, "PNG", 0, 0, PAGE_W, PAGE_H);
+    pdf.save(`${fiveName}.pdf`);
+  };
+  img.src = url;
+}
 
 async function refreshUsersAndPendingLists(){
   if (!currentUser || currentUser.role !== "admin") return;
@@ -4341,7 +4479,7 @@ document.getElementById("zoomOut").onclick = () => svg.transition().call(zoom.sc
 document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.transform, centerOnRoot());
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
-const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel"].map(id => document.getElementById(id));
+const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel"].map(id => document.getElementById(id));
 function openOnlyPanel(panel){
   const willOpen = !panel.classList.contains("show");
   bottomPanels.forEach(p => p.classList.remove("show"));
@@ -4371,6 +4509,10 @@ bgToggle.onclick = () => openOnlyPanel(bgPanel);
 const usersToggle = document.getElementById("usersToggle");
 const usersPanel = document.getElementById("usersPanel");
 usersToggle.onclick = () => { openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); };
+
+const recordsToggle = document.getElementById("recordsToggle");
+const recordsPanel = document.getElementById("recordsPanel");
+recordsToggle.onclick = () => { openOnlyPanel(recordsPanel); refreshRecordsList(); };
 
 
 // ---------- شجرتي الخاصة ----------
@@ -4898,16 +5040,30 @@ document.getElementById("relCalc").onclick = async () => {
 
 // ============ نافذة "+" (شجرتي الخاصة / إضافة أبناء / إضافة معلومات) ============
 function personId(d){ return chainNames(d).join("/"); }
+function firestorePersonInfoId(id){ return id.replace(/\//g, "__"); }
+
+const personDataCache = new Map();
 
 async function loadPersonData(id){
+  if (personDataCache.has(id)) return personDataCache.get(id);
   try{
-    const raw = localStorage.getItem("person:" + id);
-    return raw ? JSON.parse(raw) : {};
-  } catch(e){ return {}; }
+    const docSnap = await db.collection("personInfo").doc(firestorePersonInfoId(id)).get();
+    const data = docSnap.exists ? docSnap.data() : {};
+    personDataCache.set(id, data);
+    return data;
+  } catch(e){
+    console.error("تعذر تحميل بيانات الشخص من قاعدة البيانات", e);
+    return {};
+  }
 }
 async function savePersonData(id, data){
-  try{ localStorage.setItem("person:" + id, JSON.stringify(data)); }
-  catch(e){ console.error("تعذر الحفظ", e); alert("تعذر الحفظ محليًا — تأكد إن المتصفح يسمح بالتخزين المحلي."); }
+  personDataCache.set(id, data);
+  try{
+    await db.collection("personInfo").doc(firestorePersonInfoId(id)).set(data, { merge: false });
+  } catch(e){
+    console.error("تعذر الحفظ بقاعدة البيانات", e);
+    alert("تعذر حفظ البيانات بقاعدة البيانات — تأكد من اتصال الإنترنت وصلاحياتك.\n" + (e.message || e.code));
+  }
 }
 
 function currentHijriYear(){
@@ -5088,10 +5244,11 @@ function getOrCreateDaughterNode(fatherNode, wifeId, wifeName){
   fatherNode.data.children = fatherNode.data.children || [];
   let femaleData = fatherNode.data.children.find(c => c.type === "female" && c.wifeId === wifeId);
   if (!femaleData){
-    const existingFemales = fatherNode.data.children.filter(c => c.type === "female").length;
-    const autoName = "ابنة" + toArabicDigits(existingFemales + 1);
-    femaleData = { name: wifeName || autoName, type: "female", gender: "female", wifeId };
+    femaleData = { name: wifeName || "أم", type: "female", gender: "female", wifeId };
     fatherNode.data.children.push(femaleData);
+    buildAndRender();
+  } else if (wifeName && femaleData.name !== wifeName){
+    femaleData.name = wifeName;
     buildAndRender();
   }
   return femaleData;
@@ -5104,6 +5261,21 @@ async function saveMotherState(){
   await savePersonData(myId, data);
 }
 
+async function ensureWifeEntryOnFather(fatherNode, sharedMother){
+  const fid = personId(fatherNode);
+  const fData = await loadPersonData(fid);
+  fData.wives = fData.wives || [];
+  if (!fData.wives.some(w => w.wifeId === sharedMother.wifeId)){
+    fData.wives.push({
+      type: "inside", wifeId: sharedMother.wifeId, wifeName: sharedMother.wifeName,
+      fatherId: sharedMother.fatherId, fatherName: sharedMother.fatherName, fatherChain: sharedMother.fatherChain,
+      divorced: false, children: []
+    });
+    await savePersonData(fid, fData);
+  }
+  getOrCreateDaughterNode(fatherNode, sharedMother.wifeId, sharedMother.wifeName);
+}
+
 async function assignMotherToSiblingNode(siblingNode, sharedMother){
   const sid = personId(siblingNode);
   const sData = await loadPersonData(sid);
@@ -5112,7 +5284,40 @@ async function assignMotherToSiblingNode(siblingNode, sharedMother){
   }
   sData.mother = sharedMother;
   await savePersonData(sid, sData);
+  if (siblingNode.parent) await ensureWifeEntryOnFather(siblingNode.parent, sharedMother);
   return true;
+}
+
+async function unlinkSiblingFromMother(siblingNode, sharedMother){
+  const sid = personId(siblingNode);
+  const sData = await loadPersonData(sid);
+  sData.mother = null;
+  await savePersonData(sid, sData);
+  if (siblingNode.parent){
+    const fid = personId(siblingNode.parent);
+    const fData = await loadPersonData(fid);
+    const wRec = (fData.wives || []).find(w => w.wifeId === sharedMother.wifeId);
+    if (wRec){
+      wRec.children = (wRec.children || []).filter(nm => nm !== siblingNode.data.name);
+      await savePersonData(fid, fData);
+    }
+  }
+}
+
+async function findMotherSiblingsList(sharedMother, excludeId){
+  const list = [];
+  for (const n of root.descendants()){
+    const nData = await loadPersonData(personId(n));
+    for (const w of (nData.wives || [])){
+      if (w.wifeId === sharedMother.wifeId){
+        (w.children || []).forEach(childName => {
+          const childNode = (n.children || []).find(c => c.data.name === childName);
+          if (childNode && personId(childNode) !== excludeId) list.push(childNode);
+        });
+      }
+    }
+  }
+  return list;
 }
 
 function renderMotherBox(){
@@ -5120,24 +5325,73 @@ function renderMotherBox(){
   const resultDiv = document.getElementById("motherResult");
   box.innerHTML = "";
   resultDiv.innerHTML = "";
+  const myId = personId(modalNode);
 
   if (motherState && motherState.auto){
-    resultDiv.textContent = "الأم: ابنة " + motherState.fatherChain + " (تلقائي — مرتبطة عبر زوجة مضافة لدى الأب)";
+    resultDiv.textContent = "الأم: " + (motherState.wifeName || ("ابنة " + motherState.fatherChain)) + " (تلقائي — مرتبطة عبر زوجة مضافة لدى الأب)";
     return;
   }
 
   if (motherState && motherState.wifeId){
-    // أم مربوطة مسبقًا — تظهر بس، مع زر × لفكّ الربط (شخص واحد لا يمكن أن يكون له أكثر من أم)
+    const isSource = motherState.sourcePersonId === myId;
     const row = document.createElement("div");
     row.style.cssText = "display:flex; align-items:center; justify-content:space-between; background:#F1E9D8; border-radius:8px; padding:8px 12px;";
-    row.innerHTML = `<span>الأم: ${motherState.wifeName ? motherState.wifeName + " — " : ""}ابنة ${motherState.fatherChain || motherState.fatherName}</span><span class="chip-x" title="فكّ الربط">✕</span>`;
-    row.querySelector(".chip-x").onclick = async () => {
-      if (!confirm("فكّ ربط الأم عن هذا الشخص؟")) return;
-      motherState = null;
-      await saveMotherState();
-      renderMotherBox();
-    };
+    row.innerHTML = `<span>الأم: ${motherState.wifeName || ("ابنة " + motherState.fatherChain)}</span>` +
+      (isSource ? `<span class="chip-x" title="فكّ الربط">✕</span>` : "");
+    if (isSource){
+      row.querySelector(".chip-x").onclick = async () => {
+        if (!confirm("فكّ ربط الأم عن هذا الشخص؟ (بما إنك صاحب التسجيل الأصلي، هذا لا يحذف باقي الإخوة المرتبطين، بس يفكّ ربطك أنت)")) return;
+        motherState = null;
+        await saveMotherState();
+        renderMotherBox();
+      };
+    }
     box.appendChild(row);
+    if (!isSource){
+      const lockNote = document.createElement("div");
+      lockNote.style.cssText = "font-size:12px; color:#a67c00; margin-top:4px;";
+      lockNote.textContent = "🔒 مسجّلة أصلًا من ملف: " + (motherState.sourceName || "غير معروف") + " — التعديل أو الحذف يتم من ذاك الملف فقط";
+      box.appendChild(lockNote);
+    }
+
+    // قائمة الإخوة غير الأشقاء (تظهر بعد اسم الأم)
+    const siblingsBox = document.createElement("div");
+    siblingsBox.style.cssText = "margin-top:10px;";
+    siblingsBox.innerHTML = `<div class="f-label" style="margin:0 0 6px;">الإخوة غير الأشقاء من هذه الأم</div><div id="halfSiblingsList">جارِ التحميل…</div>`;
+    box.appendChild(siblingsBox);
+    findMotherSiblingsList(motherState, myId).then(siblings => {
+      const listEl = document.getElementById("halfSiblingsList");
+      if (!listEl) return;
+      if (!siblings.length){ listEl.innerHTML = `<span style="color:#999; font-size:13px">لا يوجد بعد</span>`; return; }
+      listEl.innerHTML = "";
+      const chipList = document.createElement("div");
+      chipList.className = "chip-list";
+      siblings.forEach(sib => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.innerHTML = isSource
+          ? `<span>${sib.data.name}</span><span class="chip-x">✕</span>`
+          : `<span>${sib.data.name}</span>`;
+        if (isSource){
+          chip.querySelector(".chip-x").onclick = async () => {
+            if (!confirm(`إزالة "${sib.data.name}" من إخوة الأم؟`)) return;
+            await unlinkSiblingFromMother(sib, motherState);
+            renderMotherBox();
+          };
+        }
+        chipList.appendChild(chip);
+      });
+      listEl.appendChild(chipList);
+    });
+
+    if (isSource){
+      const addBtn = document.createElement("button");
+      addBtn.className = "f-btn-sm";
+      addBtn.style.cssText = "width:100%; margin-top:10px; background:#0B3D2E;";
+      addBtn.textContent = "+ إضافة الإخوة من الأم";
+      addBtn.onclick = () => renderHalfSiblingPicker();
+      box.appendChild(addBtn);
+    }
     return;
   }
 
@@ -5165,7 +5419,10 @@ function renderMotherBox(){
       btn.onclick = async () => {
         motherState.wifeId = fd.wifeId;
         motherState.wifeName = fd.name;
+        motherState.sourcePersonId = myId;
+        motherState.sourceName = modalTitleChain(modalNode).join(" ");
         await saveMotherState();
+        if (modalNode.parent) await ensureWifeEntryOnFather(modalNode.parent, motherState);
         renderMotherBox();
       };
       chooseWrap.appendChild(btn);
@@ -5174,17 +5431,18 @@ function renderMotherBox(){
     newBtn.className = "f-btn-sm";
     newBtn.style.background = "#0B3D2E";
     newBtn.textContent = "+ أم جديدة";
-    newBtn.onclick = () => {
-      const hasHalfSiblings = confirm("هل يوجد إخوة غير أشقاء من هذه الأم (بأب مختلف)؟");
+    newBtn.onclick = async () => {
       const newWifeId = generateWifeId();
-      const fNode = root.descendants().find(n => personId(n) === motherState.fatherId);
-      if (fNode) getOrCreateDaughterNode(fNode, newWifeId, motherState.wifeName || "");
+      const fatherOfMe = modalNode.parent ? modalNode.parent.data.name : "";
       motherState.wifeId = newWifeId;
-      if (!hasHalfSiblings){
-        saveMotherState().then(renderMotherBox);
-      } else {
-        renderHalfSiblingPicker();
-      }
+      motherState.wifeName = "أم " + modalNode.data.name + (fatherOfMe ? " " + fatherOfMe : "");
+      motherState.sourcePersonId = myId;
+      motherState.sourceName = modalTitleChain(modalNode).join(" ");
+      const fNode = root.descendants().find(n => personId(n) === motherState.fatherId);
+      if (fNode) getOrCreateDaughterNode(fNode, newWifeId, motherState.wifeName);
+      await saveMotherState();
+      if (modalNode.parent) await ensureWifeEntryOnFather(modalNode.parent, motherState);
+      renderMotherBox();
     };
     chooseWrap.appendChild(newBtn);
     box.appendChild(chooseWrap);
@@ -5228,7 +5486,7 @@ function renderHalfSiblingPicker(){
   doneBtn.style.cssText = "width:100%; margin-top:10px; background:#0B3D2E;";
   doneBtn.textContent = "✓ تم — احفظ الربط";
   doneBtn.onclick = async () => {
-    const shared = { wifeId: motherState.wifeId, fatherId: motherState.fatherId, fatherName: motherState.fatherName, fatherChain: motherState.fatherChain, wifeName: motherState.wifeName || "" };
+    const shared = { wifeId: motherState.wifeId, fatherId: motherState.fatherId, fatherName: motherState.fatherName, fatherChain: motherState.fatherChain, wifeName: motherState.wifeName || "", sourcePersonId: motherState.sourcePersonId, sourceName: motherState.sourceName };
     await saveMotherState();
     const skipped = [];
     for (const p of picked){
