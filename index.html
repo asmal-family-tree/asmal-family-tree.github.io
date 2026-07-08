@@ -5084,20 +5084,163 @@ function makePersonSearchBox(placeholder, onSelect){
   return wrap;
 }
 
+function getOrCreateDaughterNode(fatherNode, wifeId, wifeName){
+  fatherNode.data.children = fatherNode.data.children || [];
+  let femaleData = fatherNode.data.children.find(c => c.type === "female" && c.wifeId === wifeId);
+  if (!femaleData){
+    const existingFemales = fatherNode.data.children.filter(c => c.type === "female").length;
+    const autoName = "ابنة" + toArabicDigits(existingFemales + 1);
+    femaleData = { name: wifeName || autoName, type: "female", gender: "female", wifeId };
+    fatherNode.data.children.push(femaleData);
+    buildAndRender();
+  }
+  return femaleData;
+}
+
+async function saveMotherState(){
+  const myId = personId(modalNode);
+  const data = await loadPersonData(myId);
+  data.mother = motherState;
+  await savePersonData(myId, data);
+}
+
+async function assignMotherToSiblingNode(siblingNode, sharedMother){
+  const sid = personId(siblingNode);
+  const sData = await loadPersonData(sid);
+  if (sData.mother && sData.mother.wifeId && sData.mother.wifeId !== sharedMother.wifeId){
+    return false; // مرتبط بأم مختلفة مسبقًا — لا يمكن تعديله
+  }
+  sData.mother = sharedMother;
+  await savePersonData(sid, sData);
+  return true;
+}
+
 function renderMotherBox(){
   const box = document.getElementById("motherBox");
   const resultDiv = document.getElementById("motherResult");
   box.innerHTML = "";
+  resultDiv.innerHTML = "";
+
   if (motherState && motherState.auto){
     resultDiv.textContent = "الأم: ابنة " + motherState.fatherChain + " (تلقائي — مرتبطة عبر زوجة مضافة لدى الأب)";
     return;
   }
+
+  if (motherState && motherState.wifeId){
+    // أم مربوطة مسبقًا — تظهر بس، مع زر × لفكّ الربط (شخص واحد لا يمكن أن يكون له أكثر من أم)
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; justify-content:space-between; background:#F1E9D8; border-radius:8px; padding:8px 12px;";
+    row.innerHTML = `<span>الأم: ${motherState.wifeName ? motherState.wifeName + " — " : ""}ابنة ${motherState.fatherChain || motherState.fatherName}</span><span class="chip-x" title="فكّ الربط">✕</span>`;
+    row.querySelector(".chip-x").onclick = async () => {
+      if (!confirm("فكّ ربط الأم عن هذا الشخص؟")) return;
+      motherState = null;
+      await saveMotherState();
+      renderMotherBox();
+    };
+    box.appendChild(row);
+    return;
+  }
+
   const search = makePersonSearchBox("اكتب اسم أب الأم (جدّها)، ثم اضغط عليه من القائمة", (m) => {
-    motherState = { fatherId: personId(m), fatherName: m.data.name, fatherChain: modalTitleChain(m).join(" "), auto: false };
+    motherState = { fatherId: personId(m), fatherName: m.data.name, fatherChain: modalTitleChain(m).join(" "), wifeId: null };
     renderMotherBox();
   });
   box.appendChild(search);
-  resultDiv.textContent = motherState && motherState.fatherChain ? "الأم: ابنة " + motherState.fatherChain : "";
+
+  if (motherState && motherState.fatherId && !motherState.wifeId){
+    const fatherNode = root.descendants().find(n => personId(n) === motherState.fatherId);
+    const existingDaughters = fatherNode ? (fatherNode.data.children || []).filter(c => c.type === "female" && c.wifeId) : [];
+    const title = document.createElement("div");
+    title.style.cssText = "font-size:13px; color:#555; margin:8px 0 4px;";
+    title.textContent = existingDaughters.length
+      ? "هل هي إحدى بنات هذا الأب الموجودات، أو أم جديدة؟"
+      : "لا توجد بنات مسجّلات لهذا الأب بعد — أضفها كأم جديدة";
+    box.appendChild(title);
+    const chooseWrap = document.createElement("div");
+    chooseWrap.className = "chip-list";
+    existingDaughters.forEach(fd => {
+      const btn = document.createElement("button");
+      btn.className = "f-btn-sm";
+      btn.textContent = fd.name;
+      btn.onclick = async () => {
+        motherState.wifeId = fd.wifeId;
+        motherState.wifeName = fd.name;
+        await saveMotherState();
+        renderMotherBox();
+      };
+      chooseWrap.appendChild(btn);
+    });
+    const newBtn = document.createElement("button");
+    newBtn.className = "f-btn-sm";
+    newBtn.style.background = "#0B3D2E";
+    newBtn.textContent = "+ أم جديدة";
+    newBtn.onclick = () => {
+      const hasHalfSiblings = confirm("هل يوجد إخوة غير أشقاء من هذه الأم (بأب مختلف)؟");
+      const newWifeId = generateWifeId();
+      const fNode = root.descendants().find(n => personId(n) === motherState.fatherId);
+      if (fNode) getOrCreateDaughterNode(fNode, newWifeId, motherState.wifeName || "");
+      motherState.wifeId = newWifeId;
+      if (!hasHalfSiblings){
+        saveMotherState().then(renderMotherBox);
+      } else {
+        renderHalfSiblingPicker();
+      }
+    };
+    chooseWrap.appendChild(newBtn);
+    box.appendChild(chooseWrap);
+  }
+}
+
+function renderHalfSiblingPicker(){
+  const box = document.getElementById("motherBox");
+  box.innerHTML = "";
+  const title = document.createElement("div");
+  title.className = "f-label";
+  title.textContent = "ابحث عن الإخوة غير الأشقاء (يجب أن يكونوا مضافين بالشجرة مسبقًا)";
+  box.appendChild(title);
+
+  const picked = [];
+  const pickedList = document.createElement("div");
+  pickedList.className = "chip-list";
+
+  const search = makePersonSearchBox("اكتب اسمه، ثم اضغط عليه من القائمة", (m) => {
+    if (m.data === modalNode.data) return;
+    if (picked.some(p => p.node === m)) return;
+    picked.push({ node: m, name: m.data.name });
+    renderPicked();
+  });
+  box.appendChild(search);
+  box.appendChild(pickedList);
+
+  function renderPicked(){
+    pickedList.innerHTML = "";
+    picked.forEach((p, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.innerHTML = `<span>${p.name}</span><span class="chip-x">✕</span>`;
+      chip.querySelector(".chip-x").onclick = () => { picked.splice(idx, 1); renderPicked(); };
+      pickedList.appendChild(chip);
+    });
+  }
+
+  const doneBtn = document.createElement("button");
+  doneBtn.className = "f-btn-sm";
+  doneBtn.style.cssText = "width:100%; margin-top:10px; background:#0B3D2E;";
+  doneBtn.textContent = "✓ تم — احفظ الربط";
+  doneBtn.onclick = async () => {
+    const shared = { wifeId: motherState.wifeId, fatherId: motherState.fatherId, fatherName: motherState.fatherName, fatherChain: motherState.fatherChain, wifeName: motherState.wifeName || "" };
+    await saveMotherState();
+    const skipped = [];
+    for (const p of picked){
+      const ok = await assignMotherToSiblingNode(p.node, shared);
+      if (!ok) skipped.push(p.name);
+    }
+    if (skipped.length){
+      alert("تعذّر ربط هؤلاء لأنهم مرتبطون بأم مختلفة مسبقًا: " + skipped.join("، "));
+    }
+    renderMotherBox();
+  };
+  box.appendChild(doneBtn);
 }
 
 function toArabicDigits(n){
@@ -5254,26 +5397,57 @@ function renderWives(){
     childWrap.className = "wife-children";
     const assignedElsewhere = new Set();
     wivesState.forEach((ow, oi) => { if (oi !== wi) ow.children.forEach(c => assignedElsewhere.add(c)); });
-    const kids = modalNode.children
-      ? modalNode.children.filter(c => c.data.type !== "female").map(c => c.data.name).filter(kName => !assignedElsewhere.has(kName))
+    const kidNodes = modalNode.children
+      ? modalNode.children.filter(c => c.data.type !== "female" && !assignedElsewhere.has(c.data.name))
       : [];
-    if (!kids.length){
+    if (!kidNodes.length){
       childWrap.innerHTML = `<span style="color:#999">لا يوجد أبناء متاحون للربط بهذه الزوجة</span>`;
     } else {
-      kids.forEach(kName => {
+      const checkboxByName = new Map();
+      kidNodes.forEach(kNode => {
+        const kName = kNode.data.name;
         const lbl = document.createElement("label");
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.checked = w.children.includes(kName);
-        cb.onchange = () => {
-          if (cb.checked){ if (!wivesState[wi].children.includes(kName)) wivesState[wi].children.push(kName); }
-          else { wivesState[wi].children = wivesState[wi].children.filter(x => x !== kName); }
+        cb.onchange = async () => {
+          if (cb.checked){
+            if (w.wifeId){
+              const ok = await assignMotherToSiblingNode(kNode, { wifeId: w.wifeId, fatherId: w.fatherId, fatherName: w.fatherName, fatherChain: w.fatherChain, wifeName: w.wifeName || "" });
+              if (!ok){
+                alert(`"${kName}" مرتبط بأم مختلفة مسبقًا — لا يمكن ربطه بهذه الزوجة.`);
+                cb.checked = false;
+                return;
+              }
+            }
+            if (!wivesState[wi].children.includes(kName)) wivesState[wi].children.push(kName);
+          } else {
+            wivesState[wi].children = wivesState[wi].children.filter(x => x !== kName);
+          }
           renderWives();
         };
         lbl.appendChild(cb);
         lbl.append(kName);
         childWrap.appendChild(lbl);
+        checkboxByName.set(kName, cb);
       });
+
+      // فحص غير متزامن: تأشير تلقائي لمن هو مرتبط فعليًا بنفس الأم (بالهوية أو بتطابق الاسم)
+      if (w.wifeId){
+        (async () => {
+          for (const kNode of kidNodes){
+            const kName = kNode.data.name;
+            if (w.children.includes(kName)) continue;
+            const kData = await loadPersonData(personId(kNode));
+            const km = kData.mother;
+            if (km && (km.wifeId === w.wifeId || (w.wifeName && km.wifeName === w.wifeName))){
+              if (!wivesState[wi].children.includes(kName)) wivesState[wi].children.push(kName);
+              const cb = checkboxByName.get(kName);
+              if (cb) cb.checked = true;
+            }
+          }
+        })();
+      }
     }
     block.appendChild(childWrap);
 
@@ -5510,9 +5684,9 @@ async function openInfoModal(d){
   updateAgeDisplay();
   renderCurrentSons();
 
-  const autoMgf = await findMaternalGrandfather(d);
-  if (autoMgf){
-    motherState = { fatherId: personId(autoMgf), fatherName: autoMgf.data.name, fatherChain: modalTitleChain(autoMgf).join(" "), auto: true };
+  const autoInfo = await findMotherInfo(d);
+  if (autoInfo && autoInfo.grandfatherNode){
+    motherState = { fatherId: autoInfo.fatherId, fatherName: autoInfo.grandfatherNode.data.name, fatherChain: modalTitleChain(autoInfo.grandfatherNode).join(" "), wifeId: autoInfo.wifeId, auto: true };
   } else if (data.mother){
     motherState = data.mother;
   } else {
@@ -5649,13 +5823,27 @@ document.getElementById("f-save").onclick = async () => {
 };
 
 document.getElementById("f-clearAll").onclick = async () => {
-  const ok = confirm(`مسح جميع المعلومات المضافة لـ "${modalNode.data.name}" (تاريخ الميلاد، الوظيفة، الأم، العدلاء، الزوجات، إلخ)؟\nهذا لا يحذف الشخص نفسه من الشجرة، بس يمسح بياناته الإضافية.\nهذا الإجراء لا يمكن التراجع عنه.`);
+  const ok = confirm(`مسح جميع المعلومات المضافة لـ "${modalNode.data.name}" (تاريخ الميلاد، الوظيفة، الأم، العدلاء، الزوجات، إلخ)؟\nهذا لا يحذف الشخص نفسه من الشجرة، بس يمسح بياناته الإضافية، وينظّف أي إشارة له بملفات الآخرين (كالعدلاء).\nهذا الإجراء لا يمكن التراجع عنه.`);
   if (!ok) return;
+  const myId = personId(modalNode);
+  const oldData = await loadPersonData(myId);
+
+  // تنظيف تبادلي: احذفني من قائمة "العدلاء" عند كل شخص كنت مضافًا عنده
+  for (const n of (oldData.notaries || [])){
+    const otherData = await loadPersonData(n.id);
+    if (otherData.notaries && otherData.notaries.length){
+      const cleaned = otherData.notaries.filter(x => x.id !== myId);
+      if (cleaned.length !== otherData.notaries.length){
+        otherData.notaries = cleaned;
+        await savePersonData(n.id, otherData);
+      }
+    }
+  }
+
   const emptyData = {
     birthYear: "", deathStatus: "alive", deathYear: "", job: "", sonsCount: "", bio: "", photo: null,
     mother: null, notaries: [], wives: [], husband: "", husbandDivorced: false
   };
-  const myId = personId(modalNode);
   await savePersonData(myId, emptyData);
   photoDataUrl = null;
   motherState = null;
@@ -5663,7 +5851,7 @@ document.getElementById("f-clearAll").onclick = async () => {
   wivesState = [];
   await openInfoModal(modalNode);
   const msg = document.getElementById("f-saveMsg");
-  msg.textContent = "تم مسح كل المعلومات 🗑️";
+  msg.textContent = "تم مسح كل المعلومات وتنظيف الإشارات المرتبطة 🗑️";
   setTimeout(() => { msg.textContent = ""; }, 2500);
 };
 
