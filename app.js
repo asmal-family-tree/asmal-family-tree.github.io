@@ -258,6 +258,7 @@ function applyRolePermissions(){
     document.getElementById("ioToggle").style.display = "";
     document.getElementById("toggleTree").style.display = "";
     document.getElementById("bgToggle").style.display = "";
+    document.getElementById("attachmentsToggle").style.display = "";
   } else {
     document.getElementById("usersToggle").style.display = "none";
     document.getElementById("recordsToggle").style.display = "none";
@@ -265,6 +266,7 @@ function applyRolePermissions(){
     document.getElementById("bgToggle").style.display = "none";
     document.getElementById("ioToggle").style.display = "none";
     document.getElementById("toggleTree").style.display = "none";
+    document.getElementById("attachmentsToggle").style.display = "none";
     if (currentUser.canView === false){
       document.getElementById("tree-wrap").classList.add("tree-hidden");
       document.getElementById("noViewMsg").classList.add("show");
@@ -4115,7 +4117,7 @@ document.getElementById("zoomOut").onclick = () => svg.transition().call(zoom.sc
 document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.transform, centerOnRoot());
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
-const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel"].map(id => document.getElementById(id));
+const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel", "attachmentsPanel"].map(id => document.getElementById(id));
 function openOnlyPanel(panel){
   const willOpen = !panel.classList.contains("show");
   const searchPanelEl = document.getElementById("searchPanel");
@@ -4244,9 +4246,11 @@ async function sendAiChatQuestion(){
   try{
     const treeLines = buildAiTreeLines();
     const infoLines = await buildAiPersonInfoLines();
+    const knowledgeContext = await buildAiKnowledgeContext(question);
     const treeContext =
       "بيانات الأشخاص (الاسم | المعرف | الأب | الفخذ):\n" + treeLines.join("\n") +
-      "\n\nمعلومات إضافية مضافة لبعض الأشخاص:\n" + (infoLines.length ? infoLines.join("\n") : "لا توجد معلومات إضافية مضافة حاليًا.");
+      "\n\nمعلومات إضافية مضافة لبعض الأشخاص:\n" + (infoLines.length ? infoLines.join("\n") : "لا توجد معلومات إضافية مضافة حاليًا.") +
+      knowledgeContext;
 
     const res = await fetch(AI_CHAT_WORKER_URL, {
       method: "POST",
@@ -4276,6 +4280,198 @@ aiChatSend.onclick = sendAiChatQuestion;
 aiChatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter"){ e.preventDefault(); sendAiChatQuestion(); }
 });
+
+// ---------- المرفقات (كتب ومصادر إضافية للمساعد الذكي) ----------
+const attachmentsToggle = document.getElementById("attachmentsToggle");
+const attachmentsPanel = document.getElementById("attachmentsPanel");
+const attachFileInput = document.getElementById("attachFileInput");
+const attachStatus = document.getElementById("attachStatus");
+const attachmentsList = document.getElementById("attachmentsList");
+
+attachmentsToggle.onclick = () => { openOnlyPanel(attachmentsPanel); refreshAttachmentsList(); };
+
+function chunkTextForKnowledge(text, size){
+  size = size || 900;
+  const clean = text.replace(/\s+/g, " ").trim();
+  const chunks = [];
+  let i = 0;
+  while (i < clean.length){
+    let end = Math.min(i + size, clean.length);
+    if (end < clean.length){
+      const lastSpace = clean.lastIndexOf(" ", end);
+      if (lastSpace > i) end = lastSpace;
+    }
+    const piece = clean.slice(i, end).trim();
+    if (piece) chunks.push(piece);
+    i = end;
+  }
+  return chunks;
+}
+
+async function extractTextFromPdfFile(file, onProgress){
+  if (!window.pdfjsLib) throw new Error("تعذر تحميل مكتبة قراءة PDF");
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const numPages = pdf.numPages;
+  let fullText = "";
+  for (let i = 1; i <= numPages; i++){
+    onProgress && onProgress(`قراءة صفحة ${i} من ${numPages}…`);
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it => it.str).join(" ");
+    fullText += pageText + "\n";
+  }
+  // إذا النص المستخرج قليل جدًا مقارنة بعدد الصفحات، غالبًا الملف صور ممسوحة ضوئيًا (سكانر) ونحتاج OCR
+  if (fullText.trim().length < numPages * 20){
+    if (!window.Tesseract){ throw new Error("الملف يبدو ممسوحًا ضوئيًا ومكتبة قراءة الصور غير متاحة."); }
+    fullText = "";
+    for (let i = 1; i <= numPages; i++){
+      onProgress && onProgress(`تفريغ نص الصورة (OCR) — صفحة ${i} من ${numPages}…`);
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      const { data } = await Tesseract.recognize(canvas, "ara+eng");
+      fullText += (data.text || "") + "\n";
+    }
+  }
+  return fullText;
+}
+
+async function extractTextFromDocxFile(file){
+  if (!window.mammoth) throw new Error("تعذر تحميل مكتبة قراءة ملفات Word");
+  const buf = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buf });
+  return result.value || "";
+}
+
+async function uploadAttachmentFile(file){
+  attachStatus.textContent = "جارِ قراءة الملف…";
+  try{
+    const lowerName = file.name.toLowerCase();
+    let text = "";
+    if (lowerName.endsWith(".pdf")){
+      text = await extractTextFromPdfFile(file, (msg) => attachStatus.textContent = msg);
+    } else if (lowerName.endsWith(".docx")){
+      text = await extractTextFromDocxFile(file);
+    } else {
+      attachStatus.textContent = "❌ نوع ملف غير مدعوم. الأنواع المدعومة: PDF أو Word (.docx)";
+      return;
+    }
+    if (!text || !text.trim()){
+      attachStatus.textContent = "❌ لم يُستخرج أي نص من الملف.";
+      return;
+    }
+    const chunks = chunkTextForKnowledge(text);
+    const sourceId = "src_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    attachStatus.textContent = `جارِ الحفظ (${chunks.length} جزء)…`;
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE){
+      const batch = db.batch();
+      chunks.slice(i, i + BATCH_SIZE).forEach((chunkText, idx) => {
+        const ref = db.collection("knowledgeChunks").doc();
+        batch.set(ref, {
+          sourceId,
+          sourceName: file.name,
+          chunkIndex: i + idx,
+          text: chunkText,
+          addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
+    attachStatus.textContent = `✅ تم رفع "${file.name}" بنجاح (${chunks.length} جزء).`;
+    refreshAttachmentsList();
+  }catch(e){
+    console.error(e);
+    attachStatus.textContent = "❌ تعذر معالجة الملف: " + (e.message || e);
+  }
+}
+
+attachFileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (file) uploadAttachmentFile(file);
+  e.target.value = "";
+});
+
+async function refreshAttachmentsList(){
+  attachmentsList.innerHTML = "جارِ التحميل…";
+  try{
+    const snap = await db.collection("knowledgeChunks").get();
+    const bySource = new Map();
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (!bySource.has(d.sourceId)) bySource.set(d.sourceId, { sourceName: d.sourceName, count: 0 });
+      bySource.get(d.sourceId).count++;
+    });
+    if (!bySource.size){
+      attachmentsList.innerHTML = "<div style='font-size:13px; color:#888; text-align:center; padding:10px 0;'>لا توجد مرفقات حاليًا.</div>";
+      return;
+    }
+    attachmentsList.innerHTML = "";
+    bySource.forEach((info, sourceId) => {
+      const row = document.createElement("div");
+      row.className = "chip";
+      row.style.width = "100%";
+      row.style.boxSizing = "border-box";
+      row.style.justifyContent = "space-between";
+      row.innerHTML = `<span>📄 ${info.sourceName} <span style="opacity:.6; font-size:11px;">(${info.count} جزء)</span></span>`;
+      const delBtn = document.createElement("span");
+      delBtn.textContent = "✕";
+      delBtn.className = "chip-x";
+      delBtn.onclick = () => deleteAttachmentSource(sourceId, info.sourceName);
+      row.appendChild(delBtn);
+      attachmentsList.appendChild(row);
+    });
+  }catch(e){
+    attachmentsList.innerHTML = "تعذر تحميل قائمة المرفقات.";
+    console.error(e);
+  }
+}
+
+async function deleteAttachmentSource(sourceId, sourceName){
+  if (!window.confirm(`حذف المرفق "${sourceName}" بالكامل؟`)) return;
+  try{
+    const snap = await db.collection("knowledgeChunks").where("sourceId", "==", sourceId).get();
+    const BATCH_SIZE = 400;
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += BATCH_SIZE){
+      const batch = db.batch();
+      docs.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    refreshAttachmentsList();
+  }catch(e){
+    customAlert("تعذر حذف المرفق: " + (e.message || e));
+  }
+}
+
+// اختيار أنسب أجزاء المرفقات لسؤال معيّن (بحث بالكلمات المفتاحية، بدون الحاجة لتقنيات معقدة)
+async function buildAiKnowledgeContext(question){
+  try{
+    const snap = await db.collection("knowledgeChunks").get();
+    if (snap.empty) return "";
+    const qWords = question.replace(/[إأآا]/g, "ا").split(/\s+/).filter(w => w.length >= 2);
+    const scored = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      const normText = (d.text || "").replace(/[إأآا]/g, "ا");
+      let score = 0;
+      qWords.forEach(w => { if (normText.includes(w)) score++; });
+      if (score > 0) scored.push({ score, sourceName: d.sourceName, text: d.text });
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 8);
+    if (!top.length) return "";
+    return "\n\nمقتطفات من المرفقات (كتب ومصادر) ذات صلة بالسؤال:\n" +
+      top.map(c => `[من: ${c.sourceName}]\n${c.text}`).join("\n---\n");
+  }catch(e){
+    console.error("تعذر تحميل المرفقات للدردشة", e);
+    return "";
+  }
+}
+
 
 
 
