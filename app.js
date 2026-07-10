@@ -4115,7 +4115,7 @@ document.getElementById("zoomOut").onclick = () => svg.transition().call(zoom.sc
 document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.transform, centerOnRoot());
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
-const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel"].map(id => document.getElementById(id));
+const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel"].map(id => document.getElementById(id));
 function openOnlyPanel(panel){
   const willOpen = !panel.classList.contains("show");
   const searchPanelEl = document.getElementById("searchPanel");
@@ -4164,6 +4164,119 @@ deleteBadgeToggle.onclick = () => {
   const on = document.body.classList.toggle("show-delete-badges");
   deleteBadgeToggle.classList.toggle("active", on);
 };
+
+// ---------- مساعد الذكاء الاصطناعي (الدردشة) ----------
+const AI_CHAT_WORKER_URL = "https://asmal-ai-chat.mn-rshad1406.workers.dev";
+
+const aiChatToggle = document.getElementById("aiChatToggle");
+const aiChatPanel = document.getElementById("aiChatPanel");
+const aiChatMessages = document.getElementById("aiChatMessages");
+const aiChatInput = document.getElementById("aiChatInput");
+const aiChatSend = document.getElementById("aiChatSend");
+const aiChatStatus = document.getElementById("aiChatStatus");
+
+aiChatToggle.onclick = () => {
+  openOnlyPanel(aiChatPanel);
+  if (!aiChatMessages.childElementCount){
+    appendAiChatMessage("bot", "أهلًا! اسألني عن أي شخص، علاقة قرابة، أو معلومة مضافة في شجرة بني أسمل الحكمي.");
+  }
+};
+
+function appendAiChatMessage(who, text, extraClass){
+  const div = document.createElement("div");
+  div.className = "ai-msg " + (who === "user" ? "ai-msg-user" : "ai-msg-bot") + (extraClass ? " " + extraClass : "");
+  div.textContent = text;
+  aiChatMessages.appendChild(div);
+  aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+  return div;
+}
+
+// يحوّل شجرة الأشخاص الحالية (treeData) إلى نص مختصر: الاسم، الأب المباشر، والفخذ
+function buildAiTreeLines(){
+  const lines = [];
+  function walk(node, parentName, fakhdName){
+    if (!node || !node.name) return;
+    const isUnderJoinPoint = !!(node.__parentIsJoinPoint);
+    const myFakhd = isUnderJoinPoint ? node.name : (fakhdName || "");
+    lines.push(`${node.name} | المعرف: ${node.id || "-"} | الأب: ${parentName || "-"} | الفخذ: ${myFakhd || "-"}`);
+    (node.children || []).forEach(child => {
+      child.__parentIsJoinPoint = !!node.isJoinPoint;
+      walk(child, node.name, myFakhd);
+    });
+  }
+  walk(treeData, null, "");
+  return lines;
+}
+
+// يحمّل كل بيانات personInfo مرة واحدة ويبنيها كنص مختصر لكل شخص لديه معلومات فعلية
+let aiPersonInfoCache = null;
+async function buildAiPersonInfoLines(){
+  if (!aiPersonInfoCache){
+    aiPersonInfoCache = new Map();
+    try{
+      const snap = await db.collection("personInfo").get();
+      snap.forEach(doc => aiPersonInfoCache.set(doc.id, doc.data()));
+    }catch(e){ console.error("تعذر تحميل معلومات الأشخاص للدردشة", e); }
+  }
+  const lines = [];
+  aiPersonInfoCache.forEach((d, id) => {
+    const parts = [];
+    if (d.nickname) parts.push(`اللقب: ${d.nickname}`);
+    if (d.job) parts.push(`الوظيفة: ${d.job}`);
+    if (d.birthYear) parts.push(`الميلاد: ${d.birthYear}هـ`);
+    if (d.deathYear) parts.push(`الوفاة: ${d.deathYear}هـ`);
+    if (d.bio) parts.push(`نبذة: ${String(d.bio).slice(0, 300)}`);
+    if (parts.length) lines.push(`المعرف ${id}: ${parts.join("، ")}`);
+  });
+  return lines;
+}
+
+async function sendAiChatQuestion(){
+  const question = aiChatInput.value.trim();
+  if (!question) return;
+  appendAiChatMessage("user", question);
+  aiChatInput.value = "";
+  aiChatSend.disabled = true;
+  aiChatInput.disabled = true;
+  const loadingEl = appendAiChatMessage("bot", "جارِ التفكير…", "ai-msg-loading");
+  aiChatStatus.textContent = "";
+
+  try{
+    const treeLines = buildAiTreeLines();
+    const infoLines = await buildAiPersonInfoLines();
+    const treeContext =
+      "بيانات الأشخاص (الاسم | المعرف | الأب | الفخذ):\n" + treeLines.join("\n") +
+      "\n\nمعلومات إضافية مضافة لبعض الأشخاص:\n" + (infoLines.length ? infoLines.join("\n") : "لا توجد معلومات إضافية مضافة حاليًا.");
+
+    const res = await fetch(AI_CHAT_WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, treeContext })
+    });
+    const data = await res.json();
+    loadingEl.remove();
+    if (!res.ok || data.error){
+      appendAiChatMessage("bot", "حصل خطأ أثناء التواصل مع المساعد. حاول مرة أخرى.", "ai-msg-error");
+      console.error("AI chat error:", data);
+    } else {
+      appendAiChatMessage("bot", data.answer || "لم يصل جواب.");
+    }
+  }catch(e){
+    loadingEl.remove();
+    appendAiChatMessage("bot", "تعذر الاتصال بالمساعد. تأكد من اتصال الإنترنت.", "ai-msg-error");
+    console.error(e);
+  }finally{
+    aiChatSend.disabled = false;
+    aiChatInput.disabled = false;
+    aiChatInput.focus();
+  }
+}
+
+aiChatSend.onclick = sendAiChatQuestion;
+aiChatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter"){ e.preventDefault(); sendAiChatQuestion(); }
+});
+
 
 
 // ---------- شجرتي الخاصة ----------

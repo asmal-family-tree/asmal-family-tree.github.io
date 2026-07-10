@@ -642,3 +642,10 @@
 
 @media (max-width:480px){:root[data-style="3"] #bottomBar{ gap:2px; padding:5px 3px; }:root[data-style="3"] #bottomBar button{ width:32px; height:32px; font-size:13px; }:root[data-style="3"] .zoom-fab button{ width:44px; height:44px; }
 }
+
+/* ---------- مساعد الذكاء الاصطناعي (الدردشة) ---------- */
+.ai-msg{ max-width:88%; padding:10px 14px; border-radius:14px; font-size:13.5px; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+.ai-msg-user{ align-self:flex-start; background:rgba(201,151,31,.16); border:1px solid rgba(201,151,31,.3); }
+.ai-msg-bot{ align-self:flex-end; background:rgba(11,61,46,.07); border:1px solid rgba(11,61,46,.15); }
+.ai-msg-bot.ai-msg-error{ background:rgba(139,30,30,.08); border-color:rgba(139,30,30,.25); color:#8B1E1E; }
+.ai-msg-loading{ align-self:flex-end; opacity:.65; font-style:italic; }
