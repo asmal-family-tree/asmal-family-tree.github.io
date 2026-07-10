@@ -6122,7 +6122,10 @@ document.getElementById("f-save").onclick = async () => {
 
   const msg = document.getElementById("f-saveMsg");
   msg.textContent = "تم الحفظ ✅";
-  setTimeout(() => { msg.textContent = ""; }, 2500);
+  setTimeout(() => {
+    msg.textContent = "";
+    closeInfoModal();
+  }, 1100);
 };
 
 document.getElementById("f-clearAll").onclick = async () => {
