@@ -4212,6 +4212,23 @@ function buildAiTreeLines(){
 
 // يحمّل كل بيانات personInfo مرة واحدة ويبنيها كنص مختصر لكل شخص لديه معلومات فعلية
 let aiPersonInfoCache = null;
+function buildAiIdNameMap(){
+  const map = new Map();
+  function walk(node){
+    if (!node || !node.name) return;
+    if (node.id) map.set(node.id, node.name);
+    (node.children || []).forEach(walk);
+  }
+  walk(treeData);
+  return map;
+}
+
+function aiMotherDisplayName(m){
+  if (!m) return "";
+  if (m.wifeName && !m.wifeName.startsWith("أم ")) return m.wifeName;
+  return "ابنة " + (m.fatherChain || m.fatherName || "؟");
+}
+
 async function buildAiPersonInfoLines(){
   if (!aiPersonInfoCache){
     aiPersonInfoCache = new Map();
@@ -4220,6 +4237,8 @@ async function buildAiPersonInfoLines(){
       snap.forEach(doc => aiPersonInfoCache.set(doc.id, doc.data()));
     }catch(e){ console.error("تعذر تحميل معلومات الأشخاص للدردشة", e); }
   }
+  const idNameMap = buildAiIdNameMap();
+  const motherGroups = new Map(); // wifeId -> { label, ids:[] }
   const lines = [];
   aiPersonInfoCache.forEach((d, id) => {
     const parts = [];
@@ -4228,8 +4247,27 @@ async function buildAiPersonInfoLines(){
     if (d.birthYear) parts.push(`الميلاد: ${d.birthYear}هـ`);
     if (d.deathYear) parts.push(`الوفاة: ${d.deathYear}هـ`);
     if (d.bio) parts.push(`نبذة: ${String(d.bio).slice(0, 300)}`);
-    if (parts.length) lines.push(`المعرف ${id}: ${parts.join("، ")}`);
+    if (d.mother && d.mother.wifeId){
+      const label = aiMotherDisplayName(d.mother);
+      parts.push(`الأم: ${label}`);
+      if (!motherGroups.has(d.mother.wifeId)) motherGroups.set(d.mother.wifeId, { label, ids: [] });
+      motherGroups.get(d.mother.wifeId).ids.push(id);
+    }
+    if (parts.length) lines.push(`المعرف ${id} (${idNameMap.get(id) || "؟"}): ${parts.join("، ")}`);
   });
+
+  const siblingLines = [];
+  motherGroups.forEach((group) => {
+    if (group.ids.length >= 2){
+      const names = group.ids.map(id => `${idNameMap.get(id) || "؟"} (المعرف ${id})`);
+      siblingLines.push(`الإخوة الأشقاء من الأم "${group.label}": ${names.join("، ")}`);
+    }
+  });
+  if (siblingLines.length){
+    lines.push("مجموعات الإخوة الأشقاء (نفس الأب ونفس الأم):");
+    lines.push(...siblingLines);
+  }
+
   return lines;
 }
 
