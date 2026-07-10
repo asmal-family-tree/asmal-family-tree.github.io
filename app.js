@@ -4595,7 +4595,7 @@ async function maternalRelationNote(pa, pb){
   if (mgfB && pa.parent === mgfB){
     return `${pa.data.name} هو خال ${pb.data.name} (أخو والدة ${pb.data.name})`;
   }
-  if (mgfA && mgfB && mgfA === mgfB){
+  if (mgfA && mgfB && mgfA === mgfB && infoA.wifeId !== infoB.wifeId){
     return `${pa.data.name} و${pb.data.name} أبناء خالة (أمّاهما أختان، بنات ${modalTitleChain(mgfA).join(" ")})`;
   }
   // ملاحظة: نفس الحالة تُقرأ "ابن خال" من جهة B أو "ابن عمة" من جهة A — نعرضها هنا
@@ -4836,7 +4836,7 @@ function renderNotaryChips(){
     nameSpan.textContent = n.chain3 || n.name;
     nameSpan.onclick = async () => {
       const otherData = await loadPersonData(n.id);
-      const wives = (otherData.wives || []).filter(w => w.type === "inside" && w.wifeName).map(w => w.wifeName);
+      const wives = (otherData.wives || []).filter(w => w.type === "inside" && w.wifeName).map(w => motherDisplayName(w));
       if (!wives.length){ customAlert("لا توجد زوجات مضافة لهذا الشخص بعد."); return; }
       const sel = document.createElement("select");
       sel.innerHTML = `<option value="">اختر زوجة العديل</option>` + wives.map(w => `<option ${w===n.selectedWife?"selected":""}>${w}</option>`).join("");
@@ -5100,6 +5100,14 @@ let pendingHalfSiblings = []; // [{node, name}] بانتظار الاعتماد 
 let pendingWifeAndSiblingJobs = []; // بانتظار "حفظ المعلومات" النهائي: [{fatherNode, personalShared, divorced, kidNodes}]
 let originalDataSnapshot = null; // نسخة من بيانات الملف عند فتحه، لمقارنتها عند الحفظ واكتشاف عدم وجود أي تغيير
 
+function motherDisplayName(m){
+  if (!m) return "";
+  if (m.wifeName && !m.wifeName.startsWith("أم ")){
+    return m.wifeName;
+  }
+  return "ابنة " + (m.fatherChain || m.fatherName || "؟");
+}
+
 function renderMotherBox(){
   const box = document.getElementById("motherBox");
   const resultDiv = document.getElementById("motherResult");
@@ -5108,7 +5116,7 @@ function renderMotherBox(){
   const myId = personId(modalNode);
 
   if (motherState && motherState.auto){
-    resultDiv.textContent = "الأم: " + (motherState.wifeName || ("ابنة " + motherState.fatherChain)) + " (تلقائي — مرتبطة عبر زوجة مضافة لدى الأب)";
+    resultDiv.textContent = "الأم: " + motherDisplayName(motherState) + " (تلقائي — مرتبطة عبر زوجة مضافة لدى الأب)";
     return;
   }
 
@@ -5117,7 +5125,7 @@ function renderMotherBox(){
     row.style.cssText = "display:flex; flex-direction:column; gap:8px; background:#FFF8E1; border-radius:8px; padding:10px 12px; border:1px dashed #C9A227;";
     const header = document.createElement("div");
     header.style.cssText = "display:flex; align-items:center; justify-content:space-between;";
-    header.innerHTML = `<span style="color:#241a10;"><b>الأم:</b> ${escapeHtml(motherState.wifeName || ("ابنة " + motherState.fatherChain))}${motherState.divorced ? " (مطلّقة)" : ""} — <span style="color:#a67c00;">بانتظار الحفظ النهائي</span></span><span class="chip-x">✕</span>`;
+    header.innerHTML = `<span style="color:#241a10;"><b>الأم:</b> ${escapeHtml(motherDisplayName(motherState))}${motherState.divorced ? " (مطلّقة)" : ""} — <span style="color:#a67c00;">بانتظار الحفظ النهائي</span></span><span class="chip-x">✕</span>`;
     header.querySelector(".chip-x").onclick = () => {
       motherState = null;
       pendingWifeAndSiblingJobs = [];
@@ -5145,7 +5153,7 @@ function renderMotherBox(){
     const isSource = motherState.sourcePersonId === myId;
     const row = document.createElement("div");
     row.style.cssText = "display:flex; align-items:center; justify-content:space-between; background:#F1E9D8; border-radius:8px; padding:8px 12px;";
-    row.innerHTML = `<span style="color:#241a10;">الأم: ${escapeHtml(motherState.wifeName || ("ابنة " + motherState.fatherChain))}${motherState.divorced ? " (مطلّقة)" : ""}</span><span class="chip-x" title="${isSource ? "حذف كامل" : "فكّ ارتباطي"}">✕</span>`;
+    row.innerHTML = `<span style="color:#241a10;">الأم: ${escapeHtml(motherDisplayName(motherState))}${motherState.divorced ? " (مطلّقة)" : ""}</span><span class="chip-x" title="${isSource ? "حذف كامل" : "فكّ ارتباطي"}">✕</span>`;
     row.querySelector(".chip-x").onclick = async () => {
       if (isSource){
         if (!confirm("هذا حذف كامل شامل: راح يحذف الأم من كل ملفات الأزواج والأبناء والإخوة المرتبطين. متأكد؟")) return;
@@ -5262,7 +5270,7 @@ function renderHalfSiblingPicker(){
 
   const note = document.createElement("div");
   note.style.cssText = "background:#FFF8E1; border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:8px; color:#241a10;";
-  note.textContent = `الأم: ${motherState.wifeName} — بانتظار الاعتماد`;
+  note.textContent = `الأم: ${motherDisplayName(motherState)} — بانتظار الاعتماد`;
   box.appendChild(note);
 
   const title = document.createElement("div");
@@ -5321,7 +5329,7 @@ function renderFatherChoiceDialog(){
 
   const title = document.createElement("div");
   title.className = "f-label";
-  title.textContent = `هل ${motherState.wifeName} على عصمة أحد هؤلاء الآن؟`;
+  title.textContent = `هل ${motherDisplayName(motherState)} على عصمة أحد هؤلاء الآن؟`;
   box.appendChild(title);
 
   // تجميع الآباء المرشّحين بدون تكرار: أبو صاحب الملف الأصلي أولًا، ثم آباء بقية الإخوة
@@ -5470,7 +5478,7 @@ function renderWives(){
 
         const summary = document.createElement("div");
         summary.style.cssText = "margin-top:8px;font-weight:700;color:#333;font-size:13px";
-        summary.textContent = (w.wifeName ? w.wifeName + " " : "") + "ابنة " + (w.fatherChain || w.fatherName);
+        summary.textContent = (w.wifeName && !w.wifeName.startsWith("أم ") ? w.wifeName + " " : "") + "ابنة " + (w.fatherChain || w.fatherName);
         block.appendChild(summary);
 
         const divorceLbl = document.createElement("label");
@@ -5647,7 +5655,7 @@ function renderWives(){
             if (w.children.includes(kName)) continue;
             const kData = await loadPersonData(personId(kNode));
             const km = kData.mother;
-            if (km && (km.wifeId === w.wifeId || (w.wifeName && km.wifeName === w.wifeName))){
+            if (km && km.wifeId === w.wifeId){
               if (!wivesState[wi].children.includes(kName)) wivesState[wi].children.push(kName);
               const cb = checkboxByName.get(kName);
               if (cb) cb.checked = true;
@@ -6388,12 +6396,15 @@ window.addEventListener("touchend", bgEnd);
    ===================================================================== */
 let inspectTargetNode = null;
 
-(function setupInspectPanel(){
+function resetInspectSearch(){
   const box = document.getElementById("inspectSearchBox");
   const btn = document.getElementById("inspectBtn");
   const resultsEl = document.getElementById("inspectResults");
   if (!box || !btn || !resultsEl) return;
-
+  inspectTargetNode = null;
+  btn.disabled = true;
+  resultsEl.innerHTML = "";
+  box.innerHTML = "";
   const search = makePersonSearchBox("اكتب الاسم الرباعي، ثم اضغط عليه من القائمة", (m) => {
     inspectTargetNode = m;
     box.innerHTML = "";
@@ -6402,17 +6413,20 @@ let inspectTargetNode = null;
     const c = document.createElement("div");
     c.className = "chip";
     c.innerHTML = `<span>${escapeHtml(chainNames(m).slice(0,4).join(" بن "))}</span><span class="chip-x">✕</span>`;
-    c.querySelector(".chip-x").onclick = () => {
-      inspectTargetNode = null;
-      btn.disabled = true;
-      resultsEl.innerHTML = "";
-      box.appendChild(search);
-    };
+    c.querySelector(".chip-x").onclick = resetInspectSearch;
     chip.appendChild(c);
     box.appendChild(chip);
     btn.disabled = false;
   });
   box.appendChild(search);
+}
+
+(function setupInspectPanel(){
+  const btn = document.getElementById("inspectBtn");
+  const resultsEl = document.getElementById("inspectResults");
+  if (!document.getElementById("inspectSearchBox") || !btn || !resultsEl) return;
+
+  resetInspectSearch();
 
   btn.onclick = async () => {
     if (!inspectTargetNode) return;
@@ -6453,8 +6467,14 @@ function renderInspectResults(node, data){
 
   resultsEl.innerHTML = "";
   const header = document.createElement("div");
-  header.style.cssText = "font-weight:700; color:#0B3D2E; margin-bottom:8px;";
-  header.textContent = "بيانات: " + chainNames(node).slice(0,4).join(" بن ");
+  header.style.cssText = "display:flex; justify-content:space-between; align-items:center; font-weight:700; color:#0B3D2E; margin-bottom:8px;";
+  header.innerHTML = `<span>بيانات: ${escapeHtml(chainNames(node).slice(0,4).join(" بن "))}</span>`;
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "f-btn-sm";
+  closeBtn.style.cssText = "background:#8B1E1E; padding:5px 12px; font-size:12px;";
+  closeBtn.textContent = "✕ إغلاق وفحص آخر";
+  closeBtn.onclick = resetInspectSearch;
+  header.appendChild(closeBtn);
   resultsEl.appendChild(header);
 
   if (data.birthYear){
@@ -6476,7 +6496,7 @@ function renderInspectResults(node, data){
     resultsEl.appendChild(fieldBlock("صورة", "مرفقة", () => inspectPatchAndRefresh(node, d => { d.photo = null; })));
   }
   if (data.mother && data.mother.wifeId){
-    resultsEl.appendChild(fieldBlock("الأم", data.mother.wifeName || ("ابنة " + (data.mother.fatherChain || "")), () => inspectPatchAndRefresh(node, d => { d.mother = null; })));
+    resultsEl.appendChild(fieldBlock("الأم", motherDisplayName(data.mother), () => inspectPatchAndRefresh(node, d => { d.mother = null; })));
   }
   if (data.husband){
     resultsEl.appendChild(fieldBlock("الزوج", data.husband + (data.husbandDivorced ? " (مطلّقة)" : ""), () => inspectPatchAndRefresh(node, d => { d.husband = null; d.husbandId = null; d.husbandChain = null; d.husbandDivorced = null; })));
