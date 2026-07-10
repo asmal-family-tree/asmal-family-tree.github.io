@@ -125,8 +125,41 @@ async function afterSignIn(fbUser){
   document.getElementById("currentUserBadge").classList.add("show");
   document.getElementById("noViewMsg").classList.remove("show");
   document.getElementById("tree-wrap").classList.remove("tree-hidden");
+  loadAndApplySiteTheme();
   applyRolePermissions();
 }
+
+async function loadAndApplySiteTheme(){
+  try{
+    const snap = await db.collection("meta").doc("siteSettings").get();
+    const theme = snap.exists ? (snap.data().theme || "") : "";
+    applyTheme(theme);
+  }catch(e){ console.error("تعذر تحميل استايل الموقع", e); }
+}
+
+function applyTheme(theme){
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+  else document.documentElement.removeAttribute("data-theme");
+  document.querySelectorAll(".theme-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.theme === theme);
+  });
+}
+
+document.querySelectorAll(".theme-btn").forEach(btn => {
+  btn.onclick = async () => {
+    const theme = btn.dataset.theme;
+    const statusEl = document.getElementById("themeStatus");
+    statusEl.textContent = "جارِ الحفظ…";
+    try{
+      await db.collection("meta").doc("siteSettings").set({ theme }, { merge: true });
+      applyTheme(theme);
+      statusEl.textContent = "✅ تم تطبيق الاستايل للجميع";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    }catch(e){
+      statusEl.textContent = "تعذر الحفظ: " + (e.message || e.code);
+    }
+  };
+});
 
 document.getElementById("logoutBtn").onclick = () => {
   auth.signOut();
@@ -395,7 +428,7 @@ document.getElementById("newUserAddBtn").onclick = async function(){
 };
 
 function isPersonDataFilled(data){
-  return !!(data.birthYear || data.job || data.bio || data.photo || data.mother ||
+  return !!(data.birthYear || data.job || data.nickname || data.bio || data.photo || data.mother ||
     (data.notaries && data.notaries.length) || (data.wives && data.wives.length) ||
     data.deathStatus === "dead" || data.husband);
 }
@@ -448,6 +481,7 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   }
   lines.push({ label: "الحالة", value: data.deathStatus === "dead" ? "متوفى" : "حي يرزق" });
   if (data.job) lines.push({ label: "الوظيفة", value: data.job });
+  if (data.nickname) lines.push({ label: "اللقب/الشهرة", value: data.nickname });
   lines.push({ label: "عدد الأبناء بالمشجرة", value: String(sonsInTree) });
   if (unclesLine) lines.push({ label: "الأخوال", value: unclesLine });
   if (halfSiblingsLine) lines.push({ label: "الإخوة من الأم", value: halfSiblingsLine });
@@ -3899,7 +3933,7 @@ function showInfo(d){
         `<div class="ip-sadaha">${sadahaList.map(s => `<div class="ip-sadaha-item"><b>${s.label}:</b> ${nameChip(s.name, s.node)}</div>`).join("")}</div>`
       : "";
 
-    const hasAny = data.birthYear || data.job || data.bio || data.photo || (data.notaries && data.notaries.length) || data.deathStatus === "dead" || sonsInTree || unclesHtml || sadahaHtml || samMotherHtml;
+    const hasAny = data.birthYear || data.job || data.nickname || data.bio || data.photo || (data.notaries && data.notaries.length) || data.deathStatus === "dead" || sonsInTree || unclesHtml || sadahaHtml || samMotherHtml;
     if (!hasAny){ card.innerHTML = `<div class="ip-empty">لا توجد معلومات إضافية مضافة لهذا الشخص بعد.</div>`; return; }
     let html = "";
     if (data.photo) html += `<img class="ip-photo" src="${data.photo}">`;
@@ -3910,6 +3944,7 @@ function showInfo(d){
     }
     html += `<div class="ip-row"><span class="ip-label">الحالة</span><span class="ip-value">${data.deathStatus === "dead" ? ("متوفى" + (data.deathYear ? " — " + data.deathYear + " هـ" : "")) : "حي يرزق"}</span></div>`;
     if (data.job) html += `<div class="ip-row"><span class="ip-label">الوظيفة</span><span class="ip-value">${escapeHtml(data.job)}</span></div>`;
+    if (data.nickname) html += `<div class="ip-row"><span class="ip-label">اللقب/الشهرة</span><span class="ip-value">${escapeHtml(data.nickname)}</span></div>`;
     html += `<div class="ip-row"><span class="ip-label">عدد الأبناء بالمشجرة</span><span class="ip-value">${sonsInTree}</span></div>`;
     html += unclesHtml;
     html += samMotherHtml;
@@ -5517,14 +5552,6 @@ async function openInfoModal(d){
   document.querySelector('.info-tab[data-tab="info"]').classList.add("active");
   document.getElementById("tabAddChildren").style.display = "none";
   document.getElementById("tabInfo").style.display = "block";
-  document.getElementById("tabImport").style.display = "none";
-  document.getElementById("importTabBtn").style.display = (currentUser && currentUser.role === "admin") ? "" : "none";
-  document.getElementById("importPdfStatus").textContent = "";
-  document.getElementById("importRawText").value = "";
-  document.getElementById("importWifeName").value = "";
-  document.getElementById("importWifeResult").innerHTML = "";
-  document.getElementById("importKidsText").value = "";
-  document.getElementById("importKidsResult").innerHTML = "";
 
   const data = await loadPersonData(personId(d));
   document.getElementById("f-birthYear").value = data.birthYear || "";
@@ -5532,6 +5559,7 @@ async function openInfoModal(d){
   document.getElementById("deathYearWrap").style.display = data.deathStatus === "dead" ? "block" : "none";
   document.getElementById("f-deathYear").value = data.deathYear || "";
   document.getElementById("f-job").value = data.job || "";
+  document.getElementById("f-nickname").value = data.nickname || "";
   const isFemale = d.data.type === "female";
   document.getElementById("husbandWrap").style.display = isFemale ? "block" : "none";
   document.getElementById("f-husband").value = data.husband || "";
@@ -5668,6 +5696,7 @@ document.getElementById("f-save").onclick = async () => {
     deathStatus: document.querySelector('input[name="deathStatus"]:checked').value,
     deathYear: document.getElementById("f-deathYear").value,
     job: document.getElementById("f-job").value,
+    nickname: document.getElementById("f-nickname").value,
     sonsCount: document.getElementById("f-sonsCount").textContent,
     bio: document.getElementById("f-bio").value,
     photo: photoDataUrl,
@@ -5732,7 +5761,7 @@ document.getElementById("f-clearAll").onclick = async () => {
   }
 
   const emptyData = {
-    birthYear: "", deathStatus: "alive", deathYear: "", job: "", sonsCount: "", bio: "", photo: null,
+    birthYear: "", deathStatus: "alive", deathYear: "", job: "", nickname: "", sonsCount: "", bio: "", photo: null,
     mother: null, notaries: [], wives: [], husband: "", husbandDivorced: false
   };
   await savePersonData(myId, emptyData);
@@ -5844,128 +5873,6 @@ document.getElementById("bgFileInput").addEventListener("change", async (e) => {
 });
 
 document.getElementById("bgZoomIn").onclick = () => { bgScale = Math.min(6, bgScale + 0.25); applyBgTransform(); };
-
-// ============ استيراد سجل الأسرة (PDF) — مساعد فقط، لا يحفظ أو يربط تلقائيًا ============
-const TRIBE_FAMILY_NAMES = ["الحكمي", "أسمل", "الاسمل", "حكمي"];
-
-document.getElementById("importPdfInput").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const statusEl = document.getElementById("importPdfStatus");
-  statusEl.textContent = "جارِ استخراج النص…";
-  try{
-    if (!window.pdfjsLib){ statusEl.textContent = "تعذر تحميل مكتبة قراءة PDF."; return; }
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    let allText = "";
-    for (let p = 1; p <= pdf.numPages; p++){
-      const page = await pdf.getPage(p);
-      const content = await page.getTextContent();
-      const pageLines = {};
-      content.items.forEach(item => {
-        if (!item.str || !item.str.trim()) return;
-        const y = Math.round(item.transform[5]);
-        const x = item.transform[4];
-        pageLines[y] = pageLines[y] || [];
-        pageLines[y].push({ str: item.str, x, width: item.width || 0 });
-      });
-      const ys = Object.keys(pageLines).map(Number).sort((a,b) => b - a);
-      ys.forEach(y => {
-        // نرتّب حسب الموقع الأفقي، ونجمع الحروف المتقاربة كـ"كلمة واحدة" حسب المسافة بينها
-        const items = pageLines[y].slice().sort((a,b) => a.x - b.x);
-        let line = "";
-        let prevEnd = null;
-        items.forEach(it => {
-          const gap = prevEnd === null ? 0 : it.x - prevEnd;
-          const avgCharW = it.width && it.str.length ? it.width / it.str.length : 5;
-          if (prevEnd !== null && gap > avgCharW * 0.55) line += " ";
-          line += it.str;
-          prevEnd = it.x + it.width;
-        });
-        // تطبيع الحروف العربية (الأشكال المعزولة/المتصلة) لصورتها القياسية
-        line = line.normalize("NFKC");
-        allText += line + "\n";
-      });
-    }
-    document.getElementById("importRawText").value = allText.trim();
-    statusEl.textContent = `✅ تم استخراج النص (${pdf.numPages} صفحة). راجعه وصحّح أي خلل بالقراءة قبل المتابعة.`;
-  }catch(err){
-    statusEl.textContent = "تعذر استخراج النص من الملف: " + (err.message || err);
-  }
-  e.target.value = "";
-});
-
-document.getElementById("importFlipWordsBtn").onclick = () => {
-  const ta = document.getElementById("importRawText");
-  ta.value = ta.value.split("\n").map(line => line.split(/\s+/).reverse().join(" ")).join("\n");
-};
-
-function guessTribeMatch(nameParts){
-  return nameParts.some(p => TRIBE_FAMILY_NAMES.some(t => p.includes(t) || t.includes(p)));
-}
-
-document.getElementById("importAnalyzeBtn").onclick = () => {
-  const full = document.getElementById("importWifeName").value.trim();
-  const resultEl = document.getElementById("importWifeResult");
-  resultEl.innerHTML = "";
-  if (!full){ resultEl.innerHTML = `<span style="color:#a33">اكتب اسم الزوجة أولًا</span>`; return; }
-  const parts = full.split(/\s+/).filter(Boolean);
-  const isTribe = guessTribeMatch(parts);
-
-  if (!isTribe){
-    resultEl.innerHTML = `
-      <div style="background:#F1E9D8; border-radius:8px; padding:10px;">
-        اسم العائلة لا يطابق القبيلة (الحكمي/أسمل) — تُصنَّف <b>من خارج القبيلة</b> تلقائيًا.
-      </div>
-      <button class="f-btn-sm" id="importUseOutsideBtn" style="width:100%; margin-top:8px; background:#0B3D2E;">استخدم كـ"من خارج القبيلة" بتبويب المعلومات</button>`;
-    document.getElementById("importUseOutsideBtn").onclick = () => {
-      wivesState.push({ type: "outside", notaries: [], children: [] });
-      document.querySelector('.info-tab[data-tab="info"]').click();
-      renderWives();
-    };
-    return;
-  }
-
-  // اسم من القبيلة محتمل — نبحث بالشجرة عن الأب (الاسم الثاني) مع تطابق تسلسل النسب
-  const fatherName = parts[1] || "";
-  const candidates = root.descendants().filter(n => n.data.name.includes(fatherName));
-  if (!candidates.length){
-    resultEl.innerHTML = `<div style="color:#a33">ما لقيت أحد بالشجرة اسمه "${escapeHtml(fatherName)}". تقدر تضيفها يدويًا من تبويب المعلومات (من داخل أو خارج القبيلة).</div>`;
-    return;
-  }
-  resultEl.innerHTML = `<div class="f-label" style="margin:0 0 6px;">اختر الأب الصحيح من المطابقات التالية:</div>`;
-  const wrap = document.createElement("div");
-  wrap.className = "chip-list";
-  candidates.slice(0, 15).forEach(c => {
-    const btn = document.createElement("button");
-    btn.className = "f-btn-sm";
-    btn.textContent = chainNames(c).slice(0, 4).join(" ");
-    btn.onclick = () => {
-      document.querySelector('.info-tab[data-tab="info"]').click();
-      const wifeAddBtn = document.getElementById("f-wifeAdd");
-      if (wifeAddBtn) wifeAddBtn.click();
-      alert(`اختر "من أبناء القبيلة" ثم ابحث عن "${c.data.name}" واختره كأب — تم تجهيز الاسم للبحث السريع.`);
-    };
-    wrap.appendChild(btn);
-  });
-  resultEl.appendChild(wrap);
-};
-
-document.getElementById("importCheckKidsBtn").onclick = () => {
-  const names = document.getElementById("importKidsText").value.split("\n").map(s => s.trim()).filter(Boolean);
-  const resultEl = document.getElementById("importKidsResult");
-  resultEl.innerHTML = "";
-  if (!names.length){ resultEl.innerHTML = `<span style="color:#a33">اكتب اسم واحد على الأقل، كل اسم بسطر</span>`; return; }
-  names.forEach(name => {
-    const found = root.descendants().filter(n => n.data.name.includes(name));
-    const row = document.createElement("div");
-    row.style.cssText = "display:flex; justify-content:space-between; padding:6px 10px; background:#F7F2E7; border-radius:8px; margin-bottom:4px; font-size:13px;";
-    row.innerHTML = found.length
-      ? `<span>${escapeHtml(name)}</span><span style="color:#1E7A4C;">✅ موجود (${found.length} تطابق)</span>`
-      : `<span>${escapeHtml(name)}</span><span style="color:#a33;">غير موجود بالشجرة</span>`;
-    resultEl.appendChild(row);
-  });
-};
 
 document.getElementById("bgZoomOut").onclick = () => { bgScale = Math.max(0.5, bgScale - 0.25); applyBgTransform(); };
 document.getElementById("bgReset").onclick = () => { bgScale = 1; bgX = 0; bgY = 0; applyBgTransform(); };

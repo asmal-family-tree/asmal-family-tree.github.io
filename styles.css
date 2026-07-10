@@ -3,11 +3,36 @@
     --root:#0B3D2E; --root-ring:#C9A227;
     --trunk:#8B4A1E; --trunk-ring:#5c2f10;
     --leaf:#0f5c46; --leaf-ring:#0b3d2e;
-    --tagbg:#FFFDF6; --tagborder:#c9b077;
+    --tagbg:var(--card-bg); --tagborder:#c9b077;
     --gold:#B8860B; --gold-soft:#EFDFAE; --gold-bright:#D4AF37;
     --emerald:#0B3D2E; --emerald-2:#124d3a; --maroon:#6b1f2a;
     --card-shadow:0 4px 18px rgba(60,40,10,.12);
     --card-shadow-lg:0 14px 36px rgba(20,15,5,.24);
+    --card-bg:#FFFDF6;
+  }
+
+  /* ============ الاستايل الثاني: الأخضر الملكي ============ */
+  :root[data-theme="royal-green"]{
+    --bg:#F3EEDD; --line:#7a6a45; --ink:#1c2b22;
+    --root:#08331F; --root-ring:#D4AF37;
+    --trunk:#0f5c3f; --trunk-ring:#08331F;
+    --leaf:#155c38; --leaf-ring:#08331F;
+    --tagbg:var(--card-bg); --tagborder:#B8860B;
+    --gold:#C9A227; --gold-soft:#E8DDB0; --gold-bright:#E4C441;
+    --emerald:#08331F; --emerald-2:#0e4a2d; --maroon:#5c1a24;
+    --card-bg:#FBF8EC;
+  }
+
+  /* ============ الاستايل الثالث: الذهبي الصحراوي ============ */
+  :root[data-theme="desert-gold"]{
+    --bg:#FBF3E3; --line:#a9915c; --ink:#3b2a1a;
+    --root:#4A2F18; --root-ring:#C08A2E;
+    --trunk:#8B5A2B; --trunk-ring:#4A2F18;
+    --leaf:#6B4423; --leaf-ring:#4A2F18;
+    --tagbg:var(--card-bg); --tagborder:#C08A2E;
+    --gold:#C08A2E; --gold-soft:#EAD9B0; --gold-bright:#E0A836;
+    --emerald:#6B4423; --emerald-2:#8a5a2e; --maroon:#7a2e1f;
+    --card-bg:#FFFBF2;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{ margin:0; overscroll-behavior:none; }
@@ -45,7 +70,7 @@
   h1{ font-family:'Amiri',serif; font-weight:700; font-size:22px; margin:0 0 12px; color:var(--gold-bright); letter-spacing:.3px; text-shadow:0 1px 2px rgba(0,0,0,.35); }
   h1::after{ content:"❖"; display:block; font-size:12px; color:var(--gold); margin:8px auto 0; }
   .searchbar{
-    display:flex; align-items:center; gap:8px; background:#FFFDF6; border:1.4px solid var(--gold);
+    display:flex; align-items:center; gap:8px; background:var(--card-bg); border:1.4px solid var(--gold);
     border-radius:24px; padding:10px 18px; max-width:420px; margin:0 auto; box-shadow:var(--card-shadow);
     transition:border-color .15s, box-shadow .15s;
   }
@@ -53,7 +78,7 @@
   .searchbar svg{ width:16px; height:16px; flex:none; opacity:.5; }
   #search{ flex:1; border:none; outline:none; background:transparent; font-family:'Tajawal',sans-serif; font-size:15px; text-align:right; color:var(--ink); }
   .rel-toggle{
-    display:block; margin:12px auto 0; background:linear-gradient(180deg,#FFFDF6,#FBF3DE); border:1.4px solid var(--gold); border-radius:18px;
+    display:block; margin:12px auto 0; background:linear-gradient(180deg,var(--card-bg),#FBF3DE); border:1.4px solid var(--gold); border-radius:18px;
     padding:7px 18px; font-family:'Tajawal',sans-serif; font-size:12.5px; font-weight:700; color:var(--emerald); cursor:pointer;
     box-shadow:var(--card-shadow); transition:transform .12s, box-shadow .12s;
   }
@@ -250,12 +275,12 @@
     color:#fff; font-family:'Tajawal',sans-serif; font-weight:700; cursor:pointer;
   }
   #authOverlay{
-    position:fixed; inset:0; z-index:200; background:linear-gradient(180deg,#0B3D2E 0%, #124d3a 100%);
+    position:fixed; inset:0; z-index:200; background:linear-gradient(180deg, var(--emerald) 0%, var(--emerald-2) 100%);
     display:flex; align-items:center; justify-content:center; padding:20px;
   }
   #authOverlay.hidden{ display:none; }
   #authCard{
-    background:#FFFDF6; border-radius:18px; padding:28px 24px; width:100%; max-width:360px;
+    background:var(--card-bg); border-radius:18px; padding:28px 24px; width:100%; max-width:360px;
     box-shadow:0 10px 40px rgba(0,0,0,.35); font-family:'Tajawal',sans-serif; text-align:center;
   }
   #authCard h2{ margin:0 0 4px 0; color:#0B3D2E; font-size:20px; }
@@ -326,6 +351,7 @@
     box-shadow:0 3px 10px rgba(139,62,16,.25); transition:transform .1s;
   }
   .f-btn-sm:active{ transform:scale(.96); }
+  .theme-btn.active{ outline:3px solid var(--gold-bright); outline-offset:2px; }
   .chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
   .chip{
     background:#F1E9D8; border-radius:18px; padding:7px 13px; font-size:12.5px; display:flex;
