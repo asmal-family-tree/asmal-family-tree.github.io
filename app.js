@@ -25,9 +25,6 @@ const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-const ADMIN_USERNAME = "محمد رشاد";
-const ADMIN_BOOTSTRAP_PASSWORD = "05041061532832";
-
 let currentUser = null;      // { uid, role, scopePersonId, displayName }
 window.currentUser = null;   // متاح عالميًا لباقي الكود
 
@@ -57,6 +54,24 @@ async function ensureUserDoc(uid, defaults){
   return snap.data();
 }
 
+function customAlert(message){
+  const backdrop = document.getElementById("customAlertBackdrop");
+  const box = document.getElementById("customAlertBox");
+  const msgEl = document.getElementById("customAlertMsg");
+  const okBtn = document.getElementById("customAlertOk");
+  msgEl.textContent = message;
+  backdrop.classList.add("show");
+  box.classList.add("show");
+  function close(){
+    backdrop.classList.remove("show");
+    box.classList.remove("show");
+    okBtn.removeEventListener("click", close);
+    backdrop.removeEventListener("click", close);
+  }
+  okBtn.addEventListener("click", close);
+  backdrop.addEventListener("click", close);
+}
+
 function withTimeout(promise, ms, label){
   return Promise.race([
     promise,
@@ -76,24 +91,6 @@ document.getElementById("authLoginBtn").onclick = async function(){
       "تعذّر الاتصال بالخادم. جرّب فتح الملف من متصفح Chrome مباشرة (مو معاينة ملفات التنزيلات)، وتأكد من اتصال الإنترنت.");
   }catch(err){
     if (err.code === "timeout"){ setAuthLoading(false); showAuthError(err.message); return; }
-    if ((err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials")
-        && username === ADMIN_USERNAME && password === ADMIN_BOOTSTRAP_PASSWORD){
-      try{
-        window.__adminBootstrapping = true;
-        const cred = await withTimeout(auth.createUserWithEmailAndPassword(email, password), 12000,
-          "تعذّر الاتصال بالخادم. جرّب فتح الملف من متصفح Chrome مباشرة، وتأكد من اتصال الإنترنت.");
-        await db.collection("users").doc(cred.user.uid).set({
-          role: "admin", displayName: ADMIN_USERNAME, scopePersonId: null, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        window.__adminBootstrapping = false;
-        await afterSignIn(cred.user);
-      }catch(err2){
-        window.__adminBootstrapping = false;
-        setAuthLoading(false);
-        showAuthError(err2.code === "timeout" ? err2.message : ("تعذّر إنشاء حساب المشرف: " + (err2.message || err2.code)));
-      }
-      return;
-    }
     setAuthLoading(false);
     if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials"){
       showAuthError("كلمة المرور غير صحيحة");
@@ -634,7 +631,7 @@ async function exportAllRecordsPdf(){
     if (isPersonDataFilled(data)) filled.push({ node: n, data });
   }
   if (!filled.length){
-    alert("لا يوجد أي ملف فيه بيانات مسجّلة بعد.");
+    customAlert("لا يوجد أي ملف فيه بيانات مسجّلة بعد.");
     btn.disabled = false; btn.textContent = original;
     return;
   }
@@ -3612,7 +3609,7 @@ function jumpToPerson(personId){
   document.getElementById("tree-wrap").classList.remove("tree-hidden");
   exitFocusMode();
   const d = root.descendants().find(n => n.data.id === personId);
-  if (!d){ alert("تعذّر إيجاد الشخص بالشجرة الحالية."); return; }
+  if (!d){ customAlert("تعذّر إيجاد الشخص بالشجرة الحالية."); return; }
   const w = svg.node().clientWidth, h = svg.node().clientHeight;
   const targetScale = 1;
   const t = d3.zoomIdentity.translate(w/2 - sx(d)*targetScale, h/2 - sy(d)*targetScale).scale(targetScale);
@@ -3627,7 +3624,7 @@ async function approvePendingPerson(d){
     await db.collection("persons").doc(d.data.id).update({ pendingApproval: false });
     await loadTreeFromFirestore();
     refreshUsersAndPendingLists();
-  }catch(e){ alert("تعذّر الاعتماد: " + (e.message || e.code)); }
+  }catch(e){ customAlert("تعذّر الاعتماد: " + (e.message || e.code)); }
 }
 
 async function rejectPendingPerson(d){
@@ -3636,7 +3633,7 @@ async function rejectPendingPerson(d){
     await db.collection("persons").doc(d.data.id).delete();
     await loadTreeFromFirestore();
     refreshUsersAndPendingLists();
-  }catch(e){ alert("تعذّر الرفض: " + (e.message || e.code)); }
+  }catch(e){ customAlert("تعذّر الرفض: " + (e.message || e.code)); }
 }
 
 const R = { root:26, trunk:21, leaf:17, joinpoint:30, "trunk-red":21, "trunk-green":21, "trunk-blue":21, "trunk-gold":21, "female":15 };
@@ -4758,7 +4755,7 @@ async function savePersonData(id, data){
     await db.collection("personInfo").doc(firestorePersonInfoId(id)).set(cleaned, { merge: false });
   } catch(e){
     console.error("تعذر الحفظ بقاعدة البيانات", e);
-    alert("تعذر حفظ البيانات بقاعدة البيانات — تأكد من اتصال الإنترنت وصلاحياتك.\n" + (e.message || e.code));
+    customAlert("تعذر حفظ البيانات بقاعدة البيانات — تأكد من اتصال الإنترنت وصلاحياتك.\n" + (e.message || e.code));
   }
 }
 
@@ -4827,7 +4824,7 @@ function renderNotaryChips(){
     nameSpan.onclick = async () => {
       const otherData = await loadPersonData(n.id);
       const wives = (otherData.wives || []).filter(w => w.type === "inside" && w.wifeName).map(w => w.wifeName);
-      if (!wives.length){ alert("لا توجد زوجات مضافة لهذا الشخص بعد."); return; }
+      if (!wives.length){ customAlert("لا توجد زوجات مضافة لهذا الشخص بعد."); return; }
       const sel = document.createElement("select");
       sel.innerHTML = `<option value="">اختر زوجة العديل</option>` + wives.map(w => `<option ${w===n.selectedWife?"selected":""}>${w}</option>`).join("");
       sel.onchange = () => { notaryState[idx].selectedWife = sel.value; renderNotaryChips(); };
@@ -5708,7 +5705,7 @@ async function confirmDeletePerson(d){
   const ok = window.confirm(`هل أنت متأكد من حذف "${name}"؟${warnExtra}${motherWarn}\nهذا الإجراء لا يمكن التراجع عنه.`);
   if (!ok) return;
   if (!d.parent){
-    alert("لا يمكن حذف الجذر الرئيسي للشجرة.");
+    customAlert("لا يمكن حذف الجذر الرئيسي للشجرة.");
     return;
   }
   if (isMotherNode){
@@ -5716,7 +5713,7 @@ async function confirmDeletePerson(d){
   }
   if (isDbBacked() && d.data.id){
     try{ await firestoreDeletePerson(d.data); }
-    catch(e){ alert("تعذّر الحذف من قاعدة البيانات: " + (e.message || e.code)); return; }
+    catch(e){ customAlert("تعذّر الحذف من قاعدة البيانات: " + (e.message || e.code)); return; }
   }
   const siblingsArr = d.parent.data.children;
   const idx = siblingsArr.indexOf(d.data);
@@ -5937,7 +5934,7 @@ function renderCurrentSons(){
         if (!confirm(msg)) return;
         if (isDbBacked() && k.data.id){
           try{ await firestoreDeletePerson(k.data); }
-          catch(e){ alert("تعذّر الحذف من قاعدة البيانات: " + (e.message || e.code)); return; }
+          catch(e){ customAlert("تعذّر الحذف من قاعدة البيانات: " + (e.message || e.code)); return; }
         }
         modalNode.data.children.splice(idx, 1);
         const myDataRef = modalNode.data;
@@ -5957,7 +5954,7 @@ document.getElementById("f-newSonAdd").onclick = async () => {
   const name = input.value.trim();
   if (!name) return;
   if (isDbBacked() && !canAddUnder(modalNode.data)){
-    alert("ما تقدر تضيف هنا — الإضافة مسموحة بس داخل النطاق المحدد لك.");
+    customAlert("ما تقدر تضيف هنا — الإضافة مسموحة بس داخل النطاق المحدد لك.");
     return;
   }
   const newType = modalNode.data.type === "root" ? "trunk" : modalNode.data.type;
@@ -5966,14 +5963,14 @@ document.getElementById("f-newSonAdd").onclick = async () => {
     try{
       const { id, ancestorIds, pending } = await firestoreAddPerson(modalNode.data, name, newType);
       if (pending){
-        alert(`تمت إضافة "${name}" وهي الآن بانتظار اعتماد محمد رشاد. لن تظهر بالشجرة حتى يعتمدها.`);
+        customAlert(`تمت إضافة "${name}" وهي الآن بانتظار اعتماد محمد رشاد. لن تظهر بالشجرة حتى يعتمدها.`);
         input.value = "";
         return; // لا نضيفها للعرض المحلي — تبقى مخفية لحد الاعتماد
       }
       newChild.id = id;
       newChild.ancestorIds = ancestorIds;
     }catch(e){
-      alert("تعذّر حفظ الإضافة بقاعدة البيانات: " + (e.message || e.code));
+      customAlert("تعذّر حفظ الإضافة بقاعدة البيانات: " + (e.message || e.code));
       return;
     }
   }
@@ -5990,20 +5987,20 @@ document.getElementById("f-newSonAdd").onclick = async () => {
 
 document.getElementById("f-save").onclick = async () => {
   if (motherState && motherState.fatherId && !motherState.wifeId){
-    alert("لم تكمل بيانات إضافة الأم — اختر إحدى البنات الموجودات أو أضف أمًا جديدة، أو ألغِ الإضافة (امسح اسم الأب من حقل البحث) قبل حفظ المعلومات.");
+    customAlert("لم تكمل بيانات إضافة الأم — اختر إحدى البنات الموجودات أو أضف أمًا جديدة، أو ألغِ الإضافة (امسح اسم الأب من حقل البحث) قبل حفظ المعلومات.");
     return;
   }
   if (motherState && motherState.wifeId && !motherState.approved){
-    alert("لم يتم اعتماد بيانات الإخوة من الأم — اعتمد البيانات أو الغِ الإضافة أولًا قبل حفظ المعلومات.");
+    customAlert("لم يتم اعتماد بيانات الإخوة من الأم — اعتمد البيانات أو الغِ الإضافة أولًا قبل حفظ المعلومات.");
     return;
   }
   for (const w of wivesState){
     if (w.type === "inside" && !w.fatherId && (w.children || []).length){
-      alert(`يجب اختيار "أب الزوجة" قبل حفظ المعلومات — تم إسناد أبناء لزوجة من داخل القبيلة بدون تحديد أبيها.`);
+      customAlert(`يجب اختيار "أب الزوجة" قبل حفظ المعلومات — تم إسناد أبناء لزوجة من داخل القبيلة بدون تحديد أبيها.`);
       return;
     }
     if (w.type === "outside" && (w.children || []).length && !(w.notaries || []).length){
-      alert(`يجب إضافة "أسماء العدلاء الخاصين بهذه الزوجة" قبل حفظ المعلومات — إلا لو ما فيه حاجة لإضافة بياناتها أصلًا.`);
+      customAlert(`يجب إضافة "أسماء العدلاء الخاصين بهذه الزوجة" قبل حفظ المعلومات — إلا لو ما فيه حاجة لإضافة بياناتها أصلًا.`);
       return;
     }
   }
@@ -6194,9 +6191,9 @@ document.getElementById("importData").addEventListener("change", (e) => {
       Object.keys(backup).forEach(key => {
         if (key.startsWith("person:")){ localStorage.setItem(key, backup[key]); count++; }
       });
-      alert("تم استيراد بيانات " + count + " شخص بنجاح ✅");
+      customAlert("تم استيراد بيانات " + count + " شخص بنجاح ✅");
     } catch(err){
-      alert("تعذر قراءة ملف النسخة الاحتياطية.");
+      customAlert("تعذر قراءة ملف النسخة الاحتياطية.");
     }
   };
   reader.readAsText(file);
@@ -6239,7 +6236,7 @@ document.getElementById("bgFileInput").addEventListener("change", async (e) => {
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
   try {
     if (isPdf){
-      if (!window.pdfjsLib){ alert("تعذر تحميل مكتبة قراءة PDF، تأكد من الاتصال بالإنترنت."); return; }
+      if (!window.pdfjsLib){ customAlert("تعذر تحميل مكتبة قراءة PDF، تأكد من الاتصال بالإنترنت."); return; }
       const buf = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
       const page = await pdf.getPage(1);
@@ -6254,7 +6251,7 @@ document.getElementById("bgFileInput").addEventListener("change", async (e) => {
       reader.readAsDataURL(file);
     }
   } catch(err){
-    alert("تعذر تحميل الملف كخلفية.");
+    customAlert("تعذر تحميل الملف كخلفية.");
   }
   e.target.value = "";
 });
