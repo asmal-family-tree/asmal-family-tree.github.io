@@ -6213,3 +6213,32 @@ window.addEventListener("touchmove", bgMove, { passive:false });
 window.addEventListener("mouseup", bgEnd);
 window.addEventListener("touchend", bgEnd);
 
+
+/* =====================================================================
+   تكبير/تصغير الواجهة بالكامل (A+ / A-) — يشمل الخطوط والأزرار والتبويبات
+   وجميع تصاميم الموقع (الافتراضي ولوحة التحكم والمستقبلي) بشكل متناسب.
+   يُحفظ الاختيار بمتصفح كل مستخدم (localStorage).
+   ===================================================================== */
+(function(){
+  const MIN_SCALE = 0.8, MAX_SCALE = 1.6, STEP = 0.1;
+  let uiScale = parseFloat(localStorage.getItem("uiScale") || "1");
+  if (isNaN(uiScale)) uiScale = 1;
+
+  function applyUiScale(){
+    document.body.style.zoom = uiScale;
+    localStorage.setItem("uiScale", String(uiScale));
+  }
+
+  const upBtn = document.getElementById("uiScaleUp");
+  const downBtn = document.getElementById("uiScaleDown");
+  if (upBtn) upBtn.onclick = () => {
+    uiScale = Math.min(MAX_SCALE, +(uiScale + STEP).toFixed(2));
+    applyUiScale();
+  };
+  if (downBtn) downBtn.onclick = () => {
+    uiScale = Math.max(MIN_SCALE, +(uiScale - STEP).toFixed(2));
+    applyUiScale();
+  };
+
+  applyUiScale();
+})();

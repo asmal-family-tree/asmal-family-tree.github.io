@@ -271,6 +271,15 @@
   }
   #currentUserBadge.show{ display:flex; }
   #currentUserBadge button{ border:none; background:#eee; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer; color:#555; }
+  #uiScaleControls{
+    position:fixed; top:10px; right:10px; z-index:55; display:flex; gap:6px;
+  }
+  #uiScaleControls button{
+    width:30px; height:30px; border:1px solid #ddd; background:rgba(255,253,246,0.95); border-radius:50%;
+    font-family:'Tajawal',sans-serif; font-weight:700; font-size:13px; color:#333; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center;
+  }
+  #uiScaleControls button:active{ background:#eee; }
   #noViewMsg{
     position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center;
     background:#FFFFFF; font-family:'Tajawal',sans-serif; font-size:16px; color:#8B1E1E; text-align:center; padding:30px;
