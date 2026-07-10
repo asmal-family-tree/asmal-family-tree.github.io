@@ -4271,6 +4271,155 @@ async function buildAiPersonInfoLines(){
   return lines;
 }
 
+function buildAiStatsContext(){
+  // جمع بيانات كل شخص أثناء المشي بالشجرة: الاسم، عمق السلسلة، عدد الأبناء المباشرين
+  const persons = []; // {id, name, depth, childrenCount, chain}
+  function walk(node, depth, chainNames){
+    if (!node || !node.name) return;
+    const chain = chainNames.concat([node.name]);
+    if (node.id) persons.push({ id: node.id, name: node.name, depth, childrenCount: (node.children || []).length, chain });
+    (node.children || []).forEach(child => walk(child, depth + 1, chain));
+  }
+  walk(treeData, 0, []);
+  if (!persons.length) return "";
+
+  const byId = new Map(persons.map(p => [p.id, p]));
+  const lines = [];
+
+  // 1) الاسم الأكثر والأقل تكرارًا (بالاسم الأول فقط)
+  const nameFreq = new Map();
+  persons.forEach(p => nameFreq.set(p.name, (nameFreq.get(p.name) || 0) + 1));
+  let maxNameCount = 0, minNameCount = Infinity;
+  nameFreq.forEach(c => { if (c > maxNameCount) maxNameCount = c; if (c < minNameCount) minNameCount = c; });
+  const topNames = [...nameFreq.entries()].filter(([, c]) => c === maxNameCount).map(([n]) => n).slice(0, 5);
+  const rareNamesCount = [...nameFreq.entries()].filter(([, c]) => c === minNameCount).length;
+  lines.push(`أكثر اسم أول تكرارًا في الشجرة: "${topNames.join('، ')}" ويتكرر ${maxNameCount} مرة.`);
+  lines.push(`أقل تكرار للاسم هو ${minNameCount} مرة، وهناك ${rareNamesCount} اسمًا مختلفًا بهذا التكرار القليل (يعني أسماء كثيرة نادرة، وليس اسمًا واحدًا محددًا).`);
+
+  // 2) أطول سلسلة نسب (الأعمق عن الجد الأعلى)
+  let deepest = persons[0];
+  persons.forEach(p => { if (p.depth > deepest.depth) deepest = p; });
+  lines.push(`أطول سلسلة نسب في الشجرة تنتهي بالشخص "${deepest.name}"، وسلسلته الكاملة صعودًا: ${deepest.chain.slice().reverse().join(" بن ")}.`);
+  lines.push(`أقصر سلسلة (أقرب الأشخاص من الجد الأعلى مباشرة) هم أبناء الجد الأول للعائلة مباشرة، وهذا أمر بديهي في أي شجرة عائلة ولا يمثل معلومة مميزة عن شخص بعينه.`);
+
+  // 3) الأكثر أبناء (أبناء مباشرون مسجّلون بالشجرة)
+  let mostChildren = persons[0];
+  persons.forEach(p => { if (p.childrenCount > mostChildren.childrenCount) mostChildren = p; });
+  lines.push(`الشخص صاحب أكبر عدد من الأبناء المباشرين المسجّلين بالشجرة هو "${mostChildren.name}" بعدد ${mostChildren.childrenCount} ${mostChildren.childrenCount === 1 ? "ابن" : "أبناء"}.`);
+  const zeroChildrenCount = persons.filter(p => p.childrenCount === 0).length;
+  lines.push(`أما الأقل عددًا من الأبناء فهو صفر، وينطبق هذا على ${zeroChildrenCount} شخصًا (ليسوا شخصًا واحدًا بعينه، فهذا وضع طبيعي لكل شخص ما زال بلا أبناء مسجّلين أو هو من الجيل الأخير).`);
+
+  // 4) الأكثر والأقل عدلاء (تحتاج بيانات personInfo)
+  if (aiPersonInfoCache && aiPersonInfoCache.size){
+    let mostNotaries = null, mostNotariesCount = 0;
+    let withNotaries = 0;
+    aiPersonInfoCache.forEach((d, id) => {
+      const count = (d.notaries && d.notaries.length) || 0;
+      if (count > 0) withNotaries++;
+      if (count > mostNotariesCount){ mostNotariesCount = count; mostNotaries = id; }
+    });
+    if (mostNotaries){
+      lines.push(`الشخص صاحب أكبر عدد من "العدلاء" المسجّلين هو "${byId.get(mostNotaries)?.name || '؟'}" بعدد ${mostNotariesCount}.`);
+    }
+    lines.push(`عدد الأشخاص الذين لديهم عدلاء مسجّلون على الإطلاق هو ${withNotaries} فقط من إجمالي البيانات المضافة؛ البقية عددهم صفر (لا يمثل شخصًا واحدًا بعينه).`);
+
+    // 5) الأكثر والأقل أخوال (إخوة الأب من جهة أم الشخص، عبر ربط الأم بأبيها)
+    let mostAkhwal = null, mostAkhwalCount = -1;
+    let leastAkhwal = null, leastAkhwalCount = Infinity;
+    let akhwalKnownCount = 0;
+    aiPersonInfoCache.forEach((d, id) => {
+      if (d.mother && d.mother.fatherId && byId.has(d.mother.fatherId)){
+        const count = byId.get(d.mother.fatherId).childrenCount; // أبناء جد الأم = أخوال الشخص
+        akhwalKnownCount++;
+        if (count > mostAkhwalCount){ mostAkhwalCount = count; mostAkhwal = id; }
+        if (count < leastAkhwalCount){ leastAkhwalCount = count; leastAkhwal = id; }
+      }
+    });
+    if (mostAkhwal){
+      lines.push(`الشخص صاحب أكبر عدد من الأخوال (إخوة الأم) هو "${byId.get(mostAkhwal)?.name || '؟'}" بعدد ${mostAkhwalCount} خالًا تقريبًا.`);
+      lines.push(`والشخص صاحب أقل عدد من الأخوال هو "${byId.get(leastAkhwal)?.name || '؟'}" بعدد ${leastAkhwalCount}.`);
+      lines.push(`ملاحظة: عدد الأخوال محسوب فقط لـ ${akhwalKnownCount} شخصًا لديهم بيانات أم مسجّلة ومرتبطة بأبيها، وقد لا يشمل كل أفراد الشجرة.`);
+    }
+
+    // 6) الأكبر والأصغر عمرًا (حسب سنة الميلاد المسجّلة)
+    let oldest = null, oldestAge = -1, youngest = null, youngestAge = Infinity;
+    aiPersonInfoCache.forEach((d, id) => {
+      if (d.birthYear){
+        const endYear = (d.deathYear ? parseInt(d.deathYear) : CURRENT_HIJRI_YEAR);
+        const age = endYear - parseInt(d.birthYear);
+        if (!isNaN(age)){
+          if (age > oldestAge){ oldestAge = age; oldest = id; }
+          if (age < youngestAge){ youngestAge = age; youngest = id; }
+        }
+      }
+    });
+    if (oldest){
+      lines.push(`الشخص الأكبر عمرًا (حسب سنة الميلاد المسجّلة) هو "${byId.get(oldest)?.name || '؟'}" بعمر تقريبي ${oldestAge} سنة هجرية (${aiPersonInfoCache.get(oldest).deathYear ? 'متوفى، والعمر عند الوفاة' : 'إن كان حيًا فالعمر حتى الآن'}).`);
+      lines.push(`والشخص الأصغر عمرًا هو "${byId.get(youngest)?.name || '؟'}" بعمر تقريبي ${youngestAge} سنة، وذلك من بين الأشخاص الذين لديهم سنة ميلاد مسجّلة فقط (وليس كل أفراد الشجرة).`);
+    }
+  }
+
+  return "\n\nإحصائيات محسوبة مسبقًا من بيانات الشجرة (استخدمها مباشرة للإجابة، ولا تحاول إعادة حسابها بنفسك):\n" + lines.join("\n");
+}
+
+function aiNormalizeArabic(s){
+  return String(s || "")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ة/g, "ه")
+    .trim();
+}
+
+function buildAiPersonsFlat(){
+  const list = [];
+  function walk(node, parentChain){
+    if (!node || !node.name) return;
+    const chain = [node.name].concat(parentChain);
+    if (node.id) list.push({ id: node.id, name: node.name, chain });
+    (node.children || []).forEach(child => walk(child, chain));
+  }
+  walk(treeData, []);
+  return list;
+}
+
+// يحدد الشخص المقصود بدقة عبر مطابقة أكبر عدد ممكن من مستويات سلسلة النسب (الاسم، ثم الأب، ثم الجد...)
+// المذكورة بترتيبها داخل نص السؤال، بدل الاكتفاء بمطابقة الاسم الأول فقط
+function resolveAiPersonByChain(question){
+  const normQ = aiNormalizeArabic(question);
+  const persons = buildAiPersonsFlat();
+  let bestDepth = 0;
+  let candidates = [];
+  persons.forEach(p => {
+    let searchFrom = 0, depth = 0;
+    for (let i = 0; i < p.chain.length; i++){
+      const normName = aiNormalizeArabic(p.chain[i]);
+      if (!normName) break;
+      const idx = normQ.indexOf(normName, searchFrom);
+      if (idx === -1) break;
+      depth++;
+      searchFrom = idx + normName.length;
+    }
+    if (depth > 0){
+      if (depth > bestDepth){ bestDepth = depth; candidates = [p]; }
+      else if (depth === bestDepth) candidates.push(p);
+    }
+  });
+  if (bestDepth < 1) return null;
+  return { depth: bestDepth, candidates };
+}
+
+function buildAiResolvedPersonContext(question){
+  const resolved = resolveAiPersonByChain(question);
+  if (!resolved) return "";
+  if (resolved.candidates.length === 1){
+    const p = resolved.candidates[0];
+    return `\n\nتم تحديد الشخص المقصود في السؤال بدقة تامة بناءً على تطابق سلسلة الاسم كاملة (وليس الاسم الأول فقط): "${p.name}" (المعرف: ${p.id})، وسلسلته الكاملة صعودًا: ${p.chain.join(" بن ")}. استخدم هذا الشخص تحديدًا للإجابة عن السؤال، ولا تذكر أن هناك تشابهًا بالاسم مع أشخاص آخرين ما لم يُسأل عن ذلك تحديدًا.`;
+  }
+  return `\n\nيوجد أكثر من شخص تتطابق أسماؤهم مع نفس أعمق مستوى من سلسلة النسب المذكورة بالسؤال (${resolved.depth} ${resolved.depth === 1 ? "اسم متطابق" : "أسماء متطابقة"}):\n` +
+    resolved.candidates.map(p => `- ${p.name} (المعرف: ${p.id})، السلسلة الكاملة: ${p.chain.join(" بن ")}`).join("\n") +
+    "\nأخبر المستخدم أن هناك أكثر من شخص مطابق تمامًا لهذه السلسلة تحديدًا (وليس تشابهًا بالاسم الأول فقط)، واعرض له الفروقات بينهم ليختار المقصود.";
+}
+
 async function sendAiChatQuestion(){
   const question = aiChatInput.value.trim();
   if (!question) return;
@@ -4284,11 +4433,15 @@ async function sendAiChatQuestion(){
   try{
     const treeLines = buildAiTreeLines();
     const infoLines = await buildAiPersonInfoLines();
+    const statsContext = buildAiStatsContext();
     const knowledgeContext = await buildAiKnowledgeContext(question);
+    const resolvedContext = buildAiResolvedPersonContext(question);
     const treeContext =
       "بيانات الأشخاص (الاسم | المعرف | الأب | الفخذ):\n" + treeLines.join("\n") +
       "\n\nمعلومات إضافية مضافة لبعض الأشخاص:\n" + (infoLines.length ? infoLines.join("\n") : "لا توجد معلومات إضافية مضافة حاليًا.") +
-      knowledgeContext;
+      statsContext +
+      knowledgeContext +
+      resolvedContext;
 
     const res = await fetch(AI_CHAT_WORKER_URL, {
       method: "POST",
