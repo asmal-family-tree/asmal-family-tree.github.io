@@ -54,6 +54,19 @@ async function ensureUserDoc(uid, defaults){
   return snap.data();
 }
 
+function canonicalStringify(obj){
+  const sortKeys = (val) => {
+    if (Array.isArray(val)) return val.map(sortKeys);
+    if (val && typeof val === "object"){
+      const out = {};
+      Object.keys(val).sort().forEach(k => { out[k] = sortKeys(val[k]); });
+      return out;
+    }
+    return val;
+  };
+  return JSON.stringify(sortKeys(obj));
+}
+
 function customAlert(message){
   const backdrop = document.getElementById("customAlertBackdrop");
   const box = document.getElementById("customAlertBox");
@@ -5085,6 +5098,7 @@ async function findMotherSiblingsList(sharedMother, excludeId){
 
 let pendingHalfSiblings = []; // [{node, name}] بانتظار الاعتماد بهذا الملف تحديدًا
 let pendingWifeAndSiblingJobs = []; // بانتظار "حفظ المعلومات" النهائي: [{fatherNode, personalShared, divorced, kidNodes}]
+let originalDataSnapshot = null; // نسخة من بيانات الملف عند فتحه، لمقارنتها عند الحفظ واكتشاف عدم وجود أي تغيير
 
 function renderMotherBox(){
   const box = document.getElementById("motherBox");
@@ -5874,6 +5888,7 @@ async function openInfoModal(d){
   document.getElementById("tabInfo").style.display = "block";
 
   const data = await loadPersonData(personId(d));
+  originalDataSnapshot = canonicalStringify(data);
   document.getElementById("f-birthYear").value = data.birthYear || "";
   document.querySelector(`input[name="deathStatus"][value="${data.deathStatus || 'alive'}"]`).checked = true;
   document.getElementById("deathYearWrap").style.display = data.deathStatus === "dead" ? "block" : "none";
@@ -6005,6 +6020,9 @@ document.getElementById("f-save").onclick = async () => {
     }
   }
 
+  // لا تُحفظ زوجة من خارج القبيلة إلا إذا كانت مرتبطة بأبناء أو عدلاء
+  wivesState = wivesState.filter(w => !(w.type === "outside" && !(w.children || []).length && !(w.notaries || []).length));
+
   // الآن (وقت الحفظ فقط) نجسّد أي زوجة/بنت جديدة بقاعدة البيانات فعليًا
   for (let wi = 0; wi < wivesState.length; wi++){
     if (wivesState[wi].type === "inside" && wivesState[wi].fatherId && wivesState[wi].wifeId){
@@ -6036,6 +6054,15 @@ document.getElementById("f-save").onclick = async () => {
     husbandChain: modalNode.data.type === "female" ? (husbandState ? husbandState.husbandChain : null) : null,
     husbandDivorced: modalNode.data.type === "female" ? document.getElementById("f-husbandDivorced").checked : null
   };
+
+  if (!isPersonDataFilled(data)){
+    customAlert("الملف فارغ — لا يوجد أي معلومات لحفظها.");
+    return;
+  }
+  if (canonicalStringify(data) === originalDataSnapshot){
+    customAlert("لم يحدث أي تغيير في البيانات — لا حاجة للحفظ.");
+    return;
+  }
   const myId = personId(modalNode);
   await savePersonData(myId, data);
 
@@ -6355,3 +6382,135 @@ window.addEventListener("touchend", bgEnd);
   window.addEventListener("resize", applyScaledPanelSizing);
   applyUiScale();
 })();
+
+/* =====================================================================
+   فحص بيانات شخص وتنظيف الأخطاء (زوجات من خارج القبيلة بلا أبناء/عدلاء، إلخ)
+   ===================================================================== */
+let inspectTargetNode = null;
+
+(function setupInspectPanel(){
+  const box = document.getElementById("inspectSearchBox");
+  const btn = document.getElementById("inspectBtn");
+  const resultsEl = document.getElementById("inspectResults");
+  if (!box || !btn || !resultsEl) return;
+
+  const search = makePersonSearchBox("اكتب الاسم الرباعي، ثم اضغط عليه من القائمة", (m) => {
+    inspectTargetNode = m;
+    box.innerHTML = "";
+    const chip = document.createElement("div");
+    chip.className = "chip-list";
+    const c = document.createElement("div");
+    c.className = "chip";
+    c.innerHTML = `<span>${escapeHtml(chainNames(m).slice(0,4).join(" بن "))}</span><span class="chip-x">✕</span>`;
+    c.querySelector(".chip-x").onclick = () => {
+      inspectTargetNode = null;
+      btn.disabled = true;
+      resultsEl.innerHTML = "";
+      box.appendChild(search);
+    };
+    chip.appendChild(c);
+    box.appendChild(chip);
+    btn.disabled = false;
+  });
+  box.appendChild(search);
+
+  btn.onclick = async () => {
+    if (!inspectTargetNode) return;
+    resultsEl.innerHTML = `<div style="text-align:center; color:#999; font-size:13px;">جارِ التحميل…</div>`;
+    const data = await loadPersonData(personId(inspectTargetNode));
+    renderInspectResults(inspectTargetNode, data);
+  };
+})();
+
+function inspectRowHtml(label, value){
+  return `<div class="ip-row"><span class="ip-label">${escapeHtml(label)}:</span><span class="ip-value">${escapeHtml(String(value))}</span></div>`;
+}
+
+async function inspectPatchAndRefresh(node, patchFn){
+  const pid = personId(node);
+  const data = await loadPersonData(pid);
+  patchFn(data);
+  await savePersonData(pid, data);
+  renderInspectResults(node, data);
+}
+
+function renderInspectResults(node, data){
+  const resultsEl = document.getElementById("inspectResults");
+  const pid = personId(node);
+  const blocks = [];
+
+  function fieldBlock(title, value, onDelete){
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; justify-content:space-between; align-items:center; gap:8px; background:#faf8f1; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:13px; color:#241a10;";
+    row.innerHTML = `<span><b>${escapeHtml(title)}:</b> ${escapeHtml(String(value))}</span>`;
+    const x = document.createElement("span");
+    x.textContent = "✕";
+    x.style.cssText = "color:#8B1E1E; font-weight:700; cursor:pointer; flex:none;";
+    x.onclick = async () => { if (confirm(`حذف "${title}"؟`)) await onDelete(); };
+    row.appendChild(x);
+    return row;
+  }
+
+  resultsEl.innerHTML = "";
+  const header = document.createElement("div");
+  header.style.cssText = "font-weight:700; color:#0B3D2E; margin-bottom:8px;";
+  header.textContent = "بيانات: " + chainNames(node).slice(0,4).join(" بن ");
+  resultsEl.appendChild(header);
+
+  if (data.birthYear){
+    resultsEl.appendChild(fieldBlock("تاريخ الميلاد", data.birthYear, () => inspectPatchAndRefresh(node, d => { d.birthYear = ""; })));
+  }
+  if (data.deathStatus === "dead"){
+    resultsEl.appendChild(fieldBlock("الحالة", "متوفى" + (data.deathYear ? (" (" + data.deathYear + "هـ)") : ""), () => inspectPatchAndRefresh(node, d => { d.deathStatus = "alive"; d.deathYear = ""; })));
+  }
+  if (data.job){
+    resultsEl.appendChild(fieldBlock("الوظيفة", data.job, () => inspectPatchAndRefresh(node, d => { d.job = ""; })));
+  }
+  if (data.nickname){
+    resultsEl.appendChild(fieldBlock("اللقب/الشهرة", data.nickname, () => inspectPatchAndRefresh(node, d => { d.nickname = ""; })));
+  }
+  if (data.bio){
+    resultsEl.appendChild(fieldBlock("نبذة", data.bio.slice(0,60) + (data.bio.length > 60 ? "…" : ""), () => inspectPatchAndRefresh(node, d => { d.bio = ""; })));
+  }
+  if (data.photo){
+    resultsEl.appendChild(fieldBlock("صورة", "مرفقة", () => inspectPatchAndRefresh(node, d => { d.photo = null; })));
+  }
+  if (data.mother && data.mother.wifeId){
+    resultsEl.appendChild(fieldBlock("الأم", data.mother.wifeName || ("ابنة " + (data.mother.fatherChain || "")), () => inspectPatchAndRefresh(node, d => { d.mother = null; })));
+  }
+  if (data.husband){
+    resultsEl.appendChild(fieldBlock("الزوج", data.husband + (data.husbandDivorced ? " (مطلّقة)" : ""), () => inspectPatchAndRefresh(node, d => { d.husband = null; d.husbandId = null; d.husbandChain = null; d.husbandDivorced = null; })));
+  }
+  (data.notaries || []).forEach((n, idx) => {
+    resultsEl.appendChild(fieldBlock("عديل", n.chain3 || n.name, () => inspectPatchAndRefresh(node, d => { (d.notaries || []).splice(idx, 1); })));
+  });
+
+  (data.wives || []).forEach((w, idx) => {
+    const wrap = document.createElement("div");
+    const broken = w.type === "outside" && !(w.children || []).length && !(w.notaries || []).length;
+    wrap.style.cssText = `border:1.3px solid ${broken ? "#8B1E1E" : "#EFE7D8"}; background:${broken ? "#FBEAEA" : "#FFF8E1"}; border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:13px; color:#241a10;`;
+    let desc = w.type === "inside"
+      ? `زوجة من داخل القبيلة${w.fatherChain ? (" — والدها: " + w.fatherChain) : " — (بدون تحديد والدها)"}`
+      : `زوجة من خارج القبيلة${w.divorced ? " (مطلّقة)" : ""}`;
+    let extra = "";
+    if ((w.children || []).length) extra += `<div>الأبناء: ${escapeHtml(w.children.join("، "))}</div>`;
+    if ((w.notaries || []).length) extra += `<div>العدلاء: ${escapeHtml(w.notaries.map(n => n.chain3 || n.name).join("، "))}</div>`;
+    if (broken) extra += `<div style="color:#8B1E1E; font-weight:700; margin-top:4px;">⚠️ زوجة بدون أي ربط (أبناء أو عدلاء) — سجل قديم يُنصح بحذفه</div>`;
+    wrap.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+        <div><b>${escapeHtml(desc)}</b>${extra}</div>
+        <span class="ip-del-wife" style="color:#8B1E1E; font-weight:700; cursor:pointer; flex:none;">✕</span>
+      </div>`;
+    wrap.querySelector(".ip-del-wife").onclick = async () => {
+      if (!confirm("حذف هذه الزوجة وكل بياناتها من هذا الملف؟")) return;
+      await inspectPatchAndRefresh(node, d => { (d.wives || []).splice(idx, 1); });
+    };
+    resultsEl.appendChild(wrap);
+  });
+
+  if (!resultsEl.children.length || resultsEl.children.length === 1){
+    const empty = document.createElement("div");
+    empty.style.cssText = "color:#999; font-size:13px; text-align:center; padding:10px 0;";
+    empty.textContent = "لا يوجد أي بيانات مسجّلة لهذا الشخص.";
+    resultsEl.appendChild(empty);
+  }
+}
