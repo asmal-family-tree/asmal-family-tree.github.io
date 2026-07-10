@@ -4783,6 +4783,8 @@ const infoModal = document.getElementById("infoModal");
 function closeInfoModal(){
   infoModal.classList.remove("show");
   infoBackdrop.classList.remove("show");
+  pendingHalfSiblings = [];
+  pendingWifeAndSiblingJobs = [];
 }
 infoBackdrop.onclick = closeInfoModal;
 document.getElementById("infoModalClose").onclick = closeInfoModal;
@@ -5085,6 +5087,7 @@ async function findMotherSiblingsList(sharedMother, excludeId){
 }
 
 let pendingHalfSiblings = []; // [{node, name}] بانتظار الاعتماد بهذا الملف تحديدًا
+let pendingWifeAndSiblingJobs = []; // بانتظار "حفظ المعلومات" النهائي: [{fatherNode, personalShared, divorced, kidNodes}]
 
 function renderMotherBox(){
   const box = document.getElementById("motherBox");
@@ -5095,6 +5098,35 @@ function renderMotherBox(){
 
   if (motherState && motherState.auto){
     resultDiv.textContent = "الأم: " + (motherState.wifeName || ("ابنة " + motherState.fatherChain)) + " (تلقائي — مرتبطة عبر زوجة مضافة لدى الأب)";
+    return;
+  }
+
+  if (motherState && motherState.pendingSave){
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; flex-direction:column; gap:8px; background:#FFF8E1; border-radius:8px; padding:10px 12px; border:1px dashed #C9A227;";
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex; align-items:center; justify-content:space-between;";
+    header.innerHTML = `<span style="color:#241a10;"><b>الأم:</b> ${escapeHtml(motherState.wifeName || ("ابنة " + motherState.fatherChain))}${motherState.divorced ? " (مطلّقة)" : ""} — <span style="color:#a67c00;">بانتظار الحفظ النهائي</span></span><span class="chip-x">✕</span>`;
+    header.querySelector(".chip-x").onclick = () => {
+      motherState = null;
+      pendingWifeAndSiblingJobs = [];
+      pendingHalfSiblings = [];
+      renderMotherBox();
+    };
+    row.appendChild(header);
+    if (pendingWifeAndSiblingJobs.length){
+      const list = document.createElement("div");
+      list.style.cssText = "font-size:12.5px; color:#5a4a2a; line-height:1.8;";
+      list.innerHTML = pendingWifeAndSiblingJobs.map(j =>
+        `الأب: ${escapeHtml(j.fatherNode.data.name)}${j.divorced ? " (مطلّقة منه)" : ""} — الأبناء: ${j.kidNodes.map(k => escapeHtml(k.data.name)).join("، ")}`
+      ).join("<br>");
+      row.appendChild(list);
+    }
+    const hint = document.createElement("div");
+    hint.style.cssText = "font-size:11.5px; color:#a67c00;";
+    hint.textContent = "لن يتم حفظ أو ربط أي شيء إلا بعد الضغط على \"حفظ المعلومات\" أسفل هذا الملف.";
+    row.appendChild(hint);
+    box.appendChild(row);
     return;
   }
 
@@ -5259,6 +5291,7 @@ function renderHalfSiblingPicker(){
     if (!confirm("إلغاء إضافة هذه الأم وكل الإخوة المُضافين مؤقتًا؟")) return;
     motherState = null;
     pendingHalfSiblings = [];
+    pendingWifeAndSiblingJobs = [];
     renderMotherBox();
   };
   box.appendChild(cancelBtn);
@@ -5320,35 +5353,18 @@ function renderFatherChoiceDialog(){
   box.appendChild(choiceWrap);
 
   async function finalize(){
-    box.innerHTML = `<div style="text-align:center; color:#999;">جارِ الحفظ…</div>`;
     const shared = {
       wifeId: motherState.wifeId, fatherId: motherState.fatherId, fatherName: motherState.fatherName,
       fatherChain: motherState.fatherChain, wifeName: motherState.wifeName,
       sourcePersonId: motherState.sourcePersonId, sourceName: motherState.sourceName, approved: true
     };
-    if (!chosenFatherId){
-      alert("لم يتم اختيار أب — سجّلت الزوجة كمطلّقة بجميع الملفات المرتبطة");
-    }
-    for (const c of candidates){
+    pendingWifeAndSiblingJobs = candidates.map(c => {
       const divorced = chosenFatherId ? personId(c.fatherNode) !== chosenFatherId : true;
-      const personalShared = Object.assign({}, shared, { divorced });
-      for (const kid of c.ownKids){
-        await assignMotherToSiblingNode(kid, personalShared);
-      }
-      await ensureWifeEntryOnFather(c.fatherNode, personalShared, divorced, c.ownKids.map(k => k.data.name));
-    }
-    // تعليم الأم كمعتمدة بملفها الخاص بقاعدة البيانات (تُقرأ لاحقًا عند اختيار "بنت موجودة")
-    if (motherState.fatherId){
-      const gfNode = root.descendants().find(n => personId(n) === motherState.fatherId);
-      const femaleNode = gfNode ? (gfNode.data.children || []).find(c => c.type === "female" && c.wifeId === motherState.wifeId) : null;
-      if (femaleNode && femaleNode.id){
-        try{ await db.collection("persons").doc(femaleNode.id).update({ motherApproved: true }); }catch(e){}
-      }
-    }
-    motherState = Object.assign({}, motherState, { approved: true, divorced: chosenFatherId ? personId(sourceNode.parent) !== chosenFatherId : true });
+      return { fatherNode: c.fatherNode, personalShared: Object.assign({}, shared, { divorced }), divorced, kidNodes: c.ownKids };
+    });
+    motherState = Object.assign({}, motherState, { approved: true, divorced: chosenFatherId ? personId(sourceNode.parent) !== chosenFatherId : true, pendingSave: true });
     pendingHalfSiblings = [];
-    await openInfoModal(modalNode); // إعادة تحميل كاملة لتحديث كل الحقول
-    alert("تم اعتماد البيانات والربط");
+    renderMotherBox();
   }
 }
 
@@ -5853,6 +5869,7 @@ async function openInfoModal(d){
   if (typeof bottomPanels !== "undefined") bottomPanels.forEach(p => p.classList.remove("show"));
   modalNode = d;
   pendingHalfSiblings = [];
+  pendingWifeAndSiblingJobs = [];
   document.getElementById("infoModalName").textContent = modalTitleChain(d).join(" ");
   document.querySelectorAll(".info-tab").forEach(b => b.classList.remove("active"));
   document.querySelector('.info-tab[data-tab="info"]').classList.add("active");
@@ -6083,6 +6100,24 @@ document.getElementById("f-save").onclick = async () => {
       (inlaw.sonNames || []).forEach(nm => { if (!rec.children.includes(nm)) rec.children.push(nm); });
       await savePersonData(inlaw.notaryId, notaryData);
     }
+  }
+
+  // ربط الأم والإخوة غير الأشقاء (وربط الزوجة عند أبيهم): لا يُنفَّذ إلا الآن، عند الحفظ النهائي
+  if (pendingWifeAndSiblingJobs.length){
+    for (const job of pendingWifeAndSiblingJobs){
+      for (const kid of job.kidNodes){
+        await assignMotherToSiblingNode(kid, job.personalShared);
+      }
+      await ensureWifeEntryOnFather(job.fatherNode, job.personalShared, job.divorced, job.kidNodes.map(k => k.data.name));
+    }
+    if (motherState && motherState.fatherId){
+      const gfNode = root.descendants().find(n => personId(n) === motherState.fatherId);
+      const femaleNode = gfNode ? (gfNode.data.children || []).find(c => c.type === "female" && c.wifeId === motherState.wifeId) : null;
+      if (femaleNode && femaleNode.id){
+        try{ await db.collection("persons").doc(femaleNode.id).update({ motherApproved: true }); }catch(e){}
+      }
+    }
+    pendingWifeAndSiblingJobs = [];
   }
 
   const msg = document.getElementById("f-saveMsg");
