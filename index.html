@@ -133,7 +133,6 @@
   <label class="f-label" style="margin-top:14px; display:block;">🖥️ تصميم الموقع (شكل الواجهة، يظهر للجميع)</label>
   <div class="chip-list" id="layoutChooser">
     <button class="f-btn-sm layout-btn" data-style="">الافتراضي</button>
-    <button class="f-btn-sm layout-btn" data-style="1">الجناح الزجاجي</button>
     <button class="f-btn-sm layout-btn" data-style="2">لوحة التحكم</button>
     <button class="f-btn-sm layout-btn" data-style="3">المستقبلي</button>
   </div>
@@ -210,8 +209,9 @@
     <input type="text" id="f-job" class="f-input" placeholder="الوظيفة">
 
     <div id="husbandWrap" style="display:none">
-      <label class="f-label">زوجها (الصهر)</label>
-      <input type="text" id="f-husband" class="f-input" placeholder="اسم الزوج">
+      <label class="f-label">زوجها (الصهر) — اكتب الاسم الثلاثي، ثم اضغط عليه من القائمة</label>
+      <div id="husbandBox" style="position:relative"></div>
+      <div id="husbandResult" class="father-search-result"></div>
       <label style="display:flex; align-items:center; gap:6px; font-size:14px; margin:6px 0;">
         <input type="checkbox" id="f-husbandDivorced"> مطلّقة
       </label>

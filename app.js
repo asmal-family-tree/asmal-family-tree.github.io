@@ -4608,12 +4608,36 @@ async function maternalHalfSiblingUncleNote(pa, pb){
   return null;
 }
 
+async function findOutsideCousinLink(personNode){
+  if (!personNode.parent) return null;
+  const fatherData = await loadPersonData(personId(personNode.parent));
+  const wives = fatherData.wives || [];
+  for (const w of wives){
+    if (w.type === "outside" && (w.children || []).includes(personNode.data.name)){
+      const linkId = w.outsideWifeLinkId || w.linkedOutsideWifeId;
+      if (linkId) return linkId;
+    }
+  }
+  return null;
+}
+
+async function outsideInlawCousinNote(pa, pb){
+  if (!pa.parent || !pb.parent || pa.parent === pb.parent) return null;
+  const la = await findOutsideCousinLink(pa);
+  const lb = await findOutsideCousinLink(pb);
+  if (la && lb && la === lb){
+    return `${pa.data.name} و${pb.data.name} أبناء خالة (أمهاتهما أختان من خارج القبيلة)`;
+  }
+  return null;
+}
+
 async function extraRelationNotes(pa, pb){
   const notes = [];
   const n1 = await maternalRelationNote(pa, pb); if (n1) notes.push(n1);
   const n2 = await fatherInLawNote(pa, pb); if (n2) notes.push(n2);
   const n3 = await paternalAuntNote(pa, pb); if (n3 && !notes.includes(n3)) notes.push(n3);
   const n4 = await maternalHalfSiblingUncleNote(pa, pb); if (n4 && !notes.includes(n4)) notes.push(n4);
+  const n5 = await outsideInlawCousinNote(pa, pb); if (n5 && !notes.includes(n5)) notes.push(n5);
   return notes;
 }
 
@@ -5395,6 +5419,13 @@ function renderWives(){
         if (!w.notaries.some(x => x.id === id)){
           w.notaries.push({ id, name: m.data.name, chain3: chainNames(m).slice(0,3).join(" بن ") });
         }
+        const notarySons = (m.children || []).filter(c => c.data.type !== "female");
+        if (notarySons.length){
+          w.inlaws = w.inlaws || [];
+          if (!w.inlaws.some(x => x.notaryId === id)){
+            w.inlaws.push({ notaryId: id, notaryName: m.data.name, notaryChain: chainNames(m).slice(0,3).join(" بن "), sonNames: [], divorced: false, confirmed: false });
+          }
+        }
         renderWives();
       });
       block.appendChild(searchBox);
@@ -5405,10 +5436,89 @@ function renderWives(){
         const chip = document.createElement("div");
         chip.className = "chip";
         chip.innerHTML = `<span>${escapeHtml(n.chain3 || n.name)}</span><span class="chip-x">✕</span>`;
-        chip.querySelector(".chip-x").onclick = () => { w.notaries.splice(ni, 1); renderWives(); };
+        chip.querySelector(".chip-x").onclick = () => {
+          w.notaries.splice(ni, 1);
+          if (w.inlaws) w.inlaws = w.inlaws.filter(x => x.notaryId !== n.id);
+          renderWives();
+        };
         chipList.appendChild(chip);
       });
       block.appendChild(chipList);
+
+      (w.inlaws || []).forEach((inlaw) => {
+        const notaryNode = root.descendants().find(n => personId(n) === inlaw.notaryId);
+        const sons = notaryNode ? (notaryNode.children || []).filter(c => c.data.type !== "female") : [];
+        const wrap = document.createElement("div");
+        wrap.style.cssText = "border:1.3px solid #EFE7D8; background:#FFF8E1; border-radius:14px; padding:12px 14px; margin-top:10px;";
+
+        if (inlaw.confirmed){
+          const summary = document.createElement("div");
+          summary.style.cssText = "display:flex; justify-content:space-between; align-items:flex-start; gap:8px; cursor:pointer;";
+          summary.innerHTML = `<div style="font-size:13px; color:#333;"><b>أبناء خالة من:</b> ${escapeHtml(inlaw.notaryChain || inlaw.notaryName)}<br>${escapeHtml((inlaw.sonNames||[]).join("، ") || "لا يوجد أبناء محددون")}${inlaw.divorced ? " — (مطلّقة)" : ""}</div><span class="chip-x">✕</span>`;
+          summary.querySelector(".chip-x").onclick = (e) => {
+            e.stopPropagation();
+            w.notaries = (w.notaries || []).filter(x => x.id !== inlaw.notaryId);
+            w.inlaws = w.inlaws.filter(x => x.notaryId !== inlaw.notaryId);
+            renderWives();
+          };
+          summary.addEventListener("click", (e) => {
+            if (e.target.classList.contains("chip-x")) return;
+            inlaw.confirmed = false;
+            renderWives();
+          });
+          wrap.appendChild(summary);
+        } else {
+          const title = document.createElement("div");
+          title.className = "f-label";
+          title.style.margin = "0 0 8px";
+          title.textContent = `حدد أبناء الخالة وحالة الزوجة — ${inlaw.notaryChain || inlaw.notaryName}`;
+          wrap.appendChild(title);
+
+          if (!sons.length){
+            const noSons = document.createElement("div");
+            noSons.style.cssText = "color:#999; font-size:13px;";
+            noSons.textContent = "لا يوجد أبناء مسجّلون لهذا العديل بالشجرة.";
+            wrap.appendChild(noSons);
+          } else {
+            const sonsWrap = document.createElement("div");
+            sonsWrap.className = "wife-children";
+            sons.forEach(sonNode => {
+              const sName = sonNode.data.name;
+              const lbl = document.createElement("label");
+              const cb = document.createElement("input");
+              cb.type = "checkbox";
+              cb.checked = (inlaw.sonNames || []).includes(sName);
+              cb.onchange = () => {
+                inlaw.sonNames = inlaw.sonNames || [];
+                if (cb.checked){ if (!inlaw.sonNames.includes(sName)) inlaw.sonNames.push(sName); }
+                else { inlaw.sonNames = inlaw.sonNames.filter(x => x !== sName); }
+              };
+              lbl.appendChild(cb);
+              lbl.append(sName);
+              sonsWrap.appendChild(lbl);
+            });
+            wrap.appendChild(sonsWrap);
+          }
+
+          const divorceLbl2 = document.createElement("label");
+          divorceLbl2.style.cssText = "display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; color:#a33; cursor:pointer";
+          const divorceCb2 = document.createElement("input");
+          divorceCb2.type = "checkbox";
+          divorceCb2.checked = !!inlaw.divorced;
+          divorceCb2.onchange = () => { inlaw.divorced = divorceCb2.checked; };
+          divorceLbl2.appendChild(divorceCb2);
+          divorceLbl2.append("زوجة العديل (أخت هذه الزوجة) مطلّقة");
+          wrap.appendChild(divorceLbl2);
+
+          const saveBtn = document.createElement("button");
+          saveBtn.className = "f-btn-sm";
+          saveBtn.style.cssText = "width:100%; margin-top:12px; background:#0B3D2E;";
+          saveBtn.textContent = "حفظ";
+          saveBtn.onclick = () => { inlaw.confirmed = true; renderWives(); };
+          wrap.appendChild(saveBtn);
+        }
+        block.appendChild(wrap);
+      });
     }
 
     const childWrap = document.createElement("div");
@@ -5709,7 +5819,7 @@ async function openInfoModal(d){
   photoDataUrl = data.photo || "";
   document.getElementById("photoPreviewWrap").innerHTML = photoDataUrl ? `<img src="${photoDataUrl}">` : "";
   notaryState = (data.notaries || []).map(n => ({ ...n }));
-  wivesState = (data.wives || []).map(w => ({ ...w, children: [...(w.children||[])] }));
+  wivesState = (data.wives || []).map(w => ({ ...w, children: [...(w.children||[])], inlaws: (w.inlaws || []).map(x => ({ ...x, sonNames: [...(x.sonNames||[])] })) }));
   renderNotaryChips();
   renderWives();
   updateAgeDisplay();
@@ -5831,6 +5941,13 @@ document.getElementById("f-save").onclick = async () => {
     }
   }
 
+  // توليد معرّف ثابت لكل زوجة من خارج القبيلة فيها روابط "أبناء خالة" معتمدة
+  wivesState.forEach(w => {
+    if (w.type === "outside" && (w.inlaws || []).some(x => x.confirmed) && !w.outsideWifeLinkId){
+      w.outsideWifeLinkId = generateWifeId();
+    }
+  });
+
   const data = {
     birthYear: document.getElementById("f-birthYear").value,
     deathStatus: document.querySelector('input[name="deathStatus"]:checked').value,
@@ -5887,6 +6004,27 @@ document.getElementById("f-save").onclick = async () => {
       otherNotaries.push({ id: myId, name: modalNode.data.name, chain3: chainNames(modalNode).slice(0,3).join(" بن "), selectedWife: "", reciprocal: true });
       otherData.notaries = otherNotaries;
       await savePersonData(n.id, otherData);
+    }
+  }
+
+  // ربط "أبناء خالة": لكل زوجة من خارج القبيلة فيها عدلاء معتمدون، أضف/حدّث زوجة (أختها) في ملف كل عديل
+  for (const w of wivesState){
+    if (w.type !== "outside" || !w.outsideWifeLinkId) continue;
+    for (const inlaw of (w.inlaws || [])){
+      if (!inlaw.confirmed) continue;
+      const notaryData = await loadPersonData(inlaw.notaryId);
+      notaryData.wives = notaryData.wives || [];
+      let rec = notaryData.wives.find(x => x.linkedOutsideWifeId === w.outsideWifeLinkId);
+      if (!rec){
+        rec = {
+          type: "outside", autoName: "زوجة " + inlaw.notaryChain, notaries: [], children: [],
+          linkedOutsideWifeId: w.outsideWifeLinkId, sisterOfPersonId: myId, sisterOfPersonName: modalNode.data.name
+        };
+        notaryData.wives.push(rec);
+      }
+      rec.divorced = !!inlaw.divorced;
+      (inlaw.sonNames || []).forEach(nm => { if (!rec.children.includes(nm)) rec.children.push(nm); });
+      await savePersonData(inlaw.notaryId, notaryData);
     }
   }
 
@@ -6075,110 +6213,3 @@ window.addEventListener("touchmove", bgMove, { passive:false });
 window.addEventListener("mouseup", bgEnd);
 window.addEventListener("touchend", bgEnd);
 
-/* =====================================================================
-   سلوك خاص بالتصميم (data-style):
-   - الاستايل ١ (الجناح الزجاجي): شريط أزرار عمودي عائم بالجانب الأيمن، قابل للسحب والنقل، وقابل للطي بضغطة بسيطة على مقبض السحب.
-   - الاستايل ٣ (المستقبلي): الشريط السفلي يبقى بمكانه، لكن يقدر ينكمش نحو اليمين عند زر البحث، وينفتح مرة أخرى بنفس الزر.
-   لا يغيّر أي من هذا في وظائف الأزرار نفسها — فقط تموضع/شكل الحاوية.
-   ===================================================================== */
-(function(){
-  let dockHandle = null;
-  let dragging = false, dragMoved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
-
-  function setupGlassDock(){
-    const bar = document.getElementById("bottomBar");
-    if (!bar || dockHandle) return;
-    dockHandle = document.createElement("div");
-    dockHandle.id = "glassDockHandle";
-    dockHandle.textContent = "⋮⋮";
-    bar.insertBefore(dockHandle, bar.firstChild);
-
-    if (!bar.style.top && !bar.dataset.dockPositioned){
-      bar.style.top = "110px";
-      bar.style.right = "14px";
-      bar.style.left = "auto";
-      bar.style.bottom = "auto";
-      bar.dataset.dockPositioned = "1";
-    }
-    dockHandle.addEventListener("pointerdown", onDockPointerDown);
-  }
-
-  function teardownGlassDock(){
-    const bar = document.getElementById("bottomBar");
-    if (dockHandle){ dockHandle.removeEventListener("pointerdown", onDockPointerDown); dockHandle.remove(); dockHandle = null; }
-    if (bar){
-      bar.classList.remove("dock-collapsed");
-      bar.style.top = ""; bar.style.left = ""; bar.style.right = ""; bar.style.bottom = "";
-      delete bar.dataset.dockPositioned;
-    }
-  }
-
-  function onDockPointerDown(e){
-    const bar = document.getElementById("bottomBar");
-    if (!bar) return;
-    dragging = true; dragMoved = false;
-    const rect = bar.getBoundingClientRect();
-    startX = e.clientX; startY = e.clientY;
-    startLeft = rect.left; startTop = rect.top;
-    try{ dockHandle.setPointerCapture(e.pointerId); }catch(err){}
-    document.addEventListener("pointermove", onDockPointerMove);
-    document.addEventListener("pointerup", onDockPointerUp);
-  }
-  function onDockPointerMove(e){
-    if (!dragging) return;
-    const dx = e.clientX - startX, dy = e.clientY - startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
-    if (!dragMoved) return;
-    const bar = document.getElementById("bottomBar");
-    if (!bar) return;
-    let newLeft = startLeft + dx, newTop = startTop + dy;
-    newLeft = Math.max(4, Math.min(newLeft, window.innerWidth - bar.offsetWidth - 4));
-    newTop = Math.max(4, Math.min(newTop, window.innerHeight - bar.offsetHeight - 4));
-    bar.style.left = newLeft + "px";
-    bar.style.top = newTop + "px";
-    bar.style.right = "auto";
-    bar.style.bottom = "auto";
-  }
-  function onDockPointerUp(){
-    dragging = false;
-    document.removeEventListener("pointermove", onDockPointerMove);
-    document.removeEventListener("pointerup", onDockPointerUp);
-    if (!dragMoved){
-      const bar = document.getElementById("bottomBar");
-      if (bar) bar.classList.toggle("dock-collapsed");
-    }
-  }
-
-  // ---------- الاستايل ٣: طي/فتح الشريط عند زر البحث ----------
-  let searchCollapseBound = false;
-  function futuristicCollapseHandler(){
-    if (document.documentElement.getAttribute("data-style") === "3"){
-      const bar = document.getElementById("bottomBar");
-      if (bar) bar.classList.toggle("bar-collapsed");
-    }
-  }
-  function setupFuturisticCollapse(){
-    const searchBtn = document.getElementById("searchToggle");
-    if (!searchBtn || searchCollapseBound) return;
-    searchBtn.addEventListener("click", futuristicCollapseHandler);
-    searchCollapseBound = true;
-  }
-
-  function applyStyleBehaviors(){
-    const st = document.documentElement.getAttribute("data-style");
-    if (st === "1") setupGlassDock(); else teardownGlassDock();
-    if (st !== "3"){
-      const bar = document.getElementById("bottomBar");
-      if (bar) bar.classList.remove("bar-collapsed");
-    }
-    setupFuturisticCollapse();
-  }
-
-  const styleObserver = new MutationObserver(applyStyleBehaviors);
-  styleObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-style"] });
-  if (document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", applyStyleBehaviors);
-  } else {
-    applyStyleBehaviors();
-  }
-})();
