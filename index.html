@@ -129,6 +129,15 @@
     <button class="f-btn-sm theme-btn" data-theme="desert-gold">الذهبي الصحراوي</button>
   </div>
   <div id="themeStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+
+  <label class="f-label" style="margin-top:14px; display:block;">🖥️ تصميم الموقع (شكل الواجهة، يظهر للجميع)</label>
+  <div class="chip-list" id="layoutChooser">
+    <button class="f-btn-sm layout-btn" data-style="">الافتراضي</button>
+    <button class="f-btn-sm layout-btn" data-style="1">الجناح الزجاجي</button>
+    <button class="f-btn-sm layout-btn" data-style="2">لوحة التحكم</button>
+    <button class="f-btn-sm layout-btn" data-style="3">المستقبلي</button>
+  </div>
+  <div id="layoutStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
 </div>
 
 <div id="recordsPanel" class="bottom-panel">
@@ -146,6 +155,7 @@
   <button id="toggleTree" title="إخفاء/إظهار المشجرة">🙈</button>
   <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
   <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
+  <button id="deleteBadgeToggle" title="إظهار/إخفاء علامات الحذف" style="display:none">🗑️</button>
 </div>
 
 <div id="backdrop"></div>
@@ -178,6 +188,9 @@
   </div>
 
   <div class="info-tab-content" id="tabInfo">
+    <label class="f-label">اللقب/الشهرة</label>
+    <input type="text" id="f-nickname" class="f-input" placeholder="مثال: أبو فلان / الشيخ / إلخ">
+
     <label class="f-label">تاريخ الميلاد (سنة هجرية)</label>
     <input type="number" id="f-birthYear" class="f-input" placeholder="مثال: 1400">
 
@@ -195,9 +208,6 @@
 
     <label class="f-label">الوظيفة</label>
     <input type="text" id="f-job" class="f-input" placeholder="الوظيفة">
-
-    <label class="f-label">اللقب/الشهرة</label>
-    <input type="text" id="f-nickname" class="f-input" placeholder="مثال: أبو فلان / الشيخ / إلخ">
 
     <div id="husbandWrap" style="display:none">
       <label class="f-label">زوجها (الصهر)</label>

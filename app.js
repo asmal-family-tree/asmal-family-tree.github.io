@@ -133,7 +133,9 @@ async function loadAndApplySiteTheme(){
   try{
     const snap = await db.collection("meta").doc("siteSettings").get();
     const theme = snap.exists ? (snap.data().theme || "") : "";
+    const layoutStyle = snap.exists ? (snap.data().layoutStyle || "") : "";
     applyTheme(theme);
+    applyLayoutStyle(layoutStyle);
   }catch(e){ console.error("تعذر تحميل استايل الموقع", e); }
 }
 
@@ -144,6 +146,30 @@ function applyTheme(theme){
     b.classList.toggle("active", b.dataset.theme === theme);
   });
 }
+
+function applyLayoutStyle(layoutStyle){
+  if (layoutStyle) document.documentElement.setAttribute("data-style", layoutStyle);
+  else document.documentElement.removeAttribute("data-style");
+  document.querySelectorAll(".layout-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.style === layoutStyle);
+  });
+}
+
+document.querySelectorAll(".layout-btn").forEach(btn => {
+  btn.onclick = async () => {
+    const layoutStyle = btn.dataset.style;
+    const statusEl = document.getElementById("layoutStatus");
+    statusEl.textContent = "جارِ الحفظ…";
+    try{
+      await db.collection("meta").doc("siteSettings").set({ layoutStyle }, { merge: true });
+      applyLayoutStyle(layoutStyle);
+      statusEl.textContent = "✅ تم تطبيق التصميم للجميع";
+      setTimeout(() => { statusEl.textContent = ""; }, 2500);
+    }catch(e){
+      statusEl.textContent = "تعذر الحفظ: " + (e.message || e.code);
+    }
+  };
+});
 
 document.querySelectorAll(".theme-btn").forEach(btn => {
   btn.onclick = async () => {
@@ -218,12 +244,14 @@ function applyRolePermissions(){
     document.getElementById("migrateRow").style.display = "flex";
     document.getElementById("usersToggle").style.display = "";
     document.getElementById("recordsToggle").style.display = "";
+    document.getElementById("deleteBadgeToggle").style.display = "";
     document.getElementById("ioToggle").style.display = "";
     document.getElementById("toggleTree").style.display = "";
     document.getElementById("bgToggle").style.display = "";
   } else {
     document.getElementById("usersToggle").style.display = "none";
     document.getElementById("recordsToggle").style.display = "none";
+    document.getElementById("deleteBadgeToggle").style.display = "none";
     document.getElementById("bgToggle").style.display = "none";
     document.getElementById("ioToggle").style.display = "none";
     document.getElementById("toggleTree").style.display = "none";
@@ -488,8 +516,27 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   if (data.notaries && data.notaries.length) lines.push({ label: "العدلاء من أبناء القبيلة", value: data.notaries.map(n => n.chain3 || n.name).join("، ") });
   if (data.bio) lines.push({ label: "نبذة", value: data.bio });
 
-  const W = blockWidth || 515, margin = 18, rowH = 34;
-  const H = 56 + lines.length * rowH + 14;
+  function wrapText(text, maxChars){
+    const words = String(text).split(/\s+/);
+    const out = [];
+    let cur = "";
+    words.forEach(w => {
+      if ((cur + " " + w).trim().length > maxChars && cur){
+        out.push(cur.trim());
+        cur = w;
+      } else {
+        cur = (cur ? cur + " " : "") + w;
+      }
+    });
+    if (cur) out.push(cur.trim());
+    return out.length ? out : [""];
+  }
+
+  const W = blockWidth || 515, margin = 18, rowH = 34, subLineH = 20;
+  const MAX_CHARS_PER_LINE = 56;
+  const wrappedLines = lines.map(l => ({ label: l.label, valueLines: wrapText(l.value, MAX_CHARS_PER_LINE) }));
+  const totalSubLines = wrappedLines.reduce((sum, l) => sum + l.valueLines.length, 0);
+  const H = 56 + (wrappedLines.length * (rowH - subLineH)) + (totalSubLines * subLineH) + 14;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -518,18 +565,20 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   svg.appendChild(sep);
 
   let y = 62;
-  lines.forEach(l => {
+  wrappedLines.forEach(l => {
     const t = document.createElementNS(svgNS, "text");
     t.setAttribute("x", W - margin); t.setAttribute("y", y);
     t.setAttribute("text-anchor", "end"); t.setAttribute("font-size", "12.5"); t.setAttribute("font-weight", "700"); t.setAttribute("fill", "#8B4A1E");
     t.textContent = l.label + ":";
     svg.appendChild(t);
-    const v = document.createElementNS(svgNS, "text");
-    v.setAttribute("x", margin); v.setAttribute("y", y);
-    v.setAttribute("text-anchor", "start"); v.setAttribute("font-size", "12.5"); v.setAttribute("fill", "#333");
-    v.textContent = l.value.length > 60 ? l.value.slice(0, 60) + "…" : l.value;
-    svg.appendChild(v);
-    y += rowH;
+    l.valueLines.forEach((vline, vi) => {
+      const v = document.createElementNS(svgNS, "text");
+      v.setAttribute("x", margin); v.setAttribute("y", y + vi * subLineH);
+      v.setAttribute("text-anchor", "start"); v.setAttribute("font-size", "12.5"); v.setAttribute("fill", "#333");
+      v.textContent = vline;
+      svg.appendChild(v);
+    });
+    y += (rowH - subLineH) + l.valueLines.length * subLineH;
   });
 
   const svgText = new XMLSerializer().serializeToString(svg);
@@ -3770,7 +3819,21 @@ const searchInput = document.getElementById("search");
 const searchDropdown = document.getElementById("searchDropdown");
 let currentMatches = [];
 
-function runSearch(){
+let nicknameIndex = null; // Map: personId(sanitized) -> nickname
+async function ensureNicknameIndexLoaded(){
+  if (nicknameIndex) return nicknameIndex;
+  nicknameIndex = new Map();
+  try{
+    const snap = await db.collection("personInfo").get();
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (data.nickname) nicknameIndex.set(doc.id, data.nickname);
+    });
+  }catch(e){ console.error("تعذر تحميل فهرس الألقاب", e); nicknameIndex = new Map(); }
+  return nicknameIndex;
+}
+
+async function runSearch(){
   const q = searchInput.value.trim();
   if (!q){
     exitFocusMode();
@@ -3792,6 +3855,15 @@ function runSearch(){
       }
       return true;
     });
+    // بحث بالاسم الأول + اللقب/الشهرة (مثال: "محمد برشيش")
+    const nickIdx = await ensureNicknameIndexLoaded();
+    const nickMatches = root.descendants().filter(d => {
+      if (d.data.type === "female" || matches.includes(d)) return false;
+      if (!d.data.name.includes(parts[0])) return false;
+      const nick = nickIdx.get(firestorePersonInfoId(personId(d)));
+      return nick && parts.slice(1).some(p => nick.includes(p));
+    });
+    matches = matches.concat(nickMatches);
   } else {
     matches = root.descendants().filter(d => d.data.type !== "female" && d.data.name.includes(q));
   }
@@ -3981,8 +4053,17 @@ document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.
 const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel"].map(id => document.getElementById(id));
 function openOnlyPanel(panel){
   const willOpen = !panel.classList.contains("show");
+  const searchPanelEl = document.getElementById("searchPanel");
+  const searchWasOpen = searchPanelEl.classList.contains("show");
   bottomPanels.forEach(p => p.classList.remove("show"));
   if (willOpen) panel.classList.add("show");
+  const searchNowOpen = searchPanelEl.classList.contains("show");
+  if (searchWasOpen && !searchNowOpen){
+    const si = document.getElementById("search");
+    if (si) si.value = "";
+    if (typeof searchDropdown !== "undefined"){ searchDropdown.classList.remove("show"); searchDropdown.innerHTML = ""; }
+    currentMatches = [];
+  }
   return willOpen;
 }
 
@@ -4013,6 +4094,12 @@ const recordsToggle = document.getElementById("recordsToggle");
 const recordsPanel = document.getElementById("recordsPanel");
 recordsToggle.onclick = () => { openOnlyPanel(recordsPanel); refreshRecordsList(); };
 
+const deleteBadgeToggle = document.getElementById("deleteBadgeToggle");
+deleteBadgeToggle.onclick = () => {
+  const on = document.body.classList.toggle("show-delete-badges");
+  deleteBadgeToggle.classList.toggle("active", on);
+};
+
 
 // ---------- شجرتي الخاصة ----------
 const myTreeToggle = document.getElementById("myTreeToggle");
@@ -4029,8 +4116,8 @@ myTreeInput.addEventListener("input", () => {
   const parts = q.split(/\s+/).filter(Boolean);
   let matches;
   if (parts.length > 1){
-    if (d.data.type === "female") return false;
     matches = root.descendants().filter(d => {
+      if (d.data.type === "female") return false;
       const chain = chainNames(d);
       if (chain.length < parts.length) return false;
       for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
@@ -4360,9 +4447,9 @@ function attachChainAutocomplete(inputEl, dropdownEl){
     if (!q){ dropdownEl.classList.remove("show"); dropdownEl.innerHTML = ""; return; }
     const parts = q.split(/\s+/).filter(Boolean);
     let matches;
-      if (d.data.type === "female") return false;
     if (parts.length > 1){
       matches = root.descendants().filter(d => {
+        if (d.data.type === "female") return false;
         const chain = chainNames(d);
         if (chain.length < parts.length) return false;
         for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
@@ -4531,7 +4618,7 @@ document.getElementById("relCalc").onclick = async () => {
     highlightPath(pa, pb);
     return;
   }
-  resultBox.innerHTML = renderSimpleRelation(rep) + notesHtml;
+  resultBox.innerHTML = renderChainGrid(rep) + renderSimpleRelation(rep) + notesHtml;
   highlightPath(pa, pb);
 };
 
@@ -4669,10 +4756,10 @@ notaryInput.addEventListener("input", () => {
   const q = notaryInput.value.trim();
   if (!q){ notaryDropdown.classList.remove("show"); notaryDropdown.innerHTML = ""; return; }
   const parts = q.split(/\s+/).filter(Boolean);
-    if (d.data.type === "female") return false;
   let matches;
   if (parts.length > 1){
     matches = root.descendants().filter(d => {
+      if (d.data.type === "female") return false;
       const chain = chainNames(d);
       if (chain.length < parts.length) return false;
       for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
@@ -4807,7 +4894,10 @@ async function ensureWifeEntryOnFather(fatherNode, sharedMother, divorced, child
   }
   (childNames || []).forEach(nm => { if (!rec.children.includes(nm)) rec.children.push(nm); });
   await savePersonData(fid, fData);
-  await getOrCreateDaughterNode(fatherNode, sharedMother.wifeId, sharedMother.wifeName);
+  const wifeFatherNode = root.descendants().find(n => personId(n) === sharedMother.fatherId);
+  if (wifeFatherNode){
+    await getOrCreateDaughterNode(wifeFatherNode, sharedMother.wifeId, sharedMother.wifeName);
+  }
 }
 
 async function assignMotherToSiblingNode(siblingNode, sharedMother){
@@ -5089,7 +5179,7 @@ function renderFatherChoiceDialog(){
   candidates.forEach(c => {
     const btn = document.createElement("button");
     btn.className = "f-btn-sm";
-    btn.textContent = c.fatherNode.data.name;
+    btn.textContent = modalTitleChain(c.fatherNode).slice(0, 3).join(" ");
     btn.onclick = () => { chosenFatherId = personId(c.fatherNode); finalize(); };
     choiceWrap.appendChild(btn);
   });
@@ -5247,7 +5337,7 @@ function renderWives(){
 
       const notaryTitle = document.createElement("label");
       notaryTitle.className = "f-label";
-      notaryTitle.textContent = "العدلاء من أبناء القبيلة";
+      notaryTitle.textContent = "أسماء العدلاء الخاصين بهذه الزوجة";
       block.appendChild(notaryTitle);
 
       const searchBox = makePersonSearchBox("اكتب اسم من القبيلة، ثم اضغط عليه من القائمة", (m) => {
@@ -5679,7 +5769,7 @@ document.getElementById("f-save").onclick = async () => {
       return;
     }
     if (w.type === "outside" && (w.children || []).length && !(w.notaries || []).length){
-      alert(`يجب إضافة "العدلاء من أبناء القبيلة" للزوجة من خارج القبيلة قبل حفظ المعلومات — إلا لو ما فيه حاجة لإضافة بياناتها أصلًا.`);
+      alert(`يجب إضافة "أسماء العدلاء الخاصين بهذه الزوجة" قبل حفظ المعلومات — إلا لو ما فيه حاجة لإضافة بياناتها أصلًا.`);
       return;
     }
   }
