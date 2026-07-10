@@ -4586,11 +4586,34 @@ async function paternalAuntNote(pa, pb){
   return null;
 }
 
+async function maternalHalfSiblingUncleNote(pa, pb){
+  // حالة: pa أخو والد pb من الأم (نصف أخ من جهة الأم) → pa بمنزلة عم لـ pb، و pb بمنزلة ابن أخ من الأم لـ pa
+  if (pb.parent && pb.parent !== pa){
+    const infoFatherOfB = await findMotherInfo(pb.parent);
+    const infoPa = await findMotherInfo(pa);
+    if (infoFatherOfB && infoPa && infoFatherOfB.wifeId && infoPa.wifeId &&
+        infoFatherOfB.wifeId === infoPa.wifeId && pa.parent !== pb.parent){
+      return `${pa.data.name} أخو ${pb.parent.data.name} من الأم (نصف أخ)، لذلك هو بمنزلة عم لـ ${pb.data.name}، و${pb.data.name} بمنزلة ابن أخ من الأم لـ ${pa.data.name}`;
+    }
+  }
+  // الحالة المعاكسة: pb أخو والد pa من الأم
+  if (pa.parent && pa.parent !== pb){
+    const infoFatherOfA = await findMotherInfo(pa.parent);
+    const infoPb = await findMotherInfo(pb);
+    if (infoFatherOfA && infoPb && infoFatherOfA.wifeId && infoPb.wifeId &&
+        infoFatherOfA.wifeId === infoPb.wifeId && pb.parent !== pa.parent){
+      return `${pb.data.name} أخو ${pa.parent.data.name} من الأم (نصف أخ)، لذلك هو بمنزلة عم لـ ${pa.data.name}، و${pa.data.name} بمنزلة ابن أخ من الأم لـ ${pb.data.name}`;
+    }
+  }
+  return null;
+}
+
 async function extraRelationNotes(pa, pb){
   const notes = [];
   const n1 = await maternalRelationNote(pa, pb); if (n1) notes.push(n1);
   const n2 = await fatherInLawNote(pa, pb); if (n2) notes.push(n2);
   const n3 = await paternalAuntNote(pa, pb); if (n3 && !notes.includes(n3)) notes.push(n3);
+  const n4 = await maternalHalfSiblingUncleNote(pa, pb); if (n4 && !notes.includes(n4)) notes.push(n4);
   return notes;
 }
 
@@ -4672,6 +4695,7 @@ let modalNode = null;
 let notaryState = [];   // [{id, name, selectedWife}]
 let wivesState = [];    // [{type:'inside', wifeName, fatherId, fatherName, fatherChain, children:[]}] or [{type:'outside', notaries:[{id,name,chain3}], children:[]}]
 let motherState = null; // {fatherId, fatherName, fatherChain, auto}
+let husbandState = null; // {husbandId, husbandName, husbandChain}
 let photoDataUrl = "";
 
 const infoBackdrop = document.getElementById("infoBackdrop");
@@ -4834,6 +4858,31 @@ function makePersonSearchBox(placeholder, onSelect){
   wrap.appendChild(input);
   wrap.appendChild(dropdown);
   return wrap;
+}
+
+function renderHusbandBox(){
+  const box = document.getElementById("husbandBox");
+  const resultEl = document.getElementById("husbandResult");
+  if (!box || !resultEl) return;
+  box.innerHTML = "";
+  if (husbandState && husbandState.husbandId){
+    resultEl.textContent = "الزوج: " + (husbandState.husbandChain || husbandState.husbandName);
+    const chip = document.createElement("div");
+    chip.className = "chip-list";
+    const c = document.createElement("div");
+    c.className = "chip";
+    c.innerHTML = `<span>${escapeHtml(husbandState.husbandChain || husbandState.husbandName)}</span><span class="chip-x">✕</span>`;
+    c.querySelector(".chip-x").onclick = () => { husbandState = null; renderHusbandBox(); };
+    chip.appendChild(c);
+    box.appendChild(chip);
+    return;
+  }
+  resultEl.textContent = "";
+  const search = makePersonSearchBox("اكتب الاسم الثلاثي للزوج، ثم اضغط عليه من القائمة", (m) => {
+    husbandState = { husbandId: personId(m), husbandName: m.data.name, husbandChain: modalTitleChain(m).join(" ") };
+    renderHusbandBox();
+  });
+  box.appendChild(search);
 }
 
 async function getOrCreateDaughterNode(fatherNode, wifeId, wifeName, sourcePersonId, sourceName){
@@ -5652,7 +5701,8 @@ async function openInfoModal(d){
   document.getElementById("f-nickname").value = data.nickname || "";
   const isFemale = d.data.type === "female";
   document.getElementById("husbandWrap").style.display = isFemale ? "block" : "none";
-  document.getElementById("f-husband").value = data.husband || "";
+  husbandState = (isFemale && data.husbandId) ? { husbandId: data.husbandId, husbandName: data.husbandName, husbandChain: data.husbandChain } : null;
+  renderHusbandBox();
   document.getElementById("f-husbandDivorced").checked = !!data.husbandDivorced;
   document.getElementById("f-sonsCount").textContent = modalNode.children ? modalNode.children.filter(c => c.data.type !== "female").length : 0;
   document.getElementById("f-bio").value = data.bio || "";
@@ -5793,7 +5843,9 @@ document.getElementById("f-save").onclick = async () => {
     mother: motherState,
     notaries: notaryState,
     wives: wivesState,
-    husband: modalNode.data.type === "female" ? document.getElementById("f-husband").value : null,
+    husband: modalNode.data.type === "female" ? (husbandState ? husbandState.husbandName : null) : null,
+    husbandId: modalNode.data.type === "female" ? (husbandState ? husbandState.husbandId : null) : null,
+    husbandChain: modalNode.data.type === "female" ? (husbandState ? husbandState.husbandChain : null) : null,
     husbandDivorced: modalNode.data.type === "female" ? document.getElementById("f-husbandDivorced").checked : null
   };
   const myId = personId(modalNode);
@@ -5815,6 +5867,17 @@ document.getElementById("f-save").onclick = async () => {
     }
   });
   await saveMarriageIndex(marriageIndex);
+
+  if (modalNode.data.type === "female" && husbandState && husbandState.husbandId){
+    const marriageIndex2 = await loadMarriageIndex();
+    marriageIndex2[myId] = {
+      husbandId: husbandState.husbandId,
+      husbandName: husbandState.husbandName,
+      husbandChain: husbandState.husbandChain,
+      divorced: !!document.getElementById("f-husbandDivorced").checked
+    };
+    await saveMarriageIndex(marriageIndex2);
+  }
 
   // ربط تبادلي: أضف هذا الشخص كعديل لدى كل عديل مضاف عنده
   for (const n of notaryState){
@@ -5852,11 +5915,12 @@ document.getElementById("f-clearAll").onclick = async () => {
 
   const emptyData = {
     birthYear: "", deathStatus: "alive", deathYear: "", job: "", nickname: "", sonsCount: "", bio: "", photo: null,
-    mother: null, notaries: [], wives: [], husband: "", husbandDivorced: false
+    mother: null, notaries: [], wives: [], husband: "", husbandId: null, husbandChain: null, husbandDivorced: false
   };
   await savePersonData(myId, emptyData);
   photoDataUrl = null;
   motherState = null;
+  husbandState = null;
   notaryState = [];
   wivesState = [];
   await openInfoModal(modalNode);
@@ -6010,3 +6074,111 @@ window.addEventListener("mousemove", bgMove);
 window.addEventListener("touchmove", bgMove, { passive:false });
 window.addEventListener("mouseup", bgEnd);
 window.addEventListener("touchend", bgEnd);
+
+/* =====================================================================
+   سلوك خاص بالتصميم (data-style):
+   - الاستايل ١ (الجناح الزجاجي): شريط أزرار عمودي عائم بالجانب الأيمن، قابل للسحب والنقل، وقابل للطي بضغطة بسيطة على مقبض السحب.
+   - الاستايل ٣ (المستقبلي): الشريط السفلي يبقى بمكانه، لكن يقدر ينكمش نحو اليمين عند زر البحث، وينفتح مرة أخرى بنفس الزر.
+   لا يغيّر أي من هذا في وظائف الأزرار نفسها — فقط تموضع/شكل الحاوية.
+   ===================================================================== */
+(function(){
+  let dockHandle = null;
+  let dragging = false, dragMoved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+  function setupGlassDock(){
+    const bar = document.getElementById("bottomBar");
+    if (!bar || dockHandle) return;
+    dockHandle = document.createElement("div");
+    dockHandle.id = "glassDockHandle";
+    dockHandle.textContent = "⋮⋮";
+    bar.insertBefore(dockHandle, bar.firstChild);
+
+    if (!bar.style.top && !bar.dataset.dockPositioned){
+      bar.style.top = "110px";
+      bar.style.right = "14px";
+      bar.style.left = "auto";
+      bar.style.bottom = "auto";
+      bar.dataset.dockPositioned = "1";
+    }
+    dockHandle.addEventListener("pointerdown", onDockPointerDown);
+  }
+
+  function teardownGlassDock(){
+    const bar = document.getElementById("bottomBar");
+    if (dockHandle){ dockHandle.removeEventListener("pointerdown", onDockPointerDown); dockHandle.remove(); dockHandle = null; }
+    if (bar){
+      bar.classList.remove("dock-collapsed");
+      bar.style.top = ""; bar.style.left = ""; bar.style.right = ""; bar.style.bottom = "";
+      delete bar.dataset.dockPositioned;
+    }
+  }
+
+  function onDockPointerDown(e){
+    const bar = document.getElementById("bottomBar");
+    if (!bar) return;
+    dragging = true; dragMoved = false;
+    const rect = bar.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    try{ dockHandle.setPointerCapture(e.pointerId); }catch(err){}
+    document.addEventListener("pointermove", onDockPointerMove);
+    document.addEventListener("pointerup", onDockPointerUp);
+  }
+  function onDockPointerMove(e){
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
+    if (!dragMoved) return;
+    const bar = document.getElementById("bottomBar");
+    if (!bar) return;
+    let newLeft = startLeft + dx, newTop = startTop + dy;
+    newLeft = Math.max(4, Math.min(newLeft, window.innerWidth - bar.offsetWidth - 4));
+    newTop = Math.max(4, Math.min(newTop, window.innerHeight - bar.offsetHeight - 4));
+    bar.style.left = newLeft + "px";
+    bar.style.top = newTop + "px";
+    bar.style.right = "auto";
+    bar.style.bottom = "auto";
+  }
+  function onDockPointerUp(){
+    dragging = false;
+    document.removeEventListener("pointermove", onDockPointerMove);
+    document.removeEventListener("pointerup", onDockPointerUp);
+    if (!dragMoved){
+      const bar = document.getElementById("bottomBar");
+      if (bar) bar.classList.toggle("dock-collapsed");
+    }
+  }
+
+  // ---------- الاستايل ٣: طي/فتح الشريط عند زر البحث ----------
+  let searchCollapseBound = false;
+  function futuristicCollapseHandler(){
+    if (document.documentElement.getAttribute("data-style") === "3"){
+      const bar = document.getElementById("bottomBar");
+      if (bar) bar.classList.toggle("bar-collapsed");
+    }
+  }
+  function setupFuturisticCollapse(){
+    const searchBtn = document.getElementById("searchToggle");
+    if (!searchBtn || searchCollapseBound) return;
+    searchBtn.addEventListener("click", futuristicCollapseHandler);
+    searchCollapseBound = true;
+  }
+
+  function applyStyleBehaviors(){
+    const st = document.documentElement.getAttribute("data-style");
+    if (st === "1") setupGlassDock(); else teardownGlassDock();
+    if (st !== "3"){
+      const bar = document.getElementById("bottomBar");
+      if (bar) bar.classList.remove("bar-collapsed");
+    }
+    setupFuturisticCollapse();
+  }
+
+  const styleObserver = new MutationObserver(applyStyleBehaviors);
+  styleObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-style"] });
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", applyStyleBehaviors);
+  } else {
+    applyStyleBehaviors();
+  }
+})();

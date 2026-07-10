@@ -394,9 +394,9 @@
   .f-save-btn:active{ transform:scale(.98); }
   #f-saveMsg{ text-align:center; margin-top:8px; font-size:13px; color:#1E7A4C; min-height:1px; font-weight:600; }
 
-/* ============ الاستايل ١: الجناح الزجاجي (data-style=1) — شريط سفلي ثابت + أوراق سفلية زجاجية ============ */
+/* ============ الاستايل ١: الجناح الزجاجي (data-style=1) — شريط عمودي عائم قابل للسحب والطي ============ */
 :root[data-style="1"]{
-  --bg:#EAF4EF; --bg-2:#DCEEE4; --line:#7fae95; --ink:#152a20; --barh:84px;
+  --bg:#EAF4EF; --bg-2:#DCEEE4; --line:#7fae95; --ink:#152a20; --barh:18px;
   --root:#0B3D2E; --root-ring:#D4AF37;
   --trunk:#136b4f; --trunk-ring:#0B3D2E;
   --leaf:#1c8f68; --leaf-ring:#0f5c46;
@@ -451,15 +451,19 @@
   border:1px solid var(--glass-brd); color:var(--emerald); border-radius:999px;
   padding:10px 20px; font-size:13px; font-weight:700; box-shadow:var(--card-shadow); cursor:pointer; display:none;
 }:root[data-style="1"] .exit-focus.show{ display:block; animation:floatIn_s1 .3s ease; }:root[data-style="1"] #bottomBar{
-  position:fixed; left:0; right:0; bottom:0; z-index:32;
-  display:flex; align-items:center; gap:2px; justify-content:space-between;
+  position:fixed; top:110px; right:14px; left:auto; bottom:auto; z-index:32;
+  display:flex; flex-direction:column; align-items:center; gap:3px; justify-content:flex-start;
   background:var(--glass-strong); backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
-  border-top:1px solid var(--glass-brd); border-radius:26px 26px 0 0;
-  padding:9px 6px calc(9px + env(safe-area-inset-bottom)); box-shadow:0 -10px 30px rgba(16,50,36,.16);
-  overflow-x:auto;
-}:root[data-style="1"] #bottomBar button{
-  background:transparent; border:none; border-radius:16px; color:var(--emerald);
-  width:44px; height:44px; font-size:18px; line-height:1; cursor:pointer; flex:0 0 auto;
+  border:1px solid var(--glass-brd); border-radius:24px;
+  padding:8px 6px; box-shadow:var(--card-shadow-lg);
+  max-height:min(70vh,520px); overflow-y:auto; overflow-x:hidden; touch-action:none;
+}:root[data-style="1"] #bottomBar.dock-collapsed{ padding-bottom:8px; }:root[data-style="1"] #bottomBar.dock-collapsed button{ display:none; }:root[data-style="1"] #glassDockHandle{
+  width:30px; height:16px; display:flex; align-items:center; justify-content:center;
+  cursor:grab; color:var(--emerald); opacity:.5; font-size:13px; letter-spacing:2px;
+  touch-action:none; user-select:none; flex:0 0 auto;
+}:root[data-style="1"] #glassDockHandle:active{ cursor:grabbing; }:root[data-style="1"] #bottomBar button{
+  background:rgba(255,255,255,.4); border:none; border-radius:14px; color:var(--emerald);
+  width:42px; height:42px; font-size:17px; line-height:1; cursor:pointer; flex:0 0 auto;
   transition:transform .15s, background .2s;
 }:root[data-style="1"] #bottomBar button:active{ transform:scale(.9); background:rgba(201,162,39,.12); }:root[data-style="1"] #bottomBar button.active{ background:linear-gradient(135deg,var(--gold-bright),var(--gold)); color:#fff; box-shadow:0 4px 12px rgba(201,151,31,.35); }:root[data-style="1"] .bottom-panel{
   position:fixed; left:0; right:0; bottom:var(--barh, 84px); top:auto; transform:none; z-index:31;
@@ -541,10 +545,10 @@
 }:root[data-style="1"] .f-save-btn:active{ transform:scale(.98); }:root[data-style="1"] #f-saveMsg{ text-align:center; margin-top:8px; font-size:13px; color:#1E7A4C; min-height:1px; font-weight:600; }
 
 
-@media (max-width:480px){:root[data-style="1"] #bottomBar{ padding:6px 4px calc(6px + env(safe-area-inset-bottom)); }:root[data-style="1"] #bottomBar button{ width:38px; height:38px; font-size:16px; }:root[data-style="1"] .zoom-fab button{ width:46px; height:46px; }
+@media (max-width:480px){:root[data-style="1"] #bottomBar{ padding:6px 4px; gap:2px; }:root[data-style="1"] #bottomBar button{ width:38px; height:38px; font-size:16px; }:root[data-style="1"] .zoom-fab button{ width:46px; height:46px; }
 }
 
-/* ============ الاستايل ٢: لوحة التحكم الاحترافية (data-style=2) — شريط سفلي داكن مربع + أوراق سفلية ============ */
+/* ============ الاستايل ٢: لوحة التحكم الاحترافية (data-style=2) ============ */
 :root[data-style="2"]{
   --bg:#F4F1EA; --ink:#20242B; --line:#9c8a5e; --barh:64px;
   --panel-dark:#1B2430; --panel-dark-2:#232C3A;
@@ -630,7 +634,7 @@
   transition:transform .3s cubic-bezier(.22,.9,.34,1); border-top:3px solid var(--gold-bright);
 }:root[data-style="2"] #infoModal.show{ transform:translateY(0); opacity:1; pointer-events:auto; }:root[data-style="2"] #infoModal::before{ display:none; }:root[data-style="2"] .info-modal-header{ display:flex; justify-content:space-between; align-items:center; padding:20px 24px 10px; font-family:'Amiri',serif; font-size:19px; font-weight:700; color:var(--emerald); border-bottom:1px solid #eee7d6; }:root[data-style="2"] #infoModalClose{ font-size:13px; color:#999; cursor:pointer; border:1px solid #e2ddce; border-radius:3px; padding:4px 12px; }:root[data-style="2"] .info-tabs{ display:flex; gap:0; padding:0 24px; border-bottom:1px solid #eee7d6; }:root[data-style="2"] .info-tab{ flex:1; border:none; background:transparent; color:#8a7550; padding:13px 6px; border-radius:0; font-size:12.5px; font-weight:700; cursor:pointer; border-bottom:3px solid transparent; }:root[data-style="2"] .info-tab.active{ background:transparent; color:var(--emerald); border-bottom-color:var(--gold-bright); }:root[data-style="2"] .info-tab-content{ padding:16px 24px 28px; overflow-y:auto; background:#fff; }:root[data-style="2"] .info-tab-content .soon{ text-align:center; color:#bbb; padding:36px 0; font-size:14px; }:root[data-style="2"] .f-label{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--trunk); font-weight:700; margin:18px 0 6px; }:root[data-style="2"] .f-label::before{ content:""; width:4px; height:4px; background:var(--gold); flex:none; }:root[data-style="2"] .f-input{ width:100%; box-sizing:border-box; padding:11px 14px; border:1px solid #e2ddce; border-radius:4px; font-size:14px; text-align:right; outline:none; background:#faf8f1; }:root[data-style="2"] .f-input:focus{ border-color:var(--gold); background:#fff; }:root[data-style="2"] .f-row{ display:flex; gap:10px; align-items:center; font-size:13.5px; }:root[data-style="2"] .f-row label{ display:flex; align-items:center; gap:4px; }:root[data-style="2"] .f-age{ margin-top:10px; font-size:13.5px; color:#333; background:var(--gold-soft); display:inline-block; padding:6px 14px; border-radius:3px; font-weight:700; }:root[data-style="2"] .f-btn-sm{ background:var(--panel-dark); color:var(--gold-bright); border:none; border-radius:4px; padding:9px 16px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; }:root[data-style="2"] .theme-btn.active{ outline:3px solid var(--gold-bright); outline-offset:2px; }:root[data-style="2"] .chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }:root[data-style="2"] .chip{ background:#faf8f1; border:1px solid #e2ddce; border-radius:3px; padding:7px 13px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; position:relative; }:root[data-style="2"] .chip select{ font-size:11.5px; border:none; background:transparent; }:root[data-style="2"] .chip .chip-x{ color:var(--maroon); font-weight:700; cursor:pointer; }:root[data-style="2"] .autocomplete-dropdown{ position:absolute; top:48px; right:0; left:0; background:#fff; border:1px solid #e2ddce; border-radius:4px; box-shadow:var(--card-shadow-lg); max-height:220px; overflow-y:auto; z-index:5; display:none; }:root[data-style="2"] .autocomplete-dropdown.show{ display:block; }:root[data-style="2"] .autocomplete-dropdown.dropdown-up{ top:auto; bottom:48px; }:root[data-style="2"] .autocomplete-item{ padding:10px 14px; font-size:13px; cursor:pointer; border-bottom:1px solid #f2eee2; }:root[data-style="2"] .autocomplete-item:last-child{ border-bottom:none; }:root[data-style="2"] .autocomplete-item:hover{ background:#faf4e6; }:root[data-style="2"] .autocomplete-item .chain-sub{ display:block; font-size:11px; color:#aaa; margin-top:2px; }:root[data-style="2"] .wife-block{ border:1px solid #e2ddce; background:#faf8f1; border-radius:4px; padding:14px; margin-top:12px; }:root[data-style="2"] .wife-block .f-input{ margin-bottom:8px; }:root[data-style="2"] .wife-type-chooser{ display:flex; gap:8px; margin-top:10px; }:root[data-style="2"] .wife-type-chooser button{ flex:1; }:root[data-style="2"] .wife-type-chooser #wifeTypeOutside{ background:#4a3b26; }:root[data-style="2"] .father-search-result{ font-size:12.5px; color:var(--trunk); margin-top:4px; }:root[data-style="2"] .wife-children{ display:flex; flex-wrap:wrap; gap:8px; font-size:12.5px; }:root[data-style="2"] .wife-children label{ display:flex; align-items:center; gap:4px; }:root[data-style="2"] #photoPreviewWrap img{ max-width:130px; border-radius:4px; margin-top:10px; display:block; }:root[data-style="2"] .f-save-btn{ width:100%; margin-top:24px; padding:13px; background:#1E7A4C; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:14.5px; cursor:pointer; }:root[data-style="2"] #f-saveMsg{ text-align:center; margin-top:8px; font-size:13px; color:#1E7A4C; min-height:1px; font-weight:600; }
 
-/* ============ الاستايل ٣: المستقبلي (data-style=3) — شريط سفلي متوهج + أوراق سفلية داكنة ============ */
+/* ============ الاستايل ٣: المستقبلي (data-style=3) — شريط سفلي قابل للطي عند زر البحث ============ */
 :root[data-style="3"]{
   --bg:#12151C; --bg-2:#181C24; --ink:#E9EDEE; --line:#3a4a44; --barh:78px;
   --root:#0E4C36; --root-ring:#2FE3A6;
@@ -682,12 +686,16 @@
   display:flex; align-items:center; gap:6px; justify-content:space-between;
   background:var(--card-bg); border-top:1px solid rgba(47,227,166,.18); border-radius:26px 26px 0 0;
   padding:8px 6px calc(8px + env(safe-area-inset-bottom)); box-shadow:0 -14px 40px rgba(0,0,0,.5);
-  overflow-x:auto;
+  overflow-x:hidden; width:100%; transition:width .3s ease, border-radius .3s ease;
+}:root[data-style="3"] #bottomBar.bar-collapsed{
+  left:auto; width:auto; min-width:60px; justify-content:flex-end; border-radius:26px 0 0 0;
 }:root[data-style="3"] #bottomBar button{
   background:radial-gradient(circle at 35% 30%, #232a34, #181c24); border:none; border-radius:14px; color:var(--glow);
   width:44px; height:44px; font-size:17px; line-height:1; cursor:pointer; flex:0 0 auto;
   box-shadow:3px 3px 8px var(--neu-d), -3px -3px 6px var(--neu-l);
-  transition:box-shadow .2s, transform .15s;
+  transition:box-shadow .2s, transform .15s, width .25s ease, opacity .2s ease, padding .25s ease, margin .25s ease;
+}:root[data-style="3"] #bottomBar.bar-collapsed button:not(#searchToggle){
+  width:0; min-width:0; opacity:0; margin:0; padding:0; box-shadow:none; pointer-events:none; overflow:hidden;
 }:root[data-style="3"] #bottomBar button:active{ box-shadow:inset 3px 3px 8px var(--neu-d), inset -3px -3px 8px var(--neu-l); transform:scale(.92); }:root[data-style="3"] #bottomBar button.active{ color:#12151C; background:radial-gradient(circle at 35% 30%, var(--glow-2), var(--glow)); box-shadow:0 0 16px rgba(47,227,166,.5); }:root[data-style="3"] .bottom-panel{
   position:fixed; left:0; right:0; bottom:var(--barh, 78px); top:auto; transform:none; z-index:31;
   display:none; margin:0 auto; width:92%; max-width:420px; max-height:70vh; overflow-y:auto;
