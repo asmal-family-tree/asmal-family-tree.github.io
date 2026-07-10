@@ -456,9 +456,8 @@ document.getElementById("newUserAddBtn").onclick = async function(){
 };
 
 function isPersonDataFilled(data){
-  return !!(data.birthYear || data.job || data.nickname || data.bio || data.photo || data.mother ||
-    (data.notaries && data.notaries.length) || (data.wives && data.wives.length) ||
-    data.deathStatus === "dead" || data.husband);
+  return !!(data.job || data.nickname || data.bio || data.photo || data.mother ||
+    (data.notaries && data.notaries.length) || (data.wives && data.wives.length) || data.husband);
 }
 
 async function refreshRecordsList(){
@@ -477,7 +476,7 @@ async function refreshRecordsList(){
   filled.forEach(({ node, data }) => {
     const row = document.createElement("div");
     row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:8px; background:#F7F2E7; border-radius:8px;";
-    row.innerHTML = `<span style="cursor:pointer">${chainNames(node).slice(0,3).map(escapeHtml).join(" ")}</span>
+    row.innerHTML = `<span style="cursor:pointer; color:#241a10;">${chainNames(node).slice(0,3).map(escapeHtml).join(" ")}</span>
       <span><button class="f-btn-sm records-open-btn" style="margin-left:6px;">فتح</button><button class="f-btn-sm records-pdf-btn">⬇️ PDF</button></span>`;
     row.querySelector(".records-open-btn").onclick = () => { recordsPanel.classList.remove("show"); showInfo(node); };
     row.querySelector(".records-pdf-btn").onclick = () => exportPersonPdf(node, data);
@@ -501,6 +500,15 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   const sameMother = await findSameMotherSiblings(personNode);
   const halfSiblingsLine = sameMother.siblings.map(s => s.name).join("، ");
 
+  const sonNames = personNode.children ? personNode.children.filter(c => c.data.type !== "female").map(c => c.data.name) : [];
+  const insideWifeFathers = (data.wives || []).filter(w => w.type === "inside" && (w.fatherChain || w.fatherName)).map(w => w.fatherChain || w.fatherName);
+  const wifeSpecificNotaries = [];
+  (data.wives || []).forEach(w => {
+    if (w.type === "outside" && w.notaries && w.notaries.length){
+      wifeSpecificNotaries.push(...w.notaries.map(n => n.chain3 || n.name));
+    }
+  });
+
   const lines = [];
   if (data.birthYear){
     const age = CURRENT_HIJRI_YEAR - parseInt(data.birthYear);
@@ -511,9 +519,12 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   if (data.job) lines.push({ label: "الوظيفة", value: data.job });
   if (data.nickname) lines.push({ label: "اللقب/الشهرة", value: data.nickname });
   lines.push({ label: "عدد الأبناء بالمشجرة", value: String(sonsInTree) });
+  if (sonNames.length) lines.push({ label: "أسماء الأبناء", value: sonNames.join("، ") });
+  if (insideWifeFathers.length) lines.push({ label: "والد الزوجة (من القبيلة)", value: insideWifeFathers.join("، ") });
   if (unclesLine) lines.push({ label: "الأخوال", value: unclesLine });
   if (halfSiblingsLine) lines.push({ label: "الإخوة من الأم", value: halfSiblingsLine });
   if (data.notaries && data.notaries.length) lines.push({ label: "العدلاء من أبناء القبيلة", value: data.notaries.map(n => n.chain3 || n.name).join("، ") });
+  if (wifeSpecificNotaries.length) lines.push({ label: "عدلاء الزوجة/الزوجات", value: wifeSpecificNotaries.join("، ") });
   if (data.bio) lines.push({ label: "نبذة", value: data.bio });
 
   function wrapText(text, maxChars){
@@ -536,7 +547,7 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   const MAX_CHARS_PER_LINE = 56;
   const wrappedLines = lines.map(l => ({ label: l.label, valueLines: wrapText(l.value, MAX_CHARS_PER_LINE) }));
   const totalSubLines = wrappedLines.reduce((sum, l) => sum + l.valueLines.length, 0);
-  const H = 56 + (wrappedLines.length * (rowH - subLineH)) + (totalSubLines * subLineH) + 14;
+  const H = 56 + (wrappedLines.length * (20 + 8)) + (totalSubLines * subLineH) + 14;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -571,14 +582,16 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
     t.setAttribute("text-anchor", "end"); t.setAttribute("font-size", "12.5"); t.setAttribute("font-weight", "700"); t.setAttribute("fill", "#8B4A1E");
     t.textContent = l.label + ":";
     svg.appendChild(t);
-    l.valueLines.forEach((vline, vi) => {
+    y += 20;
+    l.valueLines.forEach((vline) => {
       const v = document.createElementNS(svgNS, "text");
-      v.setAttribute("x", margin); v.setAttribute("y", y + vi * subLineH);
-      v.setAttribute("text-anchor", "start"); v.setAttribute("font-size", "12.5"); v.setAttribute("fill", "#333");
+      v.setAttribute("x", W - margin); v.setAttribute("y", y);
+      v.setAttribute("text-anchor", "end"); v.setAttribute("font-size", "12.5"); v.setAttribute("fill", "#333");
       v.textContent = vline;
       svg.appendChild(v);
+      y += subLineH;
     });
-    y += (rowH - subLineH) + l.valueLines.length * subLineH;
+    y += 8;
   });
 
   const svgText = new XMLSerializer().serializeToString(svg);
@@ -713,7 +726,7 @@ async function refreshUsersAndPendingLists(){
         const row = document.createElement("div");
         row.style.cssText = "display:flex; flex-direction:column; gap:6px; margin-bottom:8px; padding:8px; background:#FFF8E1; border-radius:8px; cursor:pointer;";
         row.innerHTML = `
-          <div><b>${escapeHtml(p.name)}</b> — ابن لـ <b>${escapeHtml(parentName)}</b></div>
+          <div style="color:#241a10;"><b>${escapeHtml(p.name)}</b> — ابن لـ <b>${escapeHtml(parentName)}</b></div>
           <div style="font-size:12px; color:#777;">أضافه: ${escapeHtml(adderName)} — اضغط لعرض موقعه بالخريطة 📍</div>
           <div><button class="f-btn-sm approve-btn" style="margin-left:6px;">✅ اعتماد</button><button class="f-btn-sm reject-btn" style="background:#8B1E1E;">✕ رفض</button></div>
         `;
@@ -3821,19 +3834,27 @@ function modalTitleChain(d){
 function positionDropdownPortal(inputEl, dropdownEl){
   const r = inputEl.getBoundingClientRect();
   const up = dropdownEl.classList.contains("dropdown-up");
+  const margin = 8;
   dropdownEl.style.position = "fixed";
   dropdownEl.style.left = r.left + "px";
   dropdownEl.style.right = "auto";
   dropdownEl.style.width = r.width + "px";
   if (up){
+    const spaceAbove = Math.max(60, r.top - margin);
     dropdownEl.style.top = "auto";
     dropdownEl.style.bottom = (window.innerHeight - r.top + 6) + "px";
+    dropdownEl.style.maxHeight = Math.min(220, spaceAbove) + "px";
   } else {
+    const spaceBelow = Math.max(60, window.innerHeight - r.bottom - margin);
     dropdownEl.style.top = (r.bottom + 4) + "px";
     dropdownEl.style.bottom = "auto";
+    dropdownEl.style.maxHeight = Math.min(220, spaceBelow) + "px";
   }
 }
 function portalShowDropdown(inputEl, dropdownEl){
+  document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
+    if (dd !== dropdownEl) dd.classList.remove("show");
+  });
   if (dropdownEl.parentElement !== document.body) document.body.appendChild(dropdownEl);
   dropdownEl._portalInput = inputEl;
   dropdownEl.style.zIndex = "200";
@@ -3977,6 +3998,7 @@ async function findSameMotherSiblings(personNode){
 }
 
 function showInfo(d){
+  if (typeof bottomPanels !== "undefined") bottomPanels.forEach(p => p.classList.remove("show"));
   document.getElementById("ip-name").textContent = d.data.name;
   let chain = []; let a = d;
   while(a){ chain.push(a.data.name); a = a.parent; }
@@ -5080,7 +5102,7 @@ function renderMotherBox(){
     const isSource = motherState.sourcePersonId === myId;
     const row = document.createElement("div");
     row.style.cssText = "display:flex; align-items:center; justify-content:space-between; background:#F1E9D8; border-radius:8px; padding:8px 12px;";
-    row.innerHTML = `<span>الأم: ${escapeHtml(motherState.wifeName || ("ابنة " + motherState.fatherChain))}${motherState.divorced ? " (مطلّقة)" : ""}</span><span class="chip-x" title="${isSource ? "حذف كامل" : "فكّ ارتباطي"}">✕</span>`;
+    row.innerHTML = `<span style="color:#241a10;">الأم: ${escapeHtml(motherState.wifeName || ("ابنة " + motherState.fatherChain))}${motherState.divorced ? " (مطلّقة)" : ""}</span><span class="chip-x" title="${isSource ? "حذف كامل" : "فكّ ارتباطي"}">✕</span>`;
     row.querySelector(".chip-x").onclick = async () => {
       if (isSource){
         if (!confirm("هذا حذف كامل شامل: راح يحذف الأم من كل ملفات الأزواج والأبناء والإخوة المرتبطين. متأكد؟")) return;
@@ -5196,7 +5218,7 @@ function renderHalfSiblingPicker(){
   box.innerHTML = "";
 
   const note = document.createElement("div");
-  note.style.cssText = "background:#FFF8E1; border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:8px;";
+  note.style.cssText = "background:#FFF8E1; border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:8px; color:#241a10;";
   note.textContent = `الأم: ${motherState.wifeName} — بانتظار الاعتماد`;
   box.appendChild(note);
 
@@ -5504,6 +5526,7 @@ function renderWives(){
           const title = document.createElement("div");
           title.className = "f-label";
           title.style.margin = "0 0 8px";
+          title.style.color = "#0B3D2E";
           title.textContent = `حدد أبناء الخالة وحالة الزوجة — ${inlaw.notaryChain || inlaw.notaryName}`;
           wrap.appendChild(title);
 
@@ -5827,6 +5850,7 @@ document.getElementById("mtiExportBtn").onclick = async function(){
 };
 
 async function openInfoModal(d){
+  if (typeof bottomPanels !== "undefined") bottomPanels.forEach(p => p.classList.remove("show"));
   modalNode = d;
   pendingHalfSiblings = [];
   document.getElementById("infoModalName").textContent = modalTitleChain(d).join(" ");
@@ -6251,15 +6275,35 @@ window.addEventListener("touchend", bgEnd);
    تكبير/تصغير الواجهة بالكامل (A+ / A-) — يشمل الخطوط والأزرار والتبويبات
    وجميع تصاميم الموقع (الافتراضي ولوحة التحكم والمستقبلي) بشكل متناسب.
    يُحفظ الاختيار بمتصفح كل مستخدم (localStorage).
+
+   ملاحظة مهمة: خاصية zoom تكبّر كل شيء بصريًا، لكن وحدات الشاشة (vh/dvh)
+   المستخدمة لحدود ارتفاع النوافذ المنبثقة (كالمعلومات وحاسبة العلاقة) تبقى
+   محسوبة على الحجم الفعلي للشاشة بدون اعتبار التكبير — فتطلع النافذة أكبر
+   من الشاشة الحقيقية. لذلك نحسب هنا حدًا أقصى بالبكسل يعوّض هذا الفرق،
+   ونطبّقه مباشرة على كل نافذة، فتبقى دائمًا ضمن حدود الموقع مهما كان التكبير.
    ===================================================================== */
 (function(){
   const MIN_SCALE = 0.8, MAX_SCALE = 1.6, STEP = 0.1;
   let uiScale = parseFloat(localStorage.getItem("uiScale") || "1");
   if (isNaN(uiScale)) uiScale = 1;
 
+  function applyScaledPanelSizing(){
+    const effectiveVh = window.innerHeight / uiScale;
+    const targets = [
+      { id: "relPanel", pct: 0.8 },
+      { id: "infoModal", pct: 0.86 },
+      { id: "sheet", pct: 0.78 }
+    ];
+    targets.forEach(({ id, pct }) => {
+      const el = document.getElementById(id);
+      if (el) el.style.maxHeight = Math.round(effectiveVh * pct) + "px";
+    });
+  }
+
   function applyUiScale(){
     document.body.style.zoom = uiScale;
     localStorage.setItem("uiScale", String(uiScale));
+    applyScaledPanelSizing();
   }
 
   const upBtn = document.getElementById("uiScaleUp");
@@ -6273,5 +6317,6 @@ window.addEventListener("touchend", bgEnd);
     applyUiScale();
   };
 
+  window.addEventListener("resize", applyScaledPanelSizing);
   applyUiScale();
 })();
