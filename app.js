@@ -424,7 +424,7 @@ newUserScopeInput.addEventListener("input", () => {
     };
     newUserScopeDropdown.appendChild(item);
   });
-  newUserScopeDropdown.classList.add("show");
+  portalShowDropdown(newUserScopeInput, newUserScopeDropdown);
 });
 
 document.getElementById("newUserAddBtn").onclick = async function(){
@@ -3815,6 +3815,39 @@ function modalTitleChain(d){
   return out;
 }
 
+/* ============ حل مشكلة اختفاء/انقطاع قوائم الاقتراحات داخل النوافذ القابلة للتمرير ============
+   ننقل أي قائمة اقتراحات (autocomplete-dropdown) إلى body مباشرة ونموضعها بالإحداثيات الفعلية
+   على الشاشة (position:fixed)، بدل ما تبقى محصورة داخل صندوق اللوحة الأم وتنقطع بحوافها. */
+function positionDropdownPortal(inputEl, dropdownEl){
+  const r = inputEl.getBoundingClientRect();
+  const up = dropdownEl.classList.contains("dropdown-up");
+  dropdownEl.style.position = "fixed";
+  dropdownEl.style.left = r.left + "px";
+  dropdownEl.style.right = "auto";
+  dropdownEl.style.width = r.width + "px";
+  if (up){
+    dropdownEl.style.top = "auto";
+    dropdownEl.style.bottom = (window.innerHeight - r.top + 6) + "px";
+  } else {
+    dropdownEl.style.top = (r.bottom + 4) + "px";
+    dropdownEl.style.bottom = "auto";
+  }
+}
+function portalShowDropdown(inputEl, dropdownEl){
+  if (dropdownEl.parentElement !== document.body) document.body.appendChild(dropdownEl);
+  dropdownEl._portalInput = inputEl;
+  dropdownEl.style.zIndex = "200";
+  positionDropdownPortal(inputEl, dropdownEl);
+  dropdownEl.classList.add("show");
+}
+function repositionAllOpenDropdowns(){
+  document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
+    if (dd._portalInput) positionDropdownPortal(dd._portalInput, dd);
+  });
+}
+window.addEventListener("scroll", repositionAllOpenDropdowns, true);
+window.addEventListener("resize", repositionAllOpenDropdowns);
+
 const searchInput = document.getElementById("search");
 const searchDropdown = document.getElementById("searchDropdown");
 let currentMatches = [];
@@ -3882,7 +3915,7 @@ async function runSearch(){
       };
       searchDropdown.appendChild(item);
     });
-    searchDropdown.classList.add("show");
+    portalShowDropdown(searchInput, searchDropdown);
   } else {
     searchDropdown.classList.remove("show");
     exitFocusMode();
@@ -4143,7 +4176,7 @@ myTreeInput.addEventListener("input", () => {
     };
     myTreeDropdown.appendChild(item);
   });
-  myTreeDropdown.classList.add("show");
+  portalShowDropdown(myTreeInput, myTreeDropdown);
 });
 
 function showPersonalTree(dataRef){
@@ -4472,7 +4505,7 @@ function attachChainAutocomplete(inputEl, dropdownEl){
       };
       dropdownEl.appendChild(item);
     });
-    dropdownEl.classList.add("show");
+    portalShowDropdown(inputEl, dropdownEl);
   });
 }
 attachChainAutocomplete(document.getElementById("relA"), document.getElementById("relADropdown"));
@@ -4835,7 +4868,7 @@ notaryInput.addEventListener("input", () => {
     };
     notaryDropdown.appendChild(item);
   });
-  notaryDropdown.classList.add("show");
+  portalShowDropdown(notaryInput, notaryDropdown);
 });
 
 function makePersonSearchBox(placeholder, onSelect){
@@ -4877,7 +4910,7 @@ function makePersonSearchBox(placeholder, onSelect){
       };
       dropdown.appendChild(item);
     });
-    dropdown.classList.add("show");
+    portalShowDropdown(input, dropdown);
   });
   wrap.appendChild(input);
   wrap.appendChild(dropdown);
