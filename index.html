@@ -17,6 +17,42 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<script>
+(function(){
+  // نقاط الفصل: جوال أقل من 768، تابلت 768-1199، كمبيوتر 1200 فأكثر (وكمبيوتر كبير 1920 فأكثر)
+  // هذا الكود يضيف "class" فقط على body ولا يغيّر أي منطق أو متغير برمجي بالموقع
+  function detectDevice(){
+    const w = window.innerWidth;
+    const cls = document.body.classList;
+    cls.remove("device-mobile", "device-tablet", "device-desktop", "device-desktop-lg");
+    if (w < 768){
+      cls.add("device-mobile");
+    } else if (w < 1200){
+      cls.add("device-tablet");
+    } else {
+      cls.add("device-desktop");
+      if (w >= 1920) cls.add("device-desktop-lg");
+    }
+  }
+  detectDevice();
+  window.addEventListener("resize", detectDevice);
+  window.addEventListener("orientationchange", detectDevice);
+
+  // مؤشر مؤقت للتأكد من عمل الكشف بصريًا — سيُحذف عند بناء تصميم سطح المكتب الفعلي
+  window.addEventListener("DOMContentLoaded", function(){
+    const badge = document.createElement("div");
+    badge.id = "deviceDetectDebugBadge";
+    badge.style.cssText = "position:fixed; bottom:6px; left:6px; z-index:99999; background:#111; color:#0f0; font:11px monospace; padding:4px 8px; border-radius:6px; opacity:.85; pointer-events:none;";
+    function updateBadge(){
+      const cls = document.body.className.match(/device-\S+/g) || [];
+      badge.textContent = "🖥️ " + cls.join(" ") + " | " + window.innerWidth + "px";
+    }
+    updateBadge();
+    window.addEventListener("resize", updateBadge);
+    document.body.appendChild(badge);
+  });
+})();
+</script>
 <div id="customAlertBackdrop"></div>
 <div id="customAlertBox">
   <div id="customAlertTitle">تنبيه</div>
