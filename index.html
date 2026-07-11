@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 <script>
@@ -28,13 +28,24 @@
       });
     });
 
-    // تكبير/تصغير خط آمن لسطح المكتب فقط (يغيّر حجم الخط الأساسي، بدون zoom حتى لا يتعارض مع العناصر الثابتة)
-    let dtFontPct = 100;
+    // تكبير/تصغير خط آمن لسطح المكتب فقط: يضيف class على body يوسّع خط عناصرنا الجديدة تحديدًا
+    // (بدل تغيير حجم الخط الجذري الذي لا يؤثر على عناصر الموقع المبنية بوحدات ثابتة أصلًا)
+    const dtFontLevels = ["", "dt-font-lg", "dt-font-xl"];
+    let dtFontIndex = 0;
+    function applyDtFont(){
+      document.body.classList.remove("dt-font-lg", "dt-font-xl");
+      if (dtFontLevels[dtFontIndex]) document.body.classList.add(dtFontLevels[dtFontIndex]);
+    }
     const dtFontDown = document.getElementById("dtFontDown");
     const dtFontUp = document.getElementById("dtFontUp");
-    function applyDtFont(){ document.documentElement.style.fontSize = dtFontPct + "%"; }
-    if (dtFontUp) dtFontUp.addEventListener("click", () => { dtFontPct = Math.min(130, dtFontPct + 10); applyDtFont(); });
-    if (dtFontDown) dtFontDown.addEventListener("click", () => { dtFontPct = Math.max(90, dtFontPct - 10); applyDtFont(); });
+    if (dtFontUp) dtFontUp.addEventListener("click", () => {
+      dtFontIndex = Math.min(dtFontLevels.length - 1, dtFontIndex + 1);
+      applyDtFont();
+    });
+    if (dtFontDown) dtFontDown.addEventListener("click", () => {
+      dtFontIndex = Math.max(0, dtFontIndex - 1);
+      applyDtFont();
+    });
 
     // مزامنة ارتفاع الهيدر الفعلي مع متغير CSS لإزاحة المحتوى تحته بدقة
     const dtHeader = document.getElementById("dtHeader");
@@ -204,29 +215,29 @@
 <nav id="dtSidebar">
   <div class="dt-group">
     <div class="dt-group-title">الشجرة</div>
-    <button class="dt-nav-btn" data-target="toggleTree">🙈 <span>إخفاء/إظهار الشجرة</span></button>
-    <button class="dt-nav-btn" data-target="myTreeToggle">🌳 <span>شجرتي الخاصة</span></button>
+    <button class="dt-nav-btn" data-target="toggleTree"><span class="dt-icon">🙈</span><span class="dt-label">إخفاء/إظهار الشجرة</span></button>
+    <button class="dt-nav-btn" data-target="myTreeToggle"><span class="dt-icon">🌳</span><span class="dt-label">شجرتي الخاصة</span></button>
   </div>
   <div class="dt-group">
     <div class="dt-group-title">البحث والعلاقات</div>
-    <button class="dt-nav-btn" data-target="searchToggle">🔍 <span>البحث</span></button>
-    <button class="dt-nav-btn" data-target="relToggle">🧮 <span>حاسبة العلاقة</span></button>
+    <button class="dt-nav-btn" data-target="searchToggle"><span class="dt-icon">🔍</span><span class="dt-label">البحث</span></button>
+    <button class="dt-nav-btn" data-target="relToggle"><span class="dt-icon">🧮</span><span class="dt-label">حاسبة العلاقة</span></button>
   </div>
   <div class="dt-group">
     <div class="dt-group-title">المساعد الذكي</div>
-    <button class="dt-nav-btn" data-target="aiChatToggle">🤖 <span>المساعد الذكي</span></button>
-    <button class="dt-nav-btn" data-target="attachmentsToggle">📚 <span>المرفقات</span></button>
+    <button class="dt-nav-btn" data-target="aiChatToggle"><span class="dt-icon">🤖</span><span class="dt-label">المساعد الذكي</span></button>
+    <button class="dt-nav-btn" data-target="attachmentsToggle"><span class="dt-icon">📚</span><span class="dt-label">المرفقات</span></button>
   </div>
   <div class="dt-group">
     <div class="dt-group-title">المظهر</div>
-    <button class="dt-nav-btn" data-target="bgToggle">🖼️ <span>خلفية الشجرة</span></button>
+    <button class="dt-nav-btn" data-target="bgToggle"><span class="dt-icon">🖼️</span><span class="dt-label">خلفية الشجرة</span></button>
   </div>
   <div class="dt-group">
     <div class="dt-group-title">إدارة</div>
-    <button class="dt-nav-btn" data-target="usersToggle">👥 <span>المستخدمون</span></button>
-    <button class="dt-nav-btn" data-target="recordsToggle">📋 <span>السجلات</span></button>
-    <button class="dt-nav-btn" data-target="deleteBadgeToggle">🗑️ <span>علامات الحذف</span></button>
-    <button class="dt-nav-btn" data-target="ioToggle">📁 <span>استيراد/تصدير</span></button>
+    <button class="dt-nav-btn" data-target="usersToggle"><span class="dt-icon">👥</span><span class="dt-label">المستخدمون</span></button>
+    <button class="dt-nav-btn" data-target="recordsToggle"><span class="dt-icon">📋</span><span class="dt-label">السجلات</span></button>
+    <button class="dt-nav-btn" data-target="deleteBadgeToggle"><span class="dt-icon">🗑️</span><span class="dt-label">علامات الحذف</span></button>
+    <button class="dt-nav-btn" data-target="ioToggle"><span class="dt-icon">📁</span><span class="dt-label">استيراد/تصدير</span></button>
   </div>
 </nav>
 

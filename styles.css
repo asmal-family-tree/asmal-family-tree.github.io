@@ -693,9 +693,10 @@
 
   #dtSidebar{
     display:flex; flex-direction:column; gap:4px;
-    position:fixed; top:var(--dt-header-h); right:0;
-    width:260px; height:calc(100vh - var(--dt-header-h));
-    overflow-y:auto; z-index:900; padding:18px 14px 40px;
+    position:fixed; top:0; bottom:0; right:0;
+    width:260px;
+    overflow-y:auto; z-index:940; padding:18px 14px 40px;
+    padding-top:calc(var(--dt-header-h) + 18px);
     background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
     border-left:1px solid rgba(212,175,55,.18);
     box-shadow:-8px 0 24px rgba(0,0,0,.15);
@@ -703,13 +704,22 @@
   #dtSidebar::-webkit-scrollbar{ width:6px; }
   #dtSidebar::-webkit-scrollbar-thumb{ background:rgba(212,175,55,.35); border-radius:6px; }
 
-  #dtSidebar .dt-group{ display:flex; flex-direction:column; margin-bottom:10px; }
-  #dtSidebar .dt-group-title{ font-size:11px; color:rgba(239,231,216,.5); padding:8px 10px 4px; }
+  #dtSidebar .dt-group{ display:flex; flex-direction:column; margin-bottom:14px; }
+  #dtSidebar .dt-group-title{
+    font-size:11px; font-weight:700; color:rgba(212,175,55,.65);
+    padding:8px 12px 6px; letter-spacing:.3px;
+  }
   #dtSidebar .dt-nav-btn{
-    display:flex; align-items:center; gap:9px;
-    background:none; border:none; border-radius:9px;
-    color:#EFE7D8; font-size:14px; padding:11px 12px; text-align:right;
+    display:flex; align-items:center; gap:11px;
+    background:none; border:none; border-radius:10px;
+    color:#EFE7D8; padding:11px 12px;
     cursor:pointer; width:100%; transition:background .15s ease, color .15s ease;
+  }
+  #dtSidebar .dt-nav-btn .dt-icon{
+    font-size:18px; line-height:1; flex:none; width:22px; text-align:center;
+  }
+  #dtSidebar .dt-nav-btn .dt-label{
+    font-size:14px; font-weight:600; flex:1; text-align:right;
   }
   #dtSidebar .dt-nav-btn:hover{ background:rgba(239,231,216,.08); color:var(--gold-bright,#D4AF37); }
 
@@ -747,4 +757,15 @@
     border:none !important;
     box-shadow:0 10px 30px rgba(0,0,0,.18) !important;
   }
+
+  /* تكبير/تصغير خط عناصر سطح المكتب (الشريط الجانبي واللوحات فقط) */
+  body.dt-font-lg #dtSidebar .dt-nav-btn .dt-label{ font-size:16px; }
+  body.dt-font-lg #dtSidebar .dt-nav-btn .dt-icon{ font-size:20px; }
+  body.dt-font-lg .bottom-panel{ font-size:16px; }
+  body.dt-font-lg .autocomplete-item{ font-size:16px !important; }
+
+  body.dt-font-xl #dtSidebar .dt-nav-btn .dt-label{ font-size:18px; }
+  body.dt-font-xl #dtSidebar .dt-nav-btn .dt-icon{ font-size:22px; }
+  body.dt-font-xl .bottom-panel{ font-size:18px; }
+  body.dt-font-xl .autocomplete-item{ font-size:18px !important; }
 }
