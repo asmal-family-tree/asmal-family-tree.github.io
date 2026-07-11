@@ -970,3 +970,12 @@
   }
   #aiChatPanel #aiChatSend *{ color:#FFFFFF !important; }
 }
+
+/* سطح المكتب: إخفاء زر إظهار/إخفاء الشجرة نهائيًا — الشجرة تبقى ظاهرة دائمًا */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  #dtHeader .dt-tab[data-target="toggleTree"]{ display:none !important; }
+  #tree-wrap.tree-hidden #tree-svg,
+  #tree-wrap.tree-hidden .zoom-fab,
+  #tree-wrap.tree-hidden #exitFocus{ display:block !important; }
+  #tree-wrap.tree-hidden .zoom-fab{ display:flex !important; }
+}

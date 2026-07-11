@@ -4116,6 +4116,13 @@ document.getElementById("zoomIn").onclick = () => svg.transition().call(zoom.sca
 document.getElementById("zoomOut").onclick = () => svg.transition().call(zoom.scaleBy, 0.75);
 document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.transform, centerOnRoot());
 
+// سطح المكتب: عند كل تحديث للصفحة تعود الشجرة تلقائيًا لموقعها الافتراضي (الجذر بوسط أسفل الصفحة)
+if (window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)").matches){
+  setTimeout(() => {
+    try { svg.call(zoom.transform, centerOnRoot()); } catch(e){}
+  }, 350);
+}
+
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
 const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel", "attachmentsPanel"].map(id => document.getElementById(id));
 function openOnlyPanel(panel){
