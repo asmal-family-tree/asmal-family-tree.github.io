@@ -4399,13 +4399,12 @@ function buildAiPersonsFlat(){
   return list;
 }
 
-// يحدد الشخص المقصود بدقة عبر مطابقة أكبر عدد ممكن من مستويات سلسلة النسب (الاسم، ثم الأب، ثم الجد...)
-// المذكورة بترتيبها داخل نص السؤال، بدل الاكتفاء بمطابقة الاسم الأول فقط
+// يحدد أفضل المرشحين المحتملين بناءً على مطابقة سلسلة النسب، دون الجزم بشخص واحد بثقة مطلقة
+// (لتفادي الخلط عند تكرار نفس الأسماء عبر أجيال مختلفة بالسلسلة التاريخية القديمة)
 function resolveAiPersonByChain(question){
   const normQ = aiNormalizeArabic(question);
   const persons = buildAiPersonsFlat();
-  let bestDepth = 0;
-  let candidates = [];
+  const scored = [];
   persons.forEach(p => {
     let searchFrom = 0, depth = 0;
     for (let i = 0; i < p.chain.length; i++){
@@ -4416,25 +4415,18 @@ function resolveAiPersonByChain(question){
       depth++;
       searchFrom = idx + normName.length;
     }
-    if (depth > 0){
-      if (depth > bestDepth){ bestDepth = depth; candidates = [p]; }
-      else if (depth === bestDepth) candidates.push(p);
-    }
+    if (depth >= 2) scored.push({ depth, person: p });
   });
-  if (bestDepth < 1) return null;
-  return { depth: bestDepth, candidates };
+  if (!scored.length) return null;
+  scored.sort((a, b) => b.depth - a.depth);
+  return scored.slice(0, 6); // أفضل 6 مرشحين كحد أقصى، بترتيب قوة التطابق
 }
 
 function buildAiResolvedPersonContext(question){
-  const resolved = resolveAiPersonByChain(question);
-  if (!resolved) return "";
-  if (resolved.candidates.length === 1){
-    const p = resolved.candidates[0];
-    return `\n\nتم تحديد الشخص المقصود في السؤال بدقة تامة بناءً على تطابق سلسلة الاسم كاملة (وليس الاسم الأول فقط): "${p.name}" (المعرف: ${p.id})، وسلسلته الكاملة صعودًا: ${p.chain.join(" بن ")}. استخدم هذا الشخص تحديدًا للإجابة عن السؤال، ولا تذكر أن هناك تشابهًا بالاسم مع أشخاص آخرين ما لم يُسأل عن ذلك تحديدًا.`;
-  }
-  return `\n\nيوجد أكثر من شخص تتطابق أسماؤهم مع نفس أعمق مستوى من سلسلة النسب المذكورة بالسؤال (${resolved.depth} ${resolved.depth === 1 ? "اسم متطابق" : "أسماء متطابقة"}):\n` +
-    resolved.candidates.map(p => `- ${p.name} (المعرف: ${p.id})، السلسلة الكاملة: ${p.chain.join(" بن ")}`).join("\n") +
-    "\nأخبر المستخدم أن هناك أكثر من شخص مطابق تمامًا لهذه السلسلة تحديدًا (وليس تشابهًا بالاسم الأول فقط)، واعرض له الفروقات بينهم ليختار المقصود.";
+  const matches = resolveAiPersonByChain(question);
+  if (!matches) return "";
+  const lines = matches.map(m => `- ${m.person.name} (المعرف: ${m.person.id})، تطابقت ${m.depth} من مستويات سلسلة نسبه مع السؤال، وسلسلته الكاملة صعودًا: ${m.person.chain.join(" بن ")}`);
+  return `\n\nمرشحون محتملون للشخص المقصود بالسؤال بناءً على مطابقة سلسلة الاسم (الاسم ثم الأب ثم الجد...)، مرتبين من الأقوى تطابقًا للأضعف:\n${lines.join("\n")}\nملاحظة مهمة: تكرار نفس الأسماء (مثل محمد، أحمد، مهدي) يتكرر كل بضعة أجيال بهذه العائلة، فتطابق أعمق لا يعني بالضرورة أنه الشخص الصحيح — قد يكون سلفًا قديمًا جدًا بالسلسلة التاريخية وليس الشخص المقصود من سياق السؤال. اختر الأنسب بناءً على السياق العام للمحادثة (مثلاً تفضيل الأفراد من الأجيال الحديثة إن كان السؤال عن أقارب أحياء)، وإذا تعذر عليك الحسم بثقة، اسأل المستخدم عن أي شخص بالتحديد يقصد بذكر تفاصيل تميز بين المرشحين.`;
 }
 
 async function sendAiChatQuestion(){
