@@ -14,57 +14,35 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <script>
 (function(){
-  // نقاط الفصل: جوال أقل من 768، تابلت 768-1199، كمبيوتر 1200 فأكثر
-  // يضيف "class" فقط على body، ولا يغيّر أي منطق أو متغير برمجي بالموقع
-  function detectDevice(){
-    const w = window.innerWidth;
-    const cls = document.body.classList;
-    cls.remove("device-mobile", "device-tablet", "device-desktop");
-    if (w < 768){
-      cls.add("device-mobile");
-    } else if (w < 1200){
-      cls.add("device-tablet");
-    } else {
-      cls.add("device-desktop");
-      document.body.style.zoom = "1"; // تفادي أي قيمة تكبير محفوظة سابقًا من الجوال تكسر عناصر سطح المكتب الثابتة
-    }
-  }
-  detectDevice();
-  window.addEventListener("resize", detectDevice);
-  window.addEventListener("orientationchange", detectDevice);
-
-  // شريط سطح المكتب الجديد (#dtTopbar) لا يكرر أي منطق برمجي؛ كل زر فيه فقط "يفعّل" نفس الزر الأصلي المخفي بالجوال
+  // شريط سطح المكتب لا يكرر أي منطق برمجي؛ كل زر فيه فقط "يفعّل" نفس الزر الأصلي المخفي بالجوال
   window.addEventListener("DOMContentLoaded", function(){
-    document.querySelectorAll("#dtTopbar .dt-tab[data-target]").forEach(tab => {
-      tab.addEventListener("click", () => {
-        const original = document.getElementById(tab.dataset.target);
+    document.querySelectorAll("#dtSidebar .dt-nav-btn[data-target]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const original = document.getElementById(btn.dataset.target);
         if (original && original.style.display !== "none") original.click();
       });
     });
 
-    // تكبير/تصغير خاص بسطح المكتب فقط: يغيّر حجم خط الشريط واللوحات عبر CSS (وليس zoom)
-    // تفاديًا لتعارض خاصية zoom المستخدمة بالجوال مع العناصر الثابتة الجديدة بسطح المكتب
-    const dtScaleLevels = ["", "dt-text-lg", "dt-text-xl"];
-    let dtScaleIndex = 0;
-    function applyDtScale(){
-      document.body.classList.remove("dt-text-lg", "dt-text-xl");
-      if (dtScaleLevels[dtScaleIndex]) document.body.classList.add(dtScaleLevels[dtScaleIndex]);
+    // تكبير/تصغير خط آمن لسطح المكتب فقط (يغيّر حجم الخط الأساسي، بدون zoom حتى لا يتعارض مع العناصر الثابتة)
+    let dtFontPct = 100;
+    const dtFontDown = document.getElementById("dtFontDown");
+    const dtFontUp = document.getElementById("dtFontUp");
+    function applyDtFont(){ document.documentElement.style.fontSize = dtFontPct + "%"; }
+    if (dtFontUp) dtFontUp.addEventListener("click", () => { dtFontPct = Math.min(130, dtFontPct + 10); applyDtFont(); });
+    if (dtFontDown) dtFontDown.addEventListener("click", () => { dtFontPct = Math.max(90, dtFontPct - 10); applyDtFont(); });
+
+    // مزامنة ارتفاع الهيدر الفعلي مع متغير CSS لإزاحة المحتوى تحته بدقة
+    const dtHeader = document.getElementById("dtHeader");
+    function syncHeaderHeight(){
+      if (dtHeader) document.documentElement.style.setProperty("--dt-header-h", dtHeader.offsetHeight + "px");
     }
-    const dtUp = document.getElementById("dtScaleUp");
-    const dtDown = document.getElementById("dtScaleDown");
-    if (dtUp) dtUp.addEventListener("click", () => {
-      dtScaleIndex = Math.min(dtScaleLevels.length - 1, dtScaleIndex + 1);
-      applyDtScale();
-    });
-    if (dtDown) dtDown.addEventListener("click", () => {
-      dtScaleIndex = Math.max(0, dtScaleIndex - 1);
-      applyDtScale();
-    });
+    syncHeaderHeight();
+    window.addEventListener("resize", syncHeaderHeight);
   });
 })();
 </script>
@@ -215,24 +193,42 @@
   <div id="recordsList" style="max-height:60vh; overflow-y:auto;"></div>
 </div>
 
-<div id="dtTopbar">
+<header id="dtHeader">
   <div class="dt-brand">🌳 بني أسمل الحكمي</div>
-  <div class="dt-tabs">
-    <button class="dt-tab" data-target="toggleTree">🙈<span>إخفاء/إظهار الشجرة</span></button>
-    <button class="dt-tab" data-target="myTreeToggle">🌳<span>شجرتي الخاصة</span></button>
-    <button class="dt-tab" data-target="searchToggle">🔍<span>البحث</span></button>
-    <button class="dt-tab" data-target="relToggle">🧮<span>حاسبة العلاقة</span></button>
-    <button class="dt-tab" data-target="aiChatToggle">🤖<span>المساعد الذكي</span></button>
-    <button class="dt-tab" data-target="attachmentsToggle">📚<span>المرفقات</span></button>
-    <button class="dt-tab" data-target="bgToggle">🖼️<span>المظهر</span></button>
-    <button class="dt-tab" data-target="ioToggle">📁<span>استيراد/تصدير</span></button>
-    <button class="dt-tab" data-target="usersToggle">👥<span>المستخدمون</span></button>
-    <button class="dt-tab" data-target="recordsToggle">📋<span>السجلات</span></button>
-    <button class="dt-tab" data-target="deleteBadgeToggle">🗑️<span>علامات الحذف</span></button>
-    <button id="dtScaleUp" class="dt-tab dt-scale-btn">🔼<span>تكبير الخط</span></button>
-    <button id="dtScaleDown" class="dt-tab dt-scale-btn">🔽<span>تصغير الخط</span></button>
+  <div class="dt-font-ctrl">
+    <button id="dtFontDown" title="تصغير الخط">A-</button>
+    <button id="dtFontUp" title="تكبير الخط">A+</button>
   </div>
-</div>
+</header>
+
+<nav id="dtSidebar">
+  <div class="dt-group">
+    <div class="dt-group-title">الشجرة</div>
+    <button class="dt-nav-btn" data-target="toggleTree">🙈 <span>إخفاء/إظهار الشجرة</span></button>
+    <button class="dt-nav-btn" data-target="myTreeToggle">🌳 <span>شجرتي الخاصة</span></button>
+  </div>
+  <div class="dt-group">
+    <div class="dt-group-title">البحث والعلاقات</div>
+    <button class="dt-nav-btn" data-target="searchToggle">🔍 <span>البحث</span></button>
+    <button class="dt-nav-btn" data-target="relToggle">🧮 <span>حاسبة العلاقة</span></button>
+  </div>
+  <div class="dt-group">
+    <div class="dt-group-title">المساعد الذكي</div>
+    <button class="dt-nav-btn" data-target="aiChatToggle">🤖 <span>المساعد الذكي</span></button>
+    <button class="dt-nav-btn" data-target="attachmentsToggle">📚 <span>المرفقات</span></button>
+  </div>
+  <div class="dt-group">
+    <div class="dt-group-title">المظهر</div>
+    <button class="dt-nav-btn" data-target="bgToggle">🖼️ <span>خلفية الشجرة</span></button>
+  </div>
+  <div class="dt-group">
+    <div class="dt-group-title">إدارة</div>
+    <button class="dt-nav-btn" data-target="usersToggle">👥 <span>المستخدمون</span></button>
+    <button class="dt-nav-btn" data-target="recordsToggle">📋 <span>السجلات</span></button>
+    <button class="dt-nav-btn" data-target="deleteBadgeToggle">🗑️ <span>علامات الحذف</span></button>
+    <button class="dt-nav-btn" data-target="ioToggle">📁 <span>استيراد/تصدير</span></button>
+  </div>
+</nav>
 
 <div id="bottomBar">
   <button id="searchToggle" title="بحث">🔍</button>

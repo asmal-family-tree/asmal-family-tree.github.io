@@ -654,106 +654,97 @@
 #aiChatPanel.show{ display:flex; flex-direction:column; }
 
 /* ================================================================
-   تصميم سطح المكتب المستقل (Desktop-only) — لا يظهر إطلاقًا على الجوال أو التابلت
-   يستخدم متغيرات الألوان الحالية (--emerald, --gold, --bg, --ink...) فيتأثر بتغيير الاستايل تلقائيًا
-   لا يكرر أو يعدّل أي منطق برمجي؛ فقط "يفعّل" نفس الأزرار الأصلية المخفية
+   تصميم سطح المكتب (Header ثابت + Sidebar) — بنمط نظام الفندق المجرّب
+   يعتمد بالكامل على @media (min-width:1024px) فلا يظهر إطلاقًا على الجوال أو التابلت
+   لا يكرر أي منطق برمجي؛ فقط يفعّل نفس الأزرار الأصلية المخفية بالجوال
    ================================================================ */
-#dtTopbar{ display:none; }
+#dtHeader{ display:none; }
+#dtSidebar{ display:none; }
 
-body.device-desktop #bottomBar{ display:none !important; }
+@media (min-width:1024px){
+  :root{ --dt-header-h:70px; }
 
-body.device-desktop #dtTopbar{
-  display:flex !important;
-  align-items:center;
-  gap:28px;
-  position:fixed; top:0; right:0; left:0;
-  height:76px;
-  padding:0 32px;
-  background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
-  box-shadow:0 6px 24px rgba(0,0,0,.28);
-  z-index:700;
+  #dtHeader{
+    display:flex; align-items:center; justify-content:space-between;
+    position:fixed; top:0; left:0; right:0; height:var(--dt-header-h);
+    padding:0 28px;
+    background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
+    box-shadow:0 4px 18px rgba(0,0,0,.22);
+    z-index:1000;
+  }
+  #dtHeader .dt-brand{
+    color:var(--gold-bright,#D4AF37); font-weight:900; font-size:19px;
+    font-family:'Amiri',serif;
+  }
+  #dtHeader .dt-font-ctrl{ display:flex; gap:6px; }
+  #dtHeader .dt-font-ctrl button{
+    width:34px; height:34px; border-radius:8px; border:1px solid rgba(239,231,216,.25);
+    background:rgba(239,231,216,.08); color:#EFE7D8; font-weight:800; font-size:13px; cursor:pointer;
+  }
+  #dtHeader .dt-font-ctrl button:hover{ background:rgba(239,231,216,.18); }
+
+  #bottomBar{ display:none !important; }
+  #uiScaleControls{ display:none !important; }
+
+  #currentUserBadge{
+    top:calc((var(--dt-header-h) - 30px)/2) !important;
+    left:auto !important; right:290px !important;
+  }
+
+  #dtSidebar{
+    display:flex; flex-direction:column; gap:4px;
+    position:fixed; top:var(--dt-header-h); right:0;
+    width:260px; height:calc(100vh - var(--dt-header-h));
+    overflow-y:auto; z-index:900; padding:18px 14px 40px;
+    background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
+    border-left:1px solid rgba(212,175,55,.18);
+    box-shadow:-8px 0 24px rgba(0,0,0,.15);
+  }
+  #dtSidebar::-webkit-scrollbar{ width:6px; }
+  #dtSidebar::-webkit-scrollbar-thumb{ background:rgba(212,175,55,.35); border-radius:6px; }
+
+  #dtSidebar .dt-group{ display:flex; flex-direction:column; margin-bottom:10px; }
+  #dtSidebar .dt-group-title{ font-size:11px; color:rgba(239,231,216,.5); padding:8px 10px 4px; }
+  #dtSidebar .dt-nav-btn{
+    display:flex; align-items:center; gap:9px;
+    background:none; border:none; border-radius:9px;
+    color:#EFE7D8; font-size:14px; padding:11px 12px; text-align:right;
+    cursor:pointer; width:100%; transition:background .15s ease, color .15s ease;
+  }
+  #dtSidebar .dt-nav-btn:hover{ background:rgba(239,231,216,.08); color:var(--gold-bright,#D4AF37); }
+
+  #tree-wrap{
+    margin-top:var(--dt-header-h) !important;
+    margin-right:260px !important;
+    width:calc(100% - 260px) !important;
+    height:calc(100vh - var(--dt-header-h)) !important;
+    height:calc(100dvh - var(--dt-header-h)) !important;
+  }
+
+  .zoom-fab{ bottom:22px !important; }
+
+  /* اللوحات (بحث، دردشة، إلخ) تصير نافذة جانبية كبيرة تطلع من اليمين، دون المساس بعرض قائمة الاقتراحات داخلها */
+  .bottom-panel{
+    position:fixed !important;
+    top:var(--dt-header-h) !important; bottom:0 !important;
+    right:260px !important; left:auto !important;
+    width:min(34vw, 520px) !important;
+    max-width:none !important; height:auto !important; max-height:none !important;
+    border-radius:0 !important;
+    transform:translateX(100%) !important;
+    transition:transform .25s ease !important;
+    box-shadow:-8px 0 30px rgba(0,0,0,.22) !important;
+    overflow-y:auto !important;
+    z-index:850 !important;
+    background:var(--card-bg,#FFFDF6) !important;
+    padding:24px !important;
+  }
+  .bottom-panel.show{ transform:translateX(0) !important; }
+
+  /* لا نفرض عرض أو موقع قائمة الاقتراحات (تُحسب بجافاسكربت حسب عرض مربع البحث نفسه) — فقط شكلها ورفعها فوق اللوحة */
+  .autocomplete-dropdown{
+    z-index:950 !important;
+    border:none !important;
+    box-shadow:0 10px 30px rgba(0,0,0,.18) !important;
+  }
 }
-
-body.device-desktop #dtTopbar .dt-brand{
-  color:var(--gold-bright,#D4AF37);
-  font-weight:900; font-size:19px; white-space:nowrap; flex:none;
-  font-family:'Amiri',serif;
-}
-
-body.device-desktop #dtTopbar .dt-tabs{
-  display:flex; align-items:stretch; gap:6px; flex:1; overflow-x:auto; height:100%;
-}
-
-body.device-desktop #dtTopbar .dt-tab{
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:3px; min-width:96px; padding:8px 14px; height:100%;
-  background:transparent; border:none; border-radius:0;
-  border-bottom:3px solid transparent;
-  color:#EFE7D8; font-size:22px; cursor:pointer; flex:none;
-  transition:background .15s ease, border-color .15s ease;
-}
-body.device-desktop #dtTopbar .dt-tab span{
-  font-size:12px; font-weight:700; white-space:nowrap;
-}
-body.device-desktop #dtTopbar .dt-tab:hover{ background:rgba(239,231,216,.08); }
-body.device-desktop #dtTopbar .dt-tab.dt-active{
-  border-bottom-color:var(--gold-bright,#D4AF37);
-  background:rgba(212,175,55,.12);
-}
-
-/* إزاحة الشجرة والعناصر العلوية الثابتة لتفادي التداخل مع الشريط الجديد */
-body.device-desktop #tree-wrap{ margin-top:76px; height:calc(100vh - 76px) !important; height:calc(100dvh - 76px) !important; }
-body.device-desktop #currentUserBadge{ top:calc(76px + 12px) !important; }
-body.device-desktop #uiScaleControls{ top:calc(76px + 12px) !important; }
-body.device-desktop .zoom-fab{ bottom:20px !important; }
-
-/* اللوحات (بحث، دردشة، إلخ) تتحول لنافذة جانبية كبيرة تطلع من اليسار بدل صفحة سفلية — بدون تغيير محتواها أو منطقها */
-body.device-desktop .bottom-panel{
-  position:fixed !important;
-  top:76px !important; bottom:0 !important;
-  right:0 !important; left:auto !important;
-  width:min(38vw, 620px) !important;
-  max-width:none !important;
-  height:auto !important;
-  max-height:none !important;
-  border-radius:0 !important;
-  transform:translateX(100%) !important;
-  transition:transform .25s ease !important;
-  box-shadow:-8px 0 30px rgba(0,0,0,.25) !important;
-  overflow-y:auto !important;
-  z-index:650 !important;
-  background:var(--card-bg,#FFFDF6) !important;
-  padding:26px !important;
-}
-body.device-desktop .bottom-panel.show{
-  transform:translateX(0) !important;
-}
-
-/* إصلاح: رفع قائمة اقتراحات البحث فوق لوحات سطح المكتب الجانبية الجديدة */
-body.device-desktop .autocomplete-dropdown{
-  z-index:900 !important;
-  border:none !important;
-  box-shadow:none !important;
-  border-radius:0 !important;
-  width:min(60vw, 900px) !important;
-  max-height:70vh !important;
-  background:var(--card-bg,#FFFDF6) !important;
-}
-body.device-desktop .autocomplete-item{
-  font-size:15px !important;
-  padding:14px 20px !important;
-}
-
-/* إخفاء زر تكبير/تصغير الخط بسطح المكتب — يتعارض مع العناصر الثابتة الجديدة، وغير محتاج أصلًا مع تصميم سطح المكتب الكبير */
-body.device-desktop #uiScaleControls{ display:none !important; }
-
-/* تكبير/تصغير نص سطح المكتب — آمن (بدون zoom)، يؤثر على الشريط واللوحات فقط */
-body.device-desktop.dt-text-lg #dtTopbar .dt-tab{ font-size:25px; }
-body.device-desktop.dt-text-lg #dtTopbar .dt-tab span{ font-size:13.5px; }
-body.device-desktop.dt-text-lg .bottom-panel{ font-size:16px; }
-body.device-desktop.dt-text-lg .autocomplete-item{ font-size:17px !important; }
-
-body.device-desktop.dt-text-xl #dtTopbar .dt-tab{ font-size:28px; }
-body.device-desktop.dt-text-xl #dtTopbar .dt-tab span{ font-size:15px; }
-body.device-desktop.dt-text-xl .bottom-panel{ font-size:18px; }
-body.device-desktop.dt-text-xl .autocomplete-item{ font-size:19px !important; }
