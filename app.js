@@ -4212,6 +4212,7 @@ function buildAiTreeLines(){
 
 // يحمّل كل بيانات personInfo مرة واحدة ويبنيها كنص مختصر لكل شخص لديه معلومات فعلية
 let aiPersonInfoCache = null;
+let aiChatHistory = []; // [{role:'user'|'assistant', content:'...'}] لربط الأسئلة التالية بسياق المحادثة السابقة
 function buildAiIdNameMap(){
   const map = new Map();
   function walk(node){
@@ -4462,7 +4463,7 @@ async function sendAiChatQuestion(){
     const res = await fetch(AI_CHAT_WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, treeContext })
+      body: JSON.stringify({ question, treeContext, history: aiChatHistory.slice(-12) })
     });
     const data = await res.json();
     loadingEl.remove();
@@ -4470,7 +4471,11 @@ async function sendAiChatQuestion(){
       appendAiChatMessage("bot", "حصل خطأ أثناء التواصل مع المساعد. حاول مرة أخرى.", "ai-msg-error");
       console.error("AI chat error:", data);
     } else {
-      appendAiChatMessage("bot", data.answer || "لم يصل جواب.");
+      const answer = data.answer || "لم يصل جواب.";
+      appendAiChatMessage("bot", answer);
+      aiChatHistory.push({ role: "user", content: question });
+      aiChatHistory.push({ role: "assistant", content: answer });
+      if (aiChatHistory.length > 20) aiChatHistory = aiChatHistory.slice(-20);
     }
   }catch(e){
     loadingEl.remove();
