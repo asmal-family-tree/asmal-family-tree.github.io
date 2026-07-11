@@ -847,16 +847,21 @@
        (hover:none) and (pointer:coarse){
   #aiChatPanel{
     position:fixed !important;
-    inset:14px !important;
-    top:14px !important; right:14px !important; bottom:14px !important; left:14px !important;
+    top:14px !important; right:14px !important; left:14px !important;
+    /* تُترك مساحة أسفل اللوحة بمقدار الشريط السفلي حتى لا تغطي أزراره */
+    bottom:calc(var(--barh, 64px) + 12px) !important;
     width:auto !important; max-width:none !important;
     height:auto !important; max-height:none !important;
     border-radius:20px !important;
     border:2px solid var(--gold-bright,#D4AF37) !important;
-    background:linear-gradient(180deg,#123f31 0%,#0a2c22 100%) !important;
-    box-shadow:0 20px 60px rgba(0,0,0,.45) !important;
-    padding:22px !important;
-    transform:translateY(110%) !important;
+    /* خلفية بيج بنقش خفيف */
+    background-color:#F5EEDC !important;
+    background-image:
+      repeating-linear-gradient(45deg, rgba(184,134,11,.055) 0 2px, transparent 2px 9px),
+      repeating-linear-gradient(-45deg, rgba(11,61,46,.045) 0 2px, transparent 2px 9px) !important;
+    box-shadow:0 20px 60px rgba(0,0,0,.35) !important;
+    padding:20px !important;
+    transform:translateY(115%) !important;
     transition:transform .28s cubic-bezier(.22,.9,.34,1) !important;
     z-index:1005 !important;
     overflow:hidden !important;
@@ -865,14 +870,14 @@
     display:flex !important; flex-direction:column !important;
     transform:translateY(0) !important;
   }
-  #aiChatPanel .f-label{ color:var(--gold-bright,#D4AF37) !important; font-size:17px !important; }
+  #aiChatPanel .f-label{ color:var(--emerald,#0B3D2E) !important; font-size:17px !important; font-weight:800 !important; }
   #aiChatMessages{
     flex:1 !important; max-height:none !important; overflow-y:auto !important;
     font-size:16.5px !important;
   }
   #aiChatPanel input, #aiChatPanel textarea{
     font-size:16.5px !important; padding:14px 16px !important;
-    background:rgba(255,255,255,.95) !important; border-radius:12px !important;
+    background:#fff !important; border-radius:12px !important;
   }
   #aiChatPanel button{ font-size:16px !important; padding:14px 22px !important; }
 }
