@@ -662,7 +662,7 @@
 #dtChatDock{ display:none; }
 
 @media (min-width:1024px){
-  :root{ --dt-header-h:78px; }
+  :root{ --dt-header-h:92px; --barh:0px; }
 
   /* ---------- الهيدر بتبويبات أفقية (رمز + نص) ---------- */
   #dtHeader{
@@ -675,7 +675,7 @@
   }
   #dtHeader .dt-brand{
     display:flex; align-items:center; flex:none;
-    color:var(--gold-bright,#D4AF37); font-weight:900; font-size:21px;
+    color:var(--gold-bright,#D4AF37); font-weight:900; font-size:26px;
     font-family:'Amiri',serif; white-space:nowrap;
   }
   #dtHeader .dt-tabs{
@@ -686,13 +686,13 @@
 
   #dtHeader .dt-tab{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    flex:none; min-width:104px; padding:8px 14px;
+    flex:none; min-width:120px; padding:10px 16px;
     background:transparent; border:none; border-bottom:3px solid transparent;
     color:#EFE7D8; cursor:pointer;
     transition:background .15s ease, border-color .15s ease, color .15s ease;
   }
-  #dtHeader .dt-tab .dt-ic{ font-size:24px; line-height:1; }
-  #dtHeader .dt-tab span:not(.dt-ic){ font-size:14px; font-weight:700; white-space:nowrap; }
+  #dtHeader .dt-tab .dt-ic{ font-size:29px; line-height:1; }
+  #dtHeader .dt-tab span:not(.dt-ic){ font-size:16px; font-weight:700; white-space:nowrap; }
   #dtHeader .dt-tab:hover{ background:rgba(239,231,216,.1); color:var(--gold-bright,#D4AF37); }
 
   /* إخفاء الشريط السفلي وأزرار تكبير الخط نهائيًا بسطح المكتب */
@@ -710,7 +710,24 @@
     width:100% !important;
     height:calc(100vh - var(--dt-header-h)) !important;
     height:calc(100dvh - var(--dt-header-h)) !important;
+    z-index:5 !important;
   }
+
+  /* أزرار +/- وتحديث الشجرة: أسفل الصفحة بلون ذهبي بارز */
+  .zoom-fab{
+    position:fixed !important;
+    left:22px !important; bottom:22px !important;
+    z-index:970 !important;
+    flex-direction:row !important; gap:12px !important;
+  }
+  .zoom-fab button{
+    width:56px !important; height:56px !important;
+    background:linear-gradient(135deg, var(--gold-bright,#D4AF37) 0%, #B8860B 100%) !important;
+    border:2px solid #fff !important;
+    color:#1a1206 !important; font-size:23px !important; font-weight:900 !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.32) !important;
+  }
+  .zoom-fab button:hover{ transform:translateY(-2px); }
 
   /* ---------- النوافذ المنبثقة: تنسدل للأسفل من الهيدر، عرض كبير، نصوص واضحة ---------- */
   .bottom-panel:not(#aiChatPanel){
@@ -820,4 +837,41 @@
     background:rgba(255,255,255,.95) !important; border-radius:10px !important;
   }
   #aiChatPanel button{ font-size:15px !important; padding:12px 18px !important; }
+}
+
+/* ================================================================
+   الأجهزة اللوحية (768–1023px): المساعد الذكي يفتح كتبويب خاص يملأ الصفحة
+   بخلفية وإطار خاصين به — بنفس روح تصميم سطح المكتب، دون المساس بباقي اللوحات
+   ================================================================ */
+@media (min-width:768px) and (max-width:1023px){
+  #aiChatPanel{
+    position:fixed !important;
+    inset:14px !important;
+    top:14px !important; right:14px !important; bottom:14px !important; left:14px !important;
+    width:auto !important; max-width:none !important;
+    height:auto !important; max-height:none !important;
+    border-radius:20px !important;
+    border:2px solid var(--gold-bright,#D4AF37) !important;
+    background:linear-gradient(180deg,#123f31 0%,#0a2c22 100%) !important;
+    box-shadow:0 20px 60px rgba(0,0,0,.45) !important;
+    padding:22px !important;
+    transform:translateY(110%) !important;
+    transition:transform .28s cubic-bezier(.22,.9,.34,1) !important;
+    z-index:1005 !important;
+    overflow:hidden !important;
+  }
+  #aiChatPanel.show{
+    display:flex !important; flex-direction:column !important;
+    transform:translateY(0) !important;
+  }
+  #aiChatPanel .f-label{ color:var(--gold-bright,#D4AF37) !important; font-size:17px !important; }
+  #aiChatMessages{
+    flex:1 !important; max-height:none !important; overflow-y:auto !important;
+    font-size:16.5px !important;
+  }
+  #aiChatPanel input, #aiChatPanel textarea{
+    font-size:16.5px !important; padding:14px 16px !important;
+    background:rgba(255,255,255,.95) !important; border-radius:12px !important;
+  }
+  #aiChatPanel button{ font-size:16px !important; padding:14px 22px !important; }
 }
