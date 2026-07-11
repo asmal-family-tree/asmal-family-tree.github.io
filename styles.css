@@ -1011,3 +1011,11 @@
   .autocomplete-item:hover{ background:#F6F1E3 !important; }
   .autocomplete-item .chain-sub{ color:#5a5a5a !important; }
 }
+
+/* إصلاح حاسم: نافذة إضافة المعلومات مخفية تمامًا بسطح المكتب ما لم تُفتح فعليًا (كانت تظهر ثابتة معلّقة) */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  #infoModal{ display:none !important; }
+  #infoModal.show{ display:flex !important; }
+  #infoBackdrop{ display:none !important; }
+  #infoBackdrop.show{ display:block !important; }
+}
