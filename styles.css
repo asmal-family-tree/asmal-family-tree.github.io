@@ -652,3 +652,67 @@
 
 /* إصلاح: جعل عرض لوحة الدردشة (flex) يعمل فقط عند تفعيلها فعليًا عبر كلاس show، بدل أن يكون ثابتًا دائمًا */
 #aiChatPanel.show{ display:flex; flex-direction:column; }
+
+/* ================= شريط جانبي لسطح المكتب (Desktop Sidebar) ================= */
+/* لا يظهر إطلاقًا إلا لجهاز كمبيوتر (device-desktop)؛ الجوال والتابلت لا يتأثران أبدًا */
+#desktopSidebar{ display:none; }
+
+body.device-desktop{ padding-right:250px; transition:padding-right .25s ease; }
+body.device-desktop.ds-collapsed{ padding-right:72px; }
+
+body.device-desktop #bottomBar{ display:none !important; }
+
+body.device-desktop #desktopSidebar{
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0; right:0;
+  width:250px;
+  height:100vh; height:100dvh;
+  background:linear-gradient(180deg,#0B3D2E 0%,#0d2f24 100%);
+  color:#EFE7D8;
+  z-index:600;
+  overflow-y:auto;
+  overflow-x:hidden;
+  box-shadow:-4px 0 24px rgba(0,0,0,.25);
+  transition:width .25s ease;
+  padding-bottom:20px;
+}
+body.device-desktop.ds-collapsed #desktopSidebar{ width:72px; }
+
+#desktopSidebar .ds-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 16px; border-bottom:1px solid rgba(239,231,216,.15);
+  margin-bottom:10px;
+}
+#desktopSidebar .ds-logo{ font-weight:800; font-size:14.5px; white-space:nowrap; overflow:hidden; }
+body.device-desktop.ds-collapsed #desktopSidebar .ds-logo{ display:none; }
+#desktopSidebar .ds-header button{
+  background:rgba(239,231,216,.1); border:none; color:#EFE7D8;
+  width:32px; height:32px; border-radius:8px; font-size:16px; cursor:pointer; flex:none;
+}
+#desktopSidebar .ds-header button:hover{ background:rgba(239,231,216,.2); }
+
+#desktopSidebar .ds-group{ display:flex; flex-direction:column; padding:4px 10px; margin-bottom:8px; }
+#desktopSidebar .ds-group-title{
+  font-size:11px; opacity:.55; padding:6px 10px 4px; white-space:nowrap; overflow:hidden;
+}
+body.device-desktop.ds-collapsed #desktopSidebar .ds-group-title{ display:none; }
+
+#desktopSidebar .ds-group button{
+  display:flex; align-items:center; gap:10px;
+  background:transparent; border:none; color:#EFE7D8;
+  padding:10px 12px; border-radius:10px; font-size:14px; text-align:right;
+  cursor:pointer; width:100%; white-space:nowrap; overflow:hidden;
+  transition:background .15s ease;
+}
+#desktopSidebar .ds-group button::after{
+  content:attr(title); font-size:13.5px;
+}
+body.device-desktop.ds-collapsed #desktopSidebar .ds-group button::after{ display:none; }
+body.device-desktop.ds-collapsed #desktopSidebar .ds-group button{ justify-content:center; }
+#desktopSidebar .ds-group button:hover{ background:rgba(239,231,216,.12); }
+#desktopSidebar .ds-group button.active{ background:rgba(201,151,31,.25); }
+
+/* تصغير مساحة عرض الشجرة بما يتناسب مع عرض الشريط الجانبي */
+body.device-desktop #tree-wrap{ width:100%; }
