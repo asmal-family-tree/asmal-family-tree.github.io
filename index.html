@@ -14,40 +14,28 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <script>
 (function(){
-  // شريط سطح المكتب لا يكرر أي منطق برمجي؛ كل زر فيه فقط "يفعّل" نفس الزر الأصلي المخفي بالجوال
+  // تصميم سطح المكتب: التبويبات الأفقية بالهيدر لا تكرر أي منطق برمجي؛ كل تبويب "يفعّل" نفس الزر الأصلي المخفي
   window.addEventListener("DOMContentLoaded", function(){
-    document.querySelectorAll("#dtSidebar .dt-nav-btn[data-target]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const original = document.getElementById(btn.dataset.target);
+    document.querySelectorAll("#dtHeader .dt-tab[data-target]").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const original = document.getElementById(tab.dataset.target);
         if (original && original.style.display !== "none") original.click();
       });
     });
 
-    // تكبير/تصغير خط آمن لسطح المكتب فقط: يضيف class على body يوسّع خط عناصرنا الجديدة تحديدًا
-    // (بدل تغيير حجم الخط الجذري الذي لا يؤثر على عناصر الموقع المبنية بوحدات ثابتة أصلًا)
-    const dtFontLevels = ["", "dt-font-lg", "dt-font-xl"];
-    let dtFontIndex = 0;
-    function applyDtFont(){
-      document.body.classList.remove("dt-font-lg", "dt-font-xl");
-      if (dtFontLevels[dtFontIndex]) document.body.classList.add(dtFontLevels[dtFontIndex]);
-    }
-    const dtFontDown = document.getElementById("dtFontDown");
-    const dtFontUp = document.getElementById("dtFontUp");
-    if (dtFontUp) dtFontUp.addEventListener("click", () => {
-      dtFontIndex = Math.min(dtFontLevels.length - 1, dtFontIndex + 1);
-      applyDtFont();
-    });
-    if (dtFontDown) dtFontDown.addEventListener("click", () => {
-      dtFontIndex = Math.max(0, dtFontIndex - 1);
-      applyDtFont();
+    // زر الدردشة مستقل تمامًا عن تبويبات الهيدر — له لوحته الجانبية الخاصة على اليمين
+    const dtChatBtn = document.getElementById("dtChatToggle");
+    if (dtChatBtn) dtChatBtn.addEventListener("click", () => {
+      const original = document.getElementById("aiChatToggle");
+      if (original && original.style.display !== "none") original.click();
     });
 
-    // مزامنة ارتفاع الهيدر الفعلي مع متغير CSS لإزاحة المحتوى تحته بدقة
+    // مزامنة ارتفاع الهيدر الفعلي مع متغير CSS لإسقاط النوافذ المنبثقة تحته بدقة
     const dtHeader = document.getElementById("dtHeader");
     function syncHeaderHeight(){
       if (dtHeader) document.documentElement.style.setProperty("--dt-header-h", dtHeader.offsetHeight + "px");
@@ -55,10 +43,10 @@
     syncHeaderHeight();
     window.addEventListener("resize", syncHeaderHeight);
 
-    // بسطح المكتب فقط: الضغط بأي مساحة فاضية (خارج الشريط الجانبي، الهيدر، أي لوحة مفتوحة، أو بطاقة الشخص) يغلق كل اللوحات المفتوحة
+    // الضغط بأي مساحة فاضية يغلق كل اللوحات المفتوحة (سطح المكتب فقط)
     document.addEventListener("click", function(e){
       if (!window.matchMedia("(min-width:1024px)").matches) return;
-      if (e.target.closest("#dtSidebar, #dtHeader, #bottomBar, .bottom-panel, #sheet, #infoModal, #infoBackdrop, #backdrop")) return;
+      if (e.target.closest("#dtHeader, #dtChatDock, #bottomBar, .bottom-panel, #sheet, #infoModal, #infoBackdrop, #backdrop, .autocomplete-dropdown")) return;
       document.querySelectorAll(".bottom-panel.show").forEach(p => p.classList.remove("show"));
     });
   });
@@ -213,40 +201,23 @@
 
 <header id="dtHeader">
   <div class="dt-brand">🌳 بني أسمل الحكمي</div>
-  <div class="dt-font-ctrl">
-    <button id="dtFontDown" title="تصغير الخط">A-</button>
-    <button id="dtFontUp" title="تكبير الخط">A+</button>
-  </div>
+  <nav class="dt-tabs">
+    <button class="dt-tab" data-target="toggleTree"><span class="dt-ic">🙈</span><span>إظهار/إخفاء</span></button>
+    <button class="dt-tab" data-target="myTreeToggle"><span class="dt-ic">🌳</span><span>شجرتي</span></button>
+    <button class="dt-tab" data-target="searchToggle"><span class="dt-ic">🔍</span><span>البحث</span></button>
+    <button class="dt-tab" data-target="relToggle"><span class="dt-ic">🧮</span><span>حاسبة العلاقة</span></button>
+    <button class="dt-tab" data-target="attachmentsToggle"><span class="dt-ic">📚</span><span>المرفقات</span></button>
+    <button class="dt-tab" data-target="bgToggle"><span class="dt-ic">🖼️</span><span>المظهر</span></button>
+    <button class="dt-tab" data-target="usersToggle"><span class="dt-ic">👥</span><span>المستخدمون</span></button>
+    <button class="dt-tab" data-target="recordsToggle"><span class="dt-ic">📋</span><span>السجلات</span></button>
+    <button class="dt-tab" data-target="deleteBadgeToggle"><span class="dt-ic">🗑️</span><span>علامات الحذف</span></button>
+    <button class="dt-tab" data-target="ioToggle"><span class="dt-ic">📁</span><span>استيراد/تصدير</span></button>
+  </nav>
 </header>
 
-<nav id="dtSidebar">
-  <div class="dt-group">
-    <div class="dt-group-title">الشجرة</div>
-    <button class="dt-nav-btn" data-target="toggleTree"><span class="dt-icon">🙈</span><span class="dt-label">إخفاء/إظهار الشجرة</span></button>
-    <button class="dt-nav-btn" data-target="myTreeToggle"><span class="dt-icon">🌳</span><span class="dt-label">شجرتي الخاصة</span></button>
-  </div>
-  <div class="dt-group">
-    <div class="dt-group-title">البحث والعلاقات</div>
-    <button class="dt-nav-btn" data-target="searchToggle"><span class="dt-icon">🔍</span><span class="dt-label">البحث</span></button>
-    <button class="dt-nav-btn" data-target="relToggle"><span class="dt-icon">🧮</span><span class="dt-label">حاسبة العلاقة</span></button>
-  </div>
-  <div class="dt-group">
-    <div class="dt-group-title">المساعد الذكي</div>
-    <button class="dt-nav-btn" data-target="aiChatToggle"><span class="dt-icon">🤖</span><span class="dt-label">المساعد الذكي</span></button>
-    <button class="dt-nav-btn" data-target="attachmentsToggle"><span class="dt-icon">📚</span><span class="dt-label">المرفقات</span></button>
-  </div>
-  <div class="dt-group">
-    <div class="dt-group-title">المظهر</div>
-    <button class="dt-nav-btn" data-target="bgToggle"><span class="dt-icon">🖼️</span><span class="dt-label">خلفية الشجرة</span></button>
-  </div>
-  <div class="dt-group">
-    <div class="dt-group-title">إدارة</div>
-    <button class="dt-nav-btn" data-target="usersToggle"><span class="dt-icon">👥</span><span class="dt-label">المستخدمون</span></button>
-    <button class="dt-nav-btn" data-target="recordsToggle"><span class="dt-icon">📋</span><span class="dt-label">السجلات</span></button>
-    <button class="dt-nav-btn" data-target="deleteBadgeToggle"><span class="dt-icon">🗑️</span><span class="dt-label">علامات الحذف</span></button>
-    <button class="dt-nav-btn" data-target="ioToggle"><span class="dt-icon">📁</span><span class="dt-label">استيراد/تصدير</span></button>
-  </div>
-</nav>
+<div id="dtChatDock">
+  <button id="dtChatToggle"><span class="dt-ic">🤖</span><span>المساعد الذكي</span></button>
+</div>
 
 <div id="bottomBar">
   <button id="searchToggle" title="بحث">🔍</button>

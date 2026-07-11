@@ -654,137 +654,123 @@
 #aiChatPanel.show{ display:flex; flex-direction:column; }
 
 /* ================================================================
-   تصميم سطح المكتب (Header ثابت + Sidebar) — بنمط نظام الفندق المجرّب
-   يعتمد بالكامل على @media (min-width:1024px) فلا يظهر إطلاقًا على الجوال أو التابلت
-   لا يكرر أي منطق برمجي؛ فقط يفعّل نفس الأزرار الأصلية المخفية بالجوال
+   تصميم سطح المكتب — تبويبات أفقية بالهيدر + نوافذ منسدلة للأسفل + دردشة جانبية مستقلة
+   يعمل فقط عبر @media (min-width:1024px) — الجوال والتابلت لا يتأثران إطلاقًا
+   لا يكرر أي منطق برمجي؛ التبويبات تفعّل نفس الأزرار الأصلية المخفية
    ================================================================ */
 #dtHeader{ display:none; }
-#dtSidebar{ display:none; }
+#dtChatDock{ display:none; }
 
 @media (min-width:1024px){
-  :root{ --dt-header-h:70px; }
+  :root{ --dt-header-h:78px; }
 
+  /* ---------- الهيدر بتبويبات أفقية (رمز + نص) ---------- */
   #dtHeader{
-    display:flex; align-items:center; justify-content:space-between;
+    display:flex; align-items:stretch; gap:24px;
     position:fixed; top:0; left:0; right:0; height:var(--dt-header-h);
-    padding:0 28px;
+    padding:0 26px;
     background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
-    box-shadow:0 4px 18px rgba(0,0,0,.22);
+    box-shadow:0 4px 20px rgba(0,0,0,.25);
     z-index:1000;
   }
   #dtHeader .dt-brand{
-    color:var(--gold-bright,#D4AF37); font-weight:900; font-size:19px;
-    font-family:'Amiri',serif;
+    display:flex; align-items:center; flex:none;
+    color:var(--gold-bright,#D4AF37); font-weight:900; font-size:21px;
+    font-family:'Amiri',serif; white-space:nowrap;
   }
-  #dtHeader .dt-font-ctrl{ display:flex; gap:6px; }
-  #dtHeader .dt-font-ctrl button{
-    width:34px; height:34px; border-radius:8px; border:1px solid rgba(239,231,216,.25);
-    background:rgba(239,231,216,.08); color:#EFE7D8; font-weight:800; font-size:13px; cursor:pointer;
+  #dtHeader .dt-tabs{
+    display:flex; align-items:stretch; gap:4px; flex:1; overflow-x:auto;
   }
-  #dtHeader .dt-font-ctrl button:hover{ background:rgba(239,231,216,.18); }
+  #dtHeader .dt-tabs::-webkit-scrollbar{ height:4px; }
+  #dtHeader .dt-tabs::-webkit-scrollbar-thumb{ background:rgba(212,175,55,.4); border-radius:4px; }
 
+  #dtHeader .dt-tab{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    flex:none; min-width:104px; padding:8px 14px;
+    background:transparent; border:none; border-bottom:3px solid transparent;
+    color:#EFE7D8; cursor:pointer;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  #dtHeader .dt-tab .dt-ic{ font-size:24px; line-height:1; }
+  #dtHeader .dt-tab span:not(.dt-ic){ font-size:14px; font-weight:700; white-space:nowrap; }
+  #dtHeader .dt-tab:hover{ background:rgba(239,231,216,.1); color:var(--gold-bright,#D4AF37); }
+
+  /* إخفاء الشريط السفلي وأزرار تكبير الخط نهائيًا بسطح المكتب */
   #bottomBar{ display:none !important; }
   #uiScaleControls{ display:none !important; }
 
   #currentUserBadge{
-    top:calc((var(--dt-header-h) - 30px)/2) !important;
-    left:auto !important; right:290px !important;
+    top:calc(var(--dt-header-h) + 14px) !important;
+    left:20px !important; right:auto !important;
   }
-
-  #dtSidebar{
-    display:flex; flex-direction:column; gap:4px;
-    position:fixed; top:0; bottom:0; right:0;
-    width:260px;
-    overflow-y:auto; z-index:940; padding:18px 14px 40px;
-    padding-top:calc(var(--dt-header-h) + 18px);
-    background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
-    border-left:1px solid rgba(212,175,55,.18);
-    box-shadow:-8px 0 24px rgba(0,0,0,.15);
-  }
-  #dtSidebar::-webkit-scrollbar{ width:6px; }
-  #dtSidebar::-webkit-scrollbar-thumb{ background:rgba(212,175,55,.35); border-radius:6px; }
-
-  #dtSidebar .dt-group{ display:flex; flex-direction:column; margin-bottom:14px; }
-  #dtSidebar .dt-group-title{
-    font-size:13px; font-weight:700; color:rgba(212,175,55,.7);
-    padding:9px 12px 6px; letter-spacing:.3px;
-  }
-  #dtSidebar .dt-nav-btn{
-    display:flex; align-items:center; gap:13px;
-    background:none; border:none; border-radius:11px;
-    color:#EFE7D8; padding:13px 14px;
-    cursor:pointer; width:100%; transition:background .15s ease, color .15s ease;
-  }
-  #dtSidebar .dt-nav-btn .dt-icon{
-    font-size:22px; line-height:1; flex:none; width:26px; text-align:center;
-  }
-  #dtSidebar .dt-nav-btn .dt-label{
-    font-size:16.5px; font-weight:600; flex:1; text-align:right;
-  }
-  #dtSidebar .dt-nav-btn:hover{ background:rgba(239,231,216,.08); color:var(--gold-bright,#D4AF37); }
 
   #tree-wrap{
     margin-top:var(--dt-header-h) !important;
-    margin-right:260px !important;
-    width:calc(100% - 260px) !important;
+    margin-right:0 !important;
+    width:100% !important;
     height:calc(100vh - var(--dt-header-h)) !important;
     height:calc(100dvh - var(--dt-header-h)) !important;
   }
 
-  .zoom-fab{ bottom:22px !important; }
-
-  /* اللوحات (بحث، دردشة، إلخ) تصير نافذة جانبية كبيرة تطلع من اليمين، دون المساس بعرض قائمة الاقتراحات داخلها */
-  .bottom-panel{
+  /* ---------- النوافذ المنبثقة: تنسدل للأسفل من الهيدر، عرض كبير، نصوص واضحة ---------- */
+  .bottom-panel:not(#aiChatPanel){
     position:fixed !important;
-    top:var(--dt-header-h) !important; bottom:0 !important;
-    right:260px !important; left:auto !important;
-    width:min(34vw, 520px) !important;
-    max-width:none !important; height:auto !important; max-height:none !important;
-    border-radius:0 !important;
-    transform:translateX(100%) !important;
-    transition:transform .25s ease !important;
-    box-shadow:-8px 0 30px rgba(0,0,0,.22) !important;
+    top:var(--dt-header-h) !important; bottom:auto !important;
+    left:50% !important; right:auto !important;
+    transform:translate(-50%, -14px) !important;
+    width:min(78vw, 1080px) !important;
+    max-width:none !important;
+    height:auto !important;
+    max-height:calc(100vh - var(--dt-header-h) - 40px) !important;
     overflow-y:auto !important;
-    z-index:850 !important;
+    border-radius:0 0 20px 20px !important;
+    border:1px solid rgba(201,151,31,.3) !important; border-top:none !important;
+    box-shadow:0 18px 50px rgba(0,0,0,.3) !important;
     background:var(--card-bg,#FFFDF6) !important;
-    padding:24px !important;
+    padding:32px 38px !important;
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease !important;
+    z-index:980 !important;
+    font-size:17px !important;
   }
-  .bottom-panel.show{ transform:translateX(0) !important; }
+  .bottom-panel:not(#aiChatPanel).show{
+    opacity:1 !important; pointer-events:auto !important;
+    transform:translate(-50%, 0) !important;
+  }
 
-  /* لا نفرض عرض أو موقع قائمة الاقتراحات (تُحسب بجافاسكربت حسب عرض مربع البحث نفسه) — فقط شكلها ورفعها فوق اللوحة */
+  /* نصوص وحقول كبيرة وواضحة داخل النوافذ */
+  .bottom-panel:not(#aiChatPanel) input[type="text"],
+  .bottom-panel:not(#aiChatPanel) input[type="password"],
+  .bottom-panel:not(#aiChatPanel) input[type="number"],
+  .bottom-panel:not(#aiChatPanel) select,
+  .bottom-panel:not(#aiChatPanel) textarea{
+    font-size:17px !important; padding:14px 16px !important; width:100% !important; box-sizing:border-box !important;
+  }
+  .bottom-panel:not(#aiChatPanel) button{ font-size:16px !important; padding:13px 20px !important; }
+  .bottom-panel:not(#aiChatPanel) .f-label{ font-size:15.5px !important; }
+  .searchbar{ width:100% !important; }
+
   .autocomplete-dropdown{
-    z-index:950 !important;
+    z-index:995 !important;
     border:none !important;
-    box-shadow:0 10px 30px rgba(0,0,0,.18) !important;
+    box-shadow:0 14px 36px rgba(0,0,0,.22) !important;
   }
+  .autocomplete-item{ font-size:16.5px !important; padding:14px 18px !important; white-space:normal !important; line-height:1.7 !important; }
 
-  /* مربع البحث يمتد لعرض اللوحة كاملة، فتتبعه قائمة الاقتراحات بنفس العرض تلقائيًا (تُحسب بجافاسكربت حسب عرض المربع) */
-  .searchbar, .searchbar #search, #search{
-    width:100% !important; box-sizing:border-box !important;
-  }
-  .autocomplete-dropdown{
-    z-index:955 !important;
-    border:none !important;
-    box-shadow:0 10px 30px rgba(0,0,0,.18) !important;
-  }
-  .autocomplete-item{
-    white-space:normal !important; line-height:1.6 !important;
-  }
-
-  /* بطاقة معلومات الشخص: نافذة منبثقة بوسط الشاشة بدل صحيفة سفلية، وفوق الشريط الجانبي دائمًا */
-  #backdrop{
-    z-index:960 !important;
-  }
+  /* ---------- بطاقة معلومات الشخص: منبثقة بوسط الصفحة ---------- */
+  #backdrop{ z-index:1010 !important; }
   #sheet{
     position:fixed !important;
     top:50% !important; left:50% !important; right:auto !important; bottom:auto !important;
     transform:translate(-50%,-46%) scale(.96) !important;
-    width:min(560px, 92vw) !important;
-    max-height:80vh !important;
-    border-radius:20px !important;
+    width:min(620px, 92vw) !important;
+    max-height:82vh !important;
+    border-radius:22px !important;
+    padding:26px 32px 32px !important;
     opacity:0; pointer-events:none;
     transition:opacity .2s ease, transform .2s ease !important;
-    z-index:970 !important;
+    z-index:1020 !important;
+    font-size:16px !important;
   }
   #sheet.show{
     opacity:1 !important; pointer-events:auto !important;
@@ -792,14 +778,46 @@
   }
   #sheet .handle{ display:none !important; }
 
-  /* تكبير/تصغير خط عناصر سطح المكتب (الشريط الجانبي واللوحات فقط) */
-  body.dt-font-lg #dtSidebar .dt-nav-btn .dt-label{ font-size:16px; }
-  body.dt-font-lg #dtSidebar .dt-nav-btn .dt-icon{ font-size:20px; }
-  body.dt-font-lg .bottom-panel{ font-size:16px; }
-  body.dt-font-lg .autocomplete-item{ font-size:16px !important; }
+  /* ---------- الدردشة: جانب أيمن، إطار وخلفية خاصة، مستقلة عن تبويبات الهيدر ---------- */
+  #dtChatDock{
+    display:block;
+    position:fixed; top:calc(var(--dt-header-h) + 20px); right:20px;
+    z-index:990;
+  }
+  #dtChatDock #dtChatToggle{
+    display:flex; align-items:center; gap:10px;
+    padding:14px 20px; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#123f31 0%,#0a2c22 100%);
+    border:1.5px solid var(--gold-bright,#D4AF37);
+    color:#F2E9D5; font-size:15.5px; font-weight:800;
+    box-shadow:0 8px 26px rgba(0,0,0,.28);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  #dtChatDock #dtChatToggle .dt-ic{ font-size:22px; line-height:1; }
+  #dtChatDock #dtChatToggle:hover{ transform:translateY(-2px); box-shadow:0 12px 32px rgba(0,0,0,.36); }
 
-  body.dt-font-xl #dtSidebar .dt-nav-btn .dt-label{ font-size:18px; }
-  body.dt-font-xl #dtSidebar .dt-nav-btn .dt-icon{ font-size:22px; }
-  body.dt-font-xl .bottom-panel{ font-size:18px; }
-  body.dt-font-xl .autocomplete-item{ font-size:18px !important; }
+  #aiChatPanel{
+    position:fixed !important;
+    top:calc(var(--dt-header-h) + 20px) !important; bottom:20px !important;
+    right:20px !important; left:auto !important;
+    width:min(30vw, 440px) !important;
+    max-width:none !important; height:auto !important; max-height:none !important;
+    border-radius:18px !important;
+    border:1.5px solid var(--gold-bright,#D4AF37) !important;
+    background:linear-gradient(180deg,#123f31 0%,#0a2c22 100%) !important;
+    box-shadow:0 16px 44px rgba(0,0,0,.34) !important;
+    padding:20px !important;
+    transform:translateX(120%) !important;
+    transition:transform .25s ease !important;
+    z-index:1005 !important;
+    overflow:hidden !important;
+  }
+  #aiChatPanel.show{ transform:translateX(0) !important; }
+  #aiChatPanel .f-label{ color:var(--gold-bright,#D4AF37) !important; font-size:15px !important; }
+  #aiChatMessages{ flex:1 !important; max-height:none !important; overflow-y:auto !important; }
+  #aiChatPanel input, #aiChatPanel textarea{
+    font-size:15.5px !important; padding:12px 14px !important;
+    background:rgba(255,255,255,.95) !important; border-radius:10px !important;
+  }
+  #aiChatPanel button{ font-size:15px !important; padding:12px 18px !important; }
 }
