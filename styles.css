@@ -843,7 +843,8 @@
    الأجهزة اللوحية (768–1023px): المساعد الذكي يفتح كتبويب خاص يملأ الصفحة
    بخلفية وإطار خاصين به — بنفس روح تصميم سطح المكتب، دون المساس بباقي اللوحات
    ================================================================ */
-@media (min-width:768px) and (max-width:1023px){
+@media (min-width:768px) and (max-width:1023px),
+       (min-width:768px) and (hover:none) and (pointer:coarse){
   #aiChatPanel{
     position:fixed !important;
     inset:14px !important;
