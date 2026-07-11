@@ -4247,11 +4247,27 @@ async function buildAiPersonInfoLines(){
     if (d.birthYear) parts.push(`الميلاد: ${d.birthYear}هـ`);
     if (d.deathYear) parts.push(`الوفاة: ${d.deathYear}هـ`);
     if (d.bio) parts.push(`نبذة: ${String(d.bio).slice(0, 300)}`);
+    if (d.husband) parts.push(`الزوج (الصهر): ${d.husband}${d.husbandDivorced ? " (مطلّقة منه)" : ""}`);
+    if (d.notaries && d.notaries.length){
+      parts.push(`العدلاء من أبناء القبيلة: ${d.notaries.map(n => n.chain3 || n.name).join("، ")}`);
+    }
     if (d.mother && d.mother.wifeId){
       const label = aiMotherDisplayName(d.mother);
-      parts.push(`الأم: ${label}`);
+      parts.push(`الأم: ${label}${d.mother.approved === false ? " (بانتظار الاعتماد)" : ""}`);
       if (!motherGroups.has(d.mother.wifeId)) motherGroups.set(d.mother.wifeId, { label, ids: [] });
       motherGroups.get(d.mother.wifeId).ids.push(id);
+    }
+    if (d.wives && d.wives.length){
+      d.wives.forEach(w => {
+        const wifeLabel = w.wifeName || w.fatherChain || w.fatherName || "زوجة غير مسمّاة";
+        parts.push(`زوجة: ${wifeLabel}`);
+        (w.inlaws || []).forEach(inlaw => {
+          const notaryLabel = inlaw.notaryChain || inlaw.notaryName || "؟";
+          const sons = (inlaw.sonNames || []).join("، ") || "لا يوجد أبناء محددون";
+          const pendingNote = inlaw.confirmed ? "" : " (بيانات غير مؤكدة بعد، أخبر المستخدم بذلك إن سأل)";
+          parts.push(`عديل هذا الشخص (زوج شقيقة زوجته "${wifeLabel}") هو "${notaryLabel}"، وأبناء خالة لأبناء هذا الشخص من هذه الزوجة هم: ${sons}${pendingNote}`);
+        });
+      });
     }
     if (parts.length) lines.push(`المعرف ${id} (${idNameMap.get(id) || "؟"}): ${parts.join("، ")}`);
   });
