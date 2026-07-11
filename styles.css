@@ -1019,3 +1019,22 @@
   #infoBackdrop{ display:none !important; }
   #infoBackdrop.show{ display:block !important; }
 }
+
+/* إصلاح ضبابية النص: التوسيط بـ translate(-50%,-50%) يوقع العنصر على نصف بكسل فيشوّش النص.
+   نستبدله بتوسيط بالهوامش (inset + margin:auto) بلا أي transform */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  #infoModal.show{
+    top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+    margin:auto !important;
+    transform:none !important;
+    height:fit-content !important;
+    transition:none !important;
+  }
+  #sheet.show{
+    top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+    margin:auto !important;
+    transform:none !important;
+    height:fit-content !important;
+    transition:none !important;
+  }
+}
