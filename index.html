@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 <script>
@@ -31,6 +31,7 @@
       cls.add("device-tablet");
     } else {
       cls.add("device-desktop");
+      document.body.style.zoom = "1"; // تفادي أي قيمة تكبير محفوظة سابقًا من الجوال تكسر عناصر سطح المكتب الثابتة
     }
   }
   detectDevice();
@@ -39,11 +40,30 @@
 
   // شريط سطح المكتب الجديد (#dtTopbar) لا يكرر أي منطق برمجي؛ كل زر فيه فقط "يفعّل" نفس الزر الأصلي المخفي بالجوال
   window.addEventListener("DOMContentLoaded", function(){
-    document.querySelectorAll("#dtTopbar .dt-tab").forEach(tab => {
+    document.querySelectorAll("#dtTopbar .dt-tab[data-target]").forEach(tab => {
       tab.addEventListener("click", () => {
         const original = document.getElementById(tab.dataset.target);
         if (original && original.style.display !== "none") original.click();
       });
+    });
+
+    // تكبير/تصغير خاص بسطح المكتب فقط: يغيّر حجم خط الشريط واللوحات عبر CSS (وليس zoom)
+    // تفاديًا لتعارض خاصية zoom المستخدمة بالجوال مع العناصر الثابتة الجديدة بسطح المكتب
+    const dtScaleLevels = ["", "dt-text-lg", "dt-text-xl"];
+    let dtScaleIndex = 0;
+    function applyDtScale(){
+      document.body.classList.remove("dt-text-lg", "dt-text-xl");
+      if (dtScaleLevels[dtScaleIndex]) document.body.classList.add(dtScaleLevels[dtScaleIndex]);
+    }
+    const dtUp = document.getElementById("dtScaleUp");
+    const dtDown = document.getElementById("dtScaleDown");
+    if (dtUp) dtUp.addEventListener("click", () => {
+      dtScaleIndex = Math.min(dtScaleLevels.length - 1, dtScaleIndex + 1);
+      applyDtScale();
+    });
+    if (dtDown) dtDown.addEventListener("click", () => {
+      dtScaleIndex = Math.max(0, dtScaleIndex - 1);
+      applyDtScale();
     });
   });
 })();
@@ -209,6 +229,8 @@
     <button class="dt-tab" data-target="usersToggle">👥<span>المستخدمون</span></button>
     <button class="dt-tab" data-target="recordsToggle">📋<span>السجلات</span></button>
     <button class="dt-tab" data-target="deleteBadgeToggle">🗑️<span>علامات الحذف</span></button>
+    <button id="dtScaleUp" class="dt-tab dt-scale-btn">🔼<span>تكبير الخط</span></button>
+    <button id="dtScaleDown" class="dt-tab dt-scale-btn">🔽<span>تصغير الخط</span></button>
   </div>
 </div>
 

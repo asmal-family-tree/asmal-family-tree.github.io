@@ -730,4 +730,30 @@ body.device-desktop .bottom-panel.show{
 }
 
 /* إصلاح: رفع قائمة اقتراحات البحث فوق لوحات سطح المكتب الجانبية الجديدة */
-body.device-desktop .autocomplete-dropdown{ z-index:900 !important; }
+body.device-desktop .autocomplete-dropdown{
+  z-index:900 !important;
+  border:none !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  width:min(60vw, 900px) !important;
+  max-height:70vh !important;
+  background:var(--card-bg,#FFFDF6) !important;
+}
+body.device-desktop .autocomplete-item{
+  font-size:15px !important;
+  padding:14px 20px !important;
+}
+
+/* إخفاء زر تكبير/تصغير الخط بسطح المكتب — يتعارض مع العناصر الثابتة الجديدة، وغير محتاج أصلًا مع تصميم سطح المكتب الكبير */
+body.device-desktop #uiScaleControls{ display:none !important; }
+
+/* تكبير/تصغير نص سطح المكتب — آمن (بدون zoom)، يؤثر على الشريط واللوحات فقط */
+body.device-desktop.dt-text-lg #dtTopbar .dt-tab{ font-size:25px; }
+body.device-desktop.dt-text-lg #dtTopbar .dt-tab span{ font-size:13.5px; }
+body.device-desktop.dt-text-lg .bottom-panel{ font-size:16px; }
+body.device-desktop.dt-text-lg .autocomplete-item{ font-size:17px !important; }
+
+body.device-desktop.dt-text-xl #dtTopbar .dt-tab{ font-size:28px; }
+body.device-desktop.dt-text-xl #dtTopbar .dt-tab span{ font-size:15px; }
+body.device-desktop.dt-text-xl .bottom-panel{ font-size:18px; }
+body.device-desktop.dt-text-xl .autocomplete-item{ font-size:19px !important; }
