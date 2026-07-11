@@ -649,3 +649,6 @@
 .ai-msg-bot{ align-self:flex-end; background:rgba(11,61,46,.07); border:1px solid rgba(11,61,46,.15); }
 .ai-msg-bot.ai-msg-error{ background:rgba(139,30,30,.08); border-color:rgba(139,30,30,.25); color:#8B1E1E; }
 .ai-msg-loading{ align-self:flex-end; opacity:.65; font-style:italic; }
+
+/* إصلاح: جعل عرض لوحة الدردشة (flex) يعمل فقط عند تفعيلها فعليًا عبر كلاس show، بدل أن يكون ثابتًا دائمًا */
+#aiChatPanel.show{ display:flex; flex-direction:column; }
