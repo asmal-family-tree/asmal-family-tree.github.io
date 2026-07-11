@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 <script>
@@ -48,6 +48,10 @@
       if (!window.matchMedia("(min-width:1024px)").matches) return;
       if (e.target.closest("#dtHeader, #dtChatDock, #bottomBar, .bottom-panel, #sheet, #infoModal, #infoBackdrop, #backdrop, .autocomplete-dropdown")) return;
       document.querySelectorAll(".bottom-panel.show").forEach(p => p.classList.remove("show"));
+      document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
+        dd.classList.remove("show");
+        dd.innerHTML = "";
+      });
     });
   });
 })();

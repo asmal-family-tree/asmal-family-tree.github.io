@@ -979,3 +979,35 @@
   #tree-wrap.tree-hidden #exitFocus{ display:block !important; }
   #tree-wrap.tree-hidden .zoom-fab{ display:flex !important; }
 }
+
+/* ===== سطح المكتب: إصلاحات القائمة المنسدلة ونافذة إضافة المعلومات ===== */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  /* إصلاح زر الإغلاق ✕ — ضمان قابليته للضغط دائمًا */
+  #infoModal.show, #infoModal.show *{ pointer-events:auto !important; }
+  #infoModalClose{
+    pointer-events:auto !important; cursor:pointer !important;
+    position:relative !important; z-index:5 !important;
+    font-size:22px !important; padding:4px 10px !important;
+  }
+
+  /* قائمة الاقتراحات: نص داكن واضح على خلفية بيضاء ثابتة */
+  .autocomplete-dropdown{
+    background:#FFFFFF !important;
+    color:#111111 !important;
+    border:1px solid #E2DCCB !important;
+    border-radius:12px !important;
+    box-shadow:0 14px 40px rgba(0,0,0,.22) !important;
+    z-index:995 !important;
+  }
+  .autocomplete-item{
+    color:#111111 !important;
+    font-size:16px !important;
+    padding:13px 16px !important;
+    white-space:normal !important;
+    line-height:1.7 !important;
+    border-bottom:1px solid #F0EBDD !important;
+  }
+  .autocomplete-item:last-child{ border-bottom:none !important; }
+  .autocomplete-item:hover{ background:#F6F1E3 !important; }
+  .autocomplete-item .chain-sub{ color:#5a5a5a !important; }
+}

@@ -3845,7 +3845,9 @@ function modalTitleChain(d){
    على الشاشة (position:fixed)، بدل ما تبقى محصورة داخل صندوق اللوحة الأم وتنقطع بحوافها. */
 function positionDropdownPortal(inputEl, dropdownEl){
   const r = inputEl.getBoundingClientRect();
-  const up = dropdownEl.classList.contains("dropdown-up");
+  const isDesktop = window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)").matches;
+  // بسطح المكتب: القائمة تنسدل دائمًا للأسفل بدءًا من المربع النشط، وتتسع حتى 15 اقتراحًا قبل ظهور شريط التمرير
+  const up = isDesktop ? false : dropdownEl.classList.contains("dropdown-up");
   const margin = 8;
   dropdownEl.style.position = "fixed";
   dropdownEl.style.left = r.left + "px";
@@ -3860,7 +3862,9 @@ function positionDropdownPortal(inputEl, dropdownEl){
     const spaceBelow = Math.max(60, window.innerHeight - r.bottom - margin);
     dropdownEl.style.top = (r.bottom + 4) + "px";
     dropdownEl.style.bottom = "auto";
-    dropdownEl.style.maxHeight = Math.min(220, spaceBelow) + "px";
+    // سطح المكتب: سقف يتسع لنحو 15 عنصرًا (~62px للعنصر) مقيّدًا بالمساحة الفعلية المتاحة أسفل المربع
+    const cap = isDesktop ? 15 * 62 : 220;
+    dropdownEl.style.maxHeight = Math.min(cap, spaceBelow) + "px";
   }
 }
 function portalShowDropdown(inputEl, dropdownEl){
@@ -3937,7 +3941,7 @@ async function runSearch(){
 
   searchDropdown.innerHTML = "";
   if (matches.length){
-    matches.slice(0, 10).forEach(m => {
+    matches.slice(0, 15).forEach(m => {
       const item = document.createElement("div");
       item.className = "autocomplete-item";
       item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
@@ -4131,6 +4135,11 @@ function openOnlyPanel(panel){
   const searchWasOpen = searchPanelEl.classList.contains("show");
   bottomPanels.forEach(p => p.classList.remove("show"));
   if (willOpen) panel.classList.add("show");
+  // أي قائمة اقتراحات مفتوحة تُغلق فورًا مع إغلاق/تبديل اللوحات حتى لا تبقى معلّقة بالصفحة
+  document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
+    dd.classList.remove("show");
+    dd.innerHTML = "";
+  });
   const searchNowOpen = searchPanelEl.classList.contains("show");
   if (searchWasOpen && !searchNowOpen){
     const si = document.getElementById("search");
