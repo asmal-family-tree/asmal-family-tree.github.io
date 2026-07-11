@@ -706,20 +706,20 @@
 
   #dtSidebar .dt-group{ display:flex; flex-direction:column; margin-bottom:14px; }
   #dtSidebar .dt-group-title{
-    font-size:11px; font-weight:700; color:rgba(212,175,55,.65);
-    padding:8px 12px 6px; letter-spacing:.3px;
+    font-size:13px; font-weight:700; color:rgba(212,175,55,.7);
+    padding:9px 12px 6px; letter-spacing:.3px;
   }
   #dtSidebar .dt-nav-btn{
-    display:flex; align-items:center; gap:11px;
-    background:none; border:none; border-radius:10px;
-    color:#EFE7D8; padding:11px 12px;
+    display:flex; align-items:center; gap:13px;
+    background:none; border:none; border-radius:11px;
+    color:#EFE7D8; padding:13px 14px;
     cursor:pointer; width:100%; transition:background .15s ease, color .15s ease;
   }
   #dtSidebar .dt-nav-btn .dt-icon{
-    font-size:18px; line-height:1; flex:none; width:22px; text-align:center;
+    font-size:22px; line-height:1; flex:none; width:26px; text-align:center;
   }
   #dtSidebar .dt-nav-btn .dt-label{
-    font-size:14px; font-weight:600; flex:1; text-align:right;
+    font-size:16.5px; font-weight:600; flex:1; text-align:right;
   }
   #dtSidebar .dt-nav-btn:hover{ background:rgba(239,231,216,.08); color:var(--gold-bright,#D4AF37); }
 
@@ -757,6 +757,40 @@
     border:none !important;
     box-shadow:0 10px 30px rgba(0,0,0,.18) !important;
   }
+
+  /* مربع البحث يمتد لعرض اللوحة كاملة، فتتبعه قائمة الاقتراحات بنفس العرض تلقائيًا (تُحسب بجافاسكربت حسب عرض المربع) */
+  .searchbar, .searchbar #search, #search{
+    width:100% !important; box-sizing:border-box !important;
+  }
+  .autocomplete-dropdown{
+    z-index:955 !important;
+    border:none !important;
+    box-shadow:0 10px 30px rgba(0,0,0,.18) !important;
+  }
+  .autocomplete-item{
+    white-space:normal !important; line-height:1.6 !important;
+  }
+
+  /* بطاقة معلومات الشخص: نافذة منبثقة بوسط الشاشة بدل صحيفة سفلية، وفوق الشريط الجانبي دائمًا */
+  #backdrop{
+    z-index:960 !important;
+  }
+  #sheet{
+    position:fixed !important;
+    top:50% !important; left:50% !important; right:auto !important; bottom:auto !important;
+    transform:translate(-50%,-46%) scale(.96) !important;
+    width:min(560px, 92vw) !important;
+    max-height:80vh !important;
+    border-radius:20px !important;
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease !important;
+    z-index:970 !important;
+  }
+  #sheet.show{
+    opacity:1 !important; pointer-events:auto !important;
+    transform:translate(-50%,-50%) scale(1) !important;
+  }
+  #sheet .handle{ display:none !important; }
 
   /* تكبير/تصغير خط عناصر سطح المكتب (الشريط الجانبي واللوحات فقط) */
   body.dt-font-lg #dtSidebar .dt-nav-btn .dt-label{ font-size:16px; }
