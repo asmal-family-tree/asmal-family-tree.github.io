@@ -881,3 +881,92 @@
   }
   #aiChatPanel button{ font-size:16px !important; padding:14px 22px !important; }
 }
+
+/* نافذة "إضافة معلومات" بسطح المكتب: منبثقة بوسط الشاشة بمقاس معقول بدل ملء العرض */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  #infoBackdrop{ z-index:1010 !important; }
+  #infoModal{
+    position:fixed !important;
+    top:50% !important; left:50% !important; right:auto !important; bottom:auto !important;
+    transform:translate(-50%,-46%) scale(.97) !important;
+    width:min(680px, 88vw) !important;
+    max-height:84vh !important;
+    overflow-y:auto !important;
+    border-radius:22px !important;
+    box-shadow:0 24px 60px rgba(0,0,0,.32) !important;
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease !important;
+    z-index:1020 !important;
+  }
+  #infoModal.show{
+    opacity:1 !important; pointer-events:auto !important;
+    transform:translate(-50%,-50%) scale(1) !important;
+  }
+}
+
+/* ================================================================
+   شاشات اللابتوب (1024–1599px): تصغير متناسب لعناصر سطح المكتب
+   الشاشات المكتبية الكبيرة (1600px فأكثر) تبقى بالمقاسات الحالية دون تغيير
+   ================================================================ */
+@media (min-width:1024px) and (max-width:1599px) and (hover:hover) and (pointer:fine){
+  :root{ --dt-header-h:70px; }
+
+  #dtHeader{ padding:0 16px; gap:14px; }
+  #dtHeader .dt-brand{ font-size:19px; }
+  #dtHeader .dt-tab{ min-width:88px; padding:6px 10px; }
+  #dtHeader .dt-tab .dt-ic{ font-size:21px; }
+  #dtHeader .dt-tab span:not(.dt-ic){ font-size:12.5px; }
+
+  .bottom-panel:not(#aiChatPanel){
+    width:min(80vw, 820px) !important;
+    padding:22px 26px !important;
+    font-size:15px !important;
+    max-height:calc(100vh - var(--dt-header-h) - 28px) !important;
+  }
+  .bottom-panel:not(#aiChatPanel) input[type="text"],
+  .bottom-panel:not(#aiChatPanel) input[type="password"],
+  .bottom-panel:not(#aiChatPanel) input[type="number"],
+  .bottom-panel:not(#aiChatPanel) select,
+  .bottom-panel:not(#aiChatPanel) textarea{
+    font-size:15px !important; padding:10px 12px !important;
+  }
+  .bottom-panel:not(#aiChatPanel) button{ font-size:14px !important; padding:10px 16px !important; }
+  .bottom-panel:not(#aiChatPanel) .f-label{ font-size:14px !important; }
+  .autocomplete-item{ font-size:14.5px !important; padding:11px 14px !important; }
+
+  #infoModal{ width:min(560px, 86vw) !important; max-height:82vh !important; }
+  #infoModal input, #infoModal select, #infoModal textarea{ font-size:14.5px !important; padding:10px 12px !important; }
+  #infoModal button{ font-size:14px !important; padding:10px 16px !important; }
+
+  #sheet{ width:min(520px, 88vw) !important; font-size:14.5px !important; padding:20px 24px 26px !important; }
+
+  #dtChatDock #dtChatToggle{ padding:11px 16px; font-size:14px; }
+  #dtChatDock #dtChatToggle .dt-ic{ font-size:19px; }
+  #aiChatPanel{ width:min(32vw, 380px) !important; padding:16px !important; }
+  #aiChatPanel input, #aiChatPanel textarea{ font-size:14.5px !important; padding:10px 12px !important; }
+  #aiChatPanel button{ font-size:14px !important; padding:10px 14px !important; }
+
+  .zoom-fab button{ width:48px !important; height:48px !important; font-size:20px !important; }
+}
+
+/* الدردشة بسطح المكتب: خلفية بيضاء وخط أسود ثابتان دائمًا، مهما تغيّر استايل الموقع */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  #aiChatPanel{
+    background:#FFFFFF !important;
+    background-image:none !important;
+    color:#111111 !important;
+    border:1.5px solid #D4AF37 !important;
+  }
+  #aiChatPanel *{ color:#111111 !important; }
+  #aiChatPanel .f-label{ color:#111111 !important; font-weight:800 !important; }
+  #aiChatMessages{ color:#111111 !important; }
+  #aiChatPanel input, #aiChatPanel textarea{
+    background:#FFFFFF !important; color:#111111 !important;
+    border:1px solid #D8D2C4 !important;
+  }
+  #aiChatPanel input::placeholder, #aiChatPanel textarea::placeholder{ color:#8a8a8a !important; }
+  #aiChatPanel #aiChatSend{
+    background:#0B3D2E !important; color:#FFFFFF !important; border:none !important;
+  }
+  #aiChatPanel #aiChatSend *{ color:#FFFFFF !important; }
+}
