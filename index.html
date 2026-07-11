@@ -19,62 +19,32 @@
 <body>
 <script>
 (function(){
-  // نقاط الفصل: جوال أقل من 768، تابلت 768-1199، كمبيوتر 1200 فأكثر (وكمبيوتر كبير 1920 فأكثر)
-  // هذا الكود يضيف "class" فقط على body ولا يغيّر أي منطق أو متغير برمجي بالموقع
+  // نقاط الفصل: جوال أقل من 768، تابلت 768-1199، كمبيوتر 1200 فأكثر
+  // يضيف "class" فقط على body، ولا يغيّر أي منطق أو متغير برمجي بالموقع
   function detectDevice(){
     const w = window.innerWidth;
     const cls = document.body.classList;
-    cls.remove("device-mobile", "device-tablet", "device-desktop", "device-desktop-lg");
+    cls.remove("device-mobile", "device-tablet", "device-desktop");
     if (w < 768){
       cls.add("device-mobile");
     } else if (w < 1200){
       cls.add("device-tablet");
     } else {
       cls.add("device-desktop");
-      if (w >= 1920) cls.add("device-desktop-lg");
     }
   }
   detectDevice();
   window.addEventListener("resize", detectDevice);
   window.addEventListener("orientationchange", detectDevice);
 
-  // مرة واحدة فقط عند تحميل الصفحة: لو الجهاز كمبيوتر، انقل الأزرار الحقيقية (بنفس معرّفاتها ووظائفها) إلى الشريط الجانبي
-  function buildDesktopSidebar(){
-    if (!document.body.classList.contains("device-desktop")) return;
-    const groups = {
-      tree: ["toggleTree", "myTreeToggle"],
-      search: ["searchToggle", "relToggle"],
-      ai: ["aiChatToggle", "attachmentsToggle"],
-      appearance: ["bgToggle"],
-      admin: ["usersToggle", "recordsToggle", "deleteBadgeToggle", "ioToggle"],
-    };
-    Object.keys(groups).forEach(groupKey => {
-      const groupEl = document.querySelector('#desktopSidebar .ds-group[data-group="' + groupKey + '"]');
-      if (!groupEl) return;
-      groups[groupKey].forEach(btnId => {
-        const btn = document.getElementById(btnId);
-        if (btn) groupEl.appendChild(btn); // appendChild ينقل العنصر الحقيقي بكل أحداثه، لا ينسخه
+  // شريط سطح المكتب الجديد (#dtTopbar) لا يكرر أي منطق برمجي؛ كل زر فيه فقط "يفعّل" نفس الزر الأصلي المخفي بالجوال
+  window.addEventListener("DOMContentLoaded", function(){
+    document.querySelectorAll("#dtTopbar .dt-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const original = document.getElementById(tab.dataset.target);
+        if (original && original.style.display !== "none") original.click();
       });
     });
-    const collapseBtn = document.getElementById("dsCollapseBtn");
-    if (collapseBtn){
-      collapseBtn.onclick = () => document.body.classList.toggle("ds-collapsed");
-    }
-  }
-  window.addEventListener("DOMContentLoaded", buildDesktopSidebar);
-
-  // مؤشر مؤقت للتأكد من عمل الكشف بصريًا — سيُحذف عند بناء تصميم سطح المكتب الفعلي
-  window.addEventListener("DOMContentLoaded", function(){
-    const badge = document.createElement("div");
-    badge.id = "deviceDetectDebugBadge";
-    badge.style.cssText = "position:fixed; bottom:6px; left:6px; z-index:99999; background:#111; color:#0f0; font:11px monospace; padding:4px 8px; border-radius:6px; opacity:.85; pointer-events:none;";
-    function updateBadge(){
-      const cls = document.body.className.match(/device-\S+/g) || [];
-      badge.textContent = "🖥️ " + cls.join(" ") + " | " + window.innerWidth + "px";
-    }
-    updateBadge();
-    window.addEventListener("resize", updateBadge);
-    document.body.appendChild(badge);
   });
 })();
 </script>
@@ -225,16 +195,21 @@
   <div id="recordsList" style="max-height:60vh; overflow-y:auto;"></div>
 </div>
 
-<div id="desktopSidebar">
-  <div class="ds-header">
-    <span class="ds-logo">🌳 بني أسمل الحكمي</span>
-    <button id="dsCollapseBtn" title="طي/فتح الشريط">☰</button>
+<div id="dtTopbar">
+  <div class="dt-brand">🌳 بني أسمل الحكمي</div>
+  <div class="dt-tabs">
+    <button class="dt-tab" data-target="toggleTree">🙈<span>إخفاء/إظهار الشجرة</span></button>
+    <button class="dt-tab" data-target="myTreeToggle">🌳<span>شجرتي الخاصة</span></button>
+    <button class="dt-tab" data-target="searchToggle">🔍<span>البحث</span></button>
+    <button class="dt-tab" data-target="relToggle">🧮<span>حاسبة العلاقة</span></button>
+    <button class="dt-tab" data-target="aiChatToggle">🤖<span>المساعد الذكي</span></button>
+    <button class="dt-tab" data-target="attachmentsToggle">📚<span>المرفقات</span></button>
+    <button class="dt-tab" data-target="bgToggle">🖼️<span>المظهر</span></button>
+    <button class="dt-tab" data-target="ioToggle">📁<span>استيراد/تصدير</span></button>
+    <button class="dt-tab" data-target="usersToggle">👥<span>المستخدمون</span></button>
+    <button class="dt-tab" data-target="recordsToggle">📋<span>السجلات</span></button>
+    <button class="dt-tab" data-target="deleteBadgeToggle">🗑️<span>علامات الحذف</span></button>
   </div>
-  <div class="ds-group" data-group="tree"><div class="ds-group-title">الشجرة</div></div>
-  <div class="ds-group" data-group="search"><div class="ds-group-title">البحث والعلاقات</div></div>
-  <div class="ds-group" data-group="ai"><div class="ds-group-title">المساعد الذكي</div></div>
-  <div class="ds-group" data-group="appearance"><div class="ds-group-title">المظهر</div></div>
-  <div class="ds-group" data-group="admin"><div class="ds-group-title">إدارة</div></div>
 </div>
 
 <div id="bottomBar">

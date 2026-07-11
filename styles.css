@@ -653,66 +653,78 @@
 /* إصلاح: جعل عرض لوحة الدردشة (flex) يعمل فقط عند تفعيلها فعليًا عبر كلاس show، بدل أن يكون ثابتًا دائمًا */
 #aiChatPanel.show{ display:flex; flex-direction:column; }
 
-/* ================= شريط جانبي لسطح المكتب (Desktop Sidebar) ================= */
-/* لا يظهر إطلاقًا إلا لجهاز كمبيوتر (device-desktop)؛ الجوال والتابلت لا يتأثران أبدًا */
-#desktopSidebar{ display:none; }
-
-body.device-desktop{ padding-right:250px; transition:padding-right .25s ease; }
-body.device-desktop.ds-collapsed{ padding-right:72px; }
+/* ================================================================
+   تصميم سطح المكتب المستقل (Desktop-only) — لا يظهر إطلاقًا على الجوال أو التابلت
+   يستخدم متغيرات الألوان الحالية (--emerald, --gold, --bg, --ink...) فيتأثر بتغيير الاستايل تلقائيًا
+   لا يكرر أو يعدّل أي منطق برمجي؛ فقط "يفعّل" نفس الأزرار الأصلية المخفية
+   ================================================================ */
+#dtTopbar{ display:none; }
 
 body.device-desktop #bottomBar{ display:none !important; }
 
-body.device-desktop #desktopSidebar{
-  display:flex;
-  flex-direction:column;
-  position:fixed;
-  top:0; right:0;
-  width:250px;
-  height:100vh; height:100dvh;
-  background:linear-gradient(180deg,#0B3D2E 0%,#0d2f24 100%);
-  color:#EFE7D8;
-  z-index:600;
-  overflow-y:auto;
-  overflow-x:hidden;
-  box-shadow:-4px 0 24px rgba(0,0,0,.25);
-  transition:width .25s ease;
-  padding-bottom:20px;
+body.device-desktop #dtTopbar{
+  display:flex !important;
+  align-items:center;
+  gap:28px;
+  position:fixed; top:0; right:0; left:0;
+  height:76px;
+  padding:0 32px;
+  background:linear-gradient(180deg, var(--emerald) 0%, #08281e 100%);
+  box-shadow:0 6px 24px rgba(0,0,0,.28);
+  z-index:700;
 }
-body.device-desktop.ds-collapsed #desktopSidebar{ width:72px; }
 
-#desktopSidebar .ds-header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:18px 16px; border-bottom:1px solid rgba(239,231,216,.15);
-  margin-bottom:10px;
+body.device-desktop #dtTopbar .dt-brand{
+  color:var(--gold-bright,#D4AF37);
+  font-weight:900; font-size:19px; white-space:nowrap; flex:none;
+  font-family:'Amiri',serif;
 }
-#desktopSidebar .ds-logo{ font-weight:800; font-size:14.5px; white-space:nowrap; overflow:hidden; }
-body.device-desktop.ds-collapsed #desktopSidebar .ds-logo{ display:none; }
-#desktopSidebar .ds-header button{
-  background:rgba(239,231,216,.1); border:none; color:#EFE7D8;
-  width:32px; height:32px; border-radius:8px; font-size:16px; cursor:pointer; flex:none;
-}
-#desktopSidebar .ds-header button:hover{ background:rgba(239,231,216,.2); }
 
-#desktopSidebar .ds-group{ display:flex; flex-direction:column; padding:4px 10px; margin-bottom:8px; }
-#desktopSidebar .ds-group-title{
-  font-size:11px; opacity:.55; padding:6px 10px 4px; white-space:nowrap; overflow:hidden;
+body.device-desktop #dtTopbar .dt-tabs{
+  display:flex; align-items:stretch; gap:6px; flex:1; overflow-x:auto; height:100%;
 }
-body.device-desktop.ds-collapsed #desktopSidebar .ds-group-title{ display:none; }
 
-#desktopSidebar .ds-group button{
-  display:flex; align-items:center; gap:10px;
-  background:transparent; border:none; color:#EFE7D8;
-  padding:10px 12px; border-radius:10px; font-size:14px; text-align:right;
-  cursor:pointer; width:100%; white-space:nowrap; overflow:hidden;
-  transition:background .15s ease;
+body.device-desktop #dtTopbar .dt-tab{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; min-width:96px; padding:8px 14px; height:100%;
+  background:transparent; border:none; border-radius:0;
+  border-bottom:3px solid transparent;
+  color:#EFE7D8; font-size:22px; cursor:pointer; flex:none;
+  transition:background .15s ease, border-color .15s ease;
 }
-#desktopSidebar .ds-group button::after{
-  content:attr(title); font-size:13.5px;
+body.device-desktop #dtTopbar .dt-tab span{
+  font-size:12px; font-weight:700; white-space:nowrap;
 }
-body.device-desktop.ds-collapsed #desktopSidebar .ds-group button::after{ display:none; }
-body.device-desktop.ds-collapsed #desktopSidebar .ds-group button{ justify-content:center; }
-#desktopSidebar .ds-group button:hover{ background:rgba(239,231,216,.12); }
-#desktopSidebar .ds-group button.active{ background:rgba(201,151,31,.25); }
+body.device-desktop #dtTopbar .dt-tab:hover{ background:rgba(239,231,216,.08); }
+body.device-desktop #dtTopbar .dt-tab.dt-active{
+  border-bottom-color:var(--gold-bright,#D4AF37);
+  background:rgba(212,175,55,.12);
+}
 
-/* تصغير مساحة عرض الشجرة بما يتناسب مع عرض الشريط الجانبي */
-body.device-desktop #tree-wrap{ width:100%; }
+/* إزاحة الشجرة والعناصر العلوية الثابتة لتفادي التداخل مع الشريط الجديد */
+body.device-desktop #tree-wrap{ margin-top:76px; height:calc(100vh - 76px) !important; height:calc(100dvh - 76px) !important; }
+body.device-desktop #currentUserBadge{ top:calc(76px + 12px) !important; }
+body.device-desktop #uiScaleControls{ top:calc(76px + 12px) !important; }
+body.device-desktop .zoom-fab{ bottom:20px !important; }
+
+/* اللوحات (بحث، دردشة، إلخ) تتحول لنافذة جانبية كبيرة تطلع من اليسار بدل صفحة سفلية — بدون تغيير محتواها أو منطقها */
+body.device-desktop .bottom-panel{
+  position:fixed !important;
+  top:76px !important; bottom:0 !important;
+  left:0 !important; right:auto !important;
+  width:min(38vw, 620px) !important;
+  max-width:none !important;
+  height:auto !important;
+  max-height:none !important;
+  border-radius:0 !important;
+  transform:translateX(-100%) !important;
+  transition:transform .25s ease !important;
+  box-shadow:8px 0 30px rgba(0,0,0,.25) !important;
+  overflow-y:auto !important;
+  z-index:650 !important;
+  background:var(--card-bg,#FFFDF6) !important;
+  padding:26px !important;
+}
+body.device-desktop .bottom-panel.show{
+  transform:translateX(0) !important;
+}
