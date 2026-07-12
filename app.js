@@ -5664,7 +5664,7 @@ function motherDisplayName(m){
   return "ابنة " + (m.fatherChain || m.fatherName || "؟");
 }
 
-function renderMotherBox(){
+async function renderMotherBox(){
   const box = document.getElementById("motherBox");
   const resultDiv = document.getElementById("motherResult");
   box.innerHTML = "";
@@ -5763,8 +5763,14 @@ function renderMotherBox(){
 
   // حالة "قيد الإعداد" — أم جديدة تم اختيارها لكن ما اعتُمدت بعد
   if (motherState && motherState.wifeId && !motherState.approved){
-    renderHalfSiblingPicker();
-    return;
+    // استثناء: الأم المسندة تلقائيًا عبر زوجة مسجّلة في ملف الأب تُعامل كمعتمدة (لا واجهة اختيار إخوة)
+    const autoInfo = await findMotherInfo(modalNode);
+    if (autoInfo && autoInfo.wifeId && autoInfo.wifeId === motherState.wifeId){
+      motherState = Object.assign({}, motherState, { approved: true, autoFromFather: true });
+    } else {
+      renderHalfSiblingPicker();
+      return;
+    }
   }
 
   const search = makePersonSearchBox("اكتب اسم أب الأم (جدّها)، ثم اضغط عليه من القائمة", (m) => {
@@ -6500,7 +6506,7 @@ async function openInfoModal(d){
       motherState = null;
     }
   }
-  renderMotherBox();
+  await renderMotherBox();
 
   // ═══ ملف الزوجة غير قابل للتحرير ═══
   // بيانات النساء تُسجَّل حصرًا من الملف الأصلي (الأب أو الزوج)، لا مباشرةً هنا.
@@ -6611,8 +6617,14 @@ document.getElementById("f-save").onclick = async () => {
     return;
   }
   if (motherState && motherState.wifeId && !motherState.approved && !motherState.autoFromFather){
-    customAlert("لم يتم اعتماد بيانات الإخوة من الأم — اعتمد البيانات أو الغِ الإضافة أولًا قبل حفظ المعلومات.");
-    return;
+    // لا نطلب اعتماد "الإخوة من الأم" إن كانت الأم مسندة تلقائيًا عبر زوجة مسجّلة في ملف الأب.
+    // نفحص الواقع الفعلي (لا وسمًا يُكتب مستقبلًا) حتى تسري القاعدة على البيانات القديمة أيضًا.
+    const autoInfo = await findMotherInfo(modalNode);
+    const isAutoFromFather = !!(autoInfo && autoInfo.wifeId && autoInfo.wifeId === motherState.wifeId);
+    if (!isAutoFromFather){
+      customAlert("لم يتم اعتماد بيانات الإخوة من الأم — اعتمد البيانات أو الغِ الإضافة أولًا قبل حفظ المعلومات.");
+      return;
+    }
   }
   for (const w of wivesState){
     if (w.type === "inside" && !w.fatherId && (w.children || []).length){
