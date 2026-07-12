@@ -469,7 +469,7 @@ document.getElementById("newUserAddBtn").onclick = async function(){
 
 function isPersonDataFilled(data){
   return !!(data.job || data.nickname || data.bio || data.photo || data.mother ||
-    (data.notaries && data.notaries.length) || (data.wives && data.wives.length) || data.husband);
+    (data.wives && data.wives.length) || data.husband);
 }
 
 async function refreshRecordsList(){
@@ -523,9 +523,12 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
 
   const lines = [];
   if (data.birthYear){
-    const age = CURRENT_HIJRI_YEAR - parseInt(data.birthYear);
+    // العمر يُحسب حتى سنة الوفاة إن كان متوفى، وإلا حتى السنة الحالية
+    const isDead = data.deathStatus === "dead" && data.deathYear;
+    const endYear = isDead ? parseInt(data.deathYear) : CURRENT_HIJRI_YEAR;
+    const age = endYear - parseInt(data.birthYear);
     lines.push({ label: "تاريخ الميلاد", value: data.birthYear + " هـ" });
-    if (age > 0 && age < 130) lines.push({ label: "العمر", value: age + " سنة تقريبًا" });
+    if (age > 0 && age < 130) lines.push({ label: "العمر", value: age + " سنة تقريبًا" + (isDead ? " — عند الوفاة" : "") });
   }
   lines.push({ label: "الحالة", value: data.deathStatus === "dead" ? "متوفى" : "حي يرزق" });
   if (data.job) lines.push({ label: "الوظيفة", value: data.job });
@@ -535,7 +538,6 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   if (insideWifeFathers.length) lines.push({ label: "والد الزوجة (من القبيلة)", value: insideWifeFathers.join("، ") });
   if (unclesLine) lines.push({ label: "الأخوال", value: unclesLine });
   if (halfSiblingsLine) lines.push({ label: "الإخوة من الأم", value: halfSiblingsLine });
-  if (data.notaries && data.notaries.length) lines.push({ label: "العدلاء من أبناء القبيلة", value: data.notaries.map(n => n.chain3 || n.name).join("، ") });
   if (wifeSpecificNotaries.length) lines.push({ label: "عدلاء الزوجة/الزوجات", value: wifeSpecificNotaries.join("، ") });
   if (data.bio) lines.push({ label: "نبذة", value: data.bio });
 
@@ -3622,7 +3624,8 @@ function centerOnRoot(){
 function jumpToPerson(personId){
   document.getElementById("usersPanel").classList.remove("show");
   document.getElementById("tree-wrap").classList.remove("tree-hidden");
-  exitFocusMode();
+  // تثبيت "شجرتي": الانتقال لشخص لا يُلغيها
+  if (!personalTreeActive) exitFocusMode();
   const d = root.descendants().find(n => n.data.id === personId);
   if (!d){ customAlert("تعذّر إيجاد الشخص بالشجرة الحالية."); return; }
   const w = svg.node().clientWidth, h = svg.node().clientHeight;
@@ -3672,7 +3675,7 @@ const dragBehavior = d3.drag()
   })
   .on("end", function(){
     saveLayoutOverrides();
-    buildAndRender();
+    refreshView(); // يستعيد "شجرتي" إن كانت مفعّلة
   });
 
 function buildAndRender(){
@@ -3715,7 +3718,7 @@ function buildAndRender(){
       event.stopPropagation();
       layoutOverrides.delete(personId(d));
       saveLayoutOverrides();
-      buildAndRender();
+      refreshView(); // يستعيد "شجرتي" إن كانت مفعّلة
     })
     .call(dragBehavior);
 
@@ -3915,7 +3918,9 @@ async function ensureNicknameIndexLoaded(){
 async function runSearch(){
   const q = searchInput.value.trim();
   if (!q){
-    exitFocusMode();
+    // تثبيت "شجرتي": لا تُلغى بالبحث — نستعيدها بدل الخروج للشجرة الكاملة
+    if (personalTreeActive) showPersonalTree(personalTreeActive);
+    else exitFocusMode();
     node.select(".ring").classed("show", false);
     currentMatches = [];
     searchDropdown.classList.remove("show"); searchDropdown.innerHTML = "";
@@ -3967,7 +3972,9 @@ async function runSearch(){
     portalShowDropdown(searchInput, searchDropdown);
   } else {
     searchDropdown.classList.remove("show");
-    exitFocusMode();
+    // تثبيت "شجرتي": لا تُلغى بالبحث
+    if (personalTreeActive) showPersonalTree(personalTreeActive);
+    else exitFocusMode();
     node.select(".ring").classed("show", false);
     return;
   }
@@ -4010,6 +4017,8 @@ async function findSameMotherSiblings(personNode){
   if (!myInfo || !myInfo.wifeId) return { siblings: [], grandfatherNode: null };
   const siblings = [];
   for (const n of root.descendants()){
+    // "إخوة من الأم" تُذكر فقط عند اختلاف الأب. الإخوة من نفس الأب أشقاء، وذكرهم هنا حشو مضلل.
+    if (n === personNode.parent) continue;
     const nData = await loadPersonData(personId(n));
     for (const w of (nData.wives || [])){
       if (w.wifeId === myInfo.wifeId){
@@ -4065,21 +4074,26 @@ function showInfo(d){
 
     // الأصهار: زوج ابنة / والد زوجة / أخ زوجة / نسيب (العديل)
     const sadahaList = [];
-    daughtersData.forEach(dd => { if (dd.husband && !dd.husbandDivorced) sadahaList.push({ label: "زوج ابنة", name: dd.husband, node: null }); });
+    daughtersData.forEach(dd => {
+      if (dd.husband && !dd.husbandDivorced){
+        // نعرض الاسم الثلاثي المحفوظ عند الاختيار من القائمة، وإلا نرجع للاسم المفرد
+        sadahaList.push({ label: "زوج ابنة", name: dd.husbandChain || dd.husband, node: null });
+      }
+    });
 
     const insideWives = (data.wives || []).filter(w => w.type === "inside" && w.fatherId);
     for (const w of insideWives){
       const wifeFatherNode = root.descendants().find(n => personId(n) === w.fatherId);
       if (!wifeFatherNode) continue;
-      if (w.fatherName) sadahaList.push({ label: "والد الزوجة", name: w.fatherName, node: wifeFatherNode });
+      if (w.fatherName) sadahaList.push({ label: "والد الزوجة", name: w.fatherChain || w.fatherName, node: wifeFatherNode });
       (wifeFatherNode.children || []).filter(c => c.data.type !== "female").forEach(b => {
-        sadahaList.push({ label: "أخ زوجة", name: b.data.name, node: b });
+        sadahaList.push({ label: "أخ زوجة", name: chainNames(b).slice(0, 3).join(" بن "), node: b });
       });
       const sisters = (wifeFatherNode.children || []).filter(c => c.data.type === "female");
       for (const sis of sisters){
         const sisData = await loadPersonData(personId(sis));
         if (sisData.husband && !sisData.husbandDivorced && sisData.husband !== d.data.name){
-          sadahaList.push({ label: "نسيب (العديل)", name: sisData.husband, node: null });
+          sadahaList.push({ label: "نسيب (العديل)", name: sisData.husbandChain || sisData.husband, node: null });
         }
       }
     }
@@ -4088,14 +4102,17 @@ function showInfo(d){
         `<div class="ip-sadaha">${sadahaList.map(s => `<div class="ip-sadaha-item"><b>${s.label}:</b> ${nameChip(s.name, s.node)}</div>`).join("")}</div>`
       : "";
 
-    const hasAny = data.birthYear || data.job || data.nickname || data.bio || data.photo || (data.notaries && data.notaries.length) || data.deathStatus === "dead" || sonsInTree || unclesHtml || sadahaHtml || samMotherHtml;
+    const hasAny = data.birthYear || data.job || data.nickname || data.bio || data.photo || data.deathStatus === "dead" || sonsInTree || unclesHtml || sadahaHtml || samMotherHtml || data.husband || (data.sons && data.sons.length);
     if (!hasAny){ card.innerHTML = `<div class="ip-empty">لا توجد معلومات إضافية مضافة لهذا الشخص بعد.</div>`; return; }
     let html = "";
     if (data.photo) html += `<img class="ip-photo" src="${data.photo}">`;
     if (data.birthYear){
-      const age = CURRENT_HIJRI_YEAR - parseInt(data.birthYear);
+      // العمر يُحسب حتى سنة الوفاة إن كان متوفى، وإلا حتى السنة الحالية
+      const isDead = data.deathStatus === "dead" && data.deathYear;
+      const endYear = isDead ? parseInt(data.deathYear) : CURRENT_HIJRI_YEAR;
+      const age = endYear - parseInt(data.birthYear);
       html += `<div class="ip-row"><span class="ip-label">تاريخ الميلاد</span><span class="ip-value">${data.birthYear} هـ</span></div>`;
-      if (age > 0 && age < 130) html += `<div class="ip-row"><span class="ip-label">العمر</span><span class="ip-value">${age} سنة تقريبًا</span></div>`;
+      if (age > 0 && age < 130) html += `<div class="ip-row"><span class="ip-label">العمر</span><span class="ip-value">${age} سنة تقريبًا${isDead ? " — عند الوفاة" : ""}</span></div>`;
     }
     html += `<div class="ip-row"><span class="ip-label">الحالة</span><span class="ip-value">${data.deathStatus === "dead" ? ("متوفى" + (data.deathYear ? " — " + data.deathYear + " هـ" : "")) : "حي يرزق"}</span></div>`;
     if (data.job) html += `<div class="ip-row"><span class="ip-label">الوظيفة</span><span class="ip-value">${escapeHtml(data.job)}</span></div>`;
@@ -4104,9 +4121,17 @@ function showInfo(d){
     html += unclesHtml;
     html += samMotherHtml;
     html += sadahaHtml;
-    if (data.notaries && data.notaries.length){
-      html += `<div class="ip-row"><span class="ip-label">العدلاء من أبناء القبيلة</span></div>`;
-      html += `<div class="ip-notaries">${data.notaries.map(n => `<span class="ip-notary-chip">${escapeHtml(n.chain3 || n.name)}</span>`).join("")}</div>`;
+
+    // بطاقة الزوجة: زوجها وأبناؤها — مولّدة تلقائيًا من ملف الزوج (لا تُدخل يدويًا)
+    if (d.data.type === "female"){
+      if (data.husbandChain || data.husband){
+        const hLabel = data.husbandDivorced ? "طليقها" : "زوجها";
+        html += `<div class="ip-row"><span class="ip-label">${hLabel}</span><span class="ip-value">${escapeHtml(data.husbandChain || data.husband)}</span></div>`;
+      }
+      if (data.sons && data.sons.length){
+        html += `<div class="ip-row"><span class="ip-label">أبناؤها</span></div>`;
+        html += `<div class="ip-sadaha">${data.sons.map(s => `<div class="ip-sadaha-item">${escapeHtml(s)}</div>`).join("")}</div>`;
+      }
     }
     if (data.bio) html += `<div class="ip-bio">${escapeHtml(data.bio).replace(/\n/g, "<br>")}</div>`;
     card.innerHTML = html;
@@ -4306,9 +4331,6 @@ async function buildAiPersonInfoLines(){
     if (d.deathYear) parts.push(`الوفاة: ${d.deathYear}هـ`);
     if (d.bio) parts.push(`نبذة: ${String(d.bio).slice(0, 300)}`);
     if (d.husband) parts.push(`الزوج (الصهر): ${d.husband}${d.husbandDivorced ? " (مطلّقة منه)" : ""}`);
-    if (d.notaries && d.notaries.length){
-      parts.push(`العدلاء من أبناء القبيلة: ${d.notaries.map(n => n.chain3 || n.name).join("، ")}`);
-    }
     if (d.mother && d.mother.wifeId){
       const label = aiMotherDisplayName(d.mother);
       parts.push(`الأم: ${label}${d.mother.approved === false ? " (بانتظار الاعتماد)" : ""}`);
@@ -4383,20 +4405,7 @@ function buildAiStatsContext(){
   const zeroChildrenCount = persons.filter(p => p.childrenCount === 0).length;
   lines.push(`أما الأقل عددًا من الأبناء فهو صفر، وينطبق هذا على ${zeroChildrenCount} شخصًا (ليسوا شخصًا واحدًا بعينه، فهذا وضع طبيعي لكل شخص ما زال بلا أبناء مسجّلين أو هو من الجيل الأخير).`);
 
-  // 4) الأكثر والأقل عدلاء (تحتاج بيانات personInfo)
   if (aiPersonInfoCache && aiPersonInfoCache.size){
-    let mostNotaries = null, mostNotariesCount = 0;
-    let withNotaries = 0;
-    aiPersonInfoCache.forEach((d, id) => {
-      const count = (d.notaries && d.notaries.length) || 0;
-      if (count > 0) withNotaries++;
-      if (count > mostNotariesCount){ mostNotariesCount = count; mostNotaries = id; }
-    });
-    if (mostNotaries){
-      lines.push(`الشخص صاحب أكبر عدد من "العدلاء" المسجّلين هو "${byId.get(mostNotaries)?.name || '؟'}" بعدد ${mostNotariesCount}.`);
-    }
-    lines.push(`عدد الأشخاص الذين لديهم عدلاء مسجّلون على الإطلاق هو ${withNotaries} فقط من إجمالي البيانات المضافة؛ البقية عددهم صفر (لا يمثل شخصًا واحدًا بعينه).`);
-
     // 5) الأكثر والأقل أخوال (إخوة الأب من جهة أم الشخص، عبر ربط الأم بأبيها)
     let mostAkhwal = null, mostAkhwalCount = -1;
     let leastAkhwal = null, leastAkhwalCount = Infinity;
@@ -4770,10 +4779,14 @@ myTreeInput.addEventListener("input", () => {
     item.className = "autocomplete-item";
     item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
     item.onclick = () => {
+      // إغلاق نظيف: نُخفي القائمة ونفرّغها ثم نغلق اللوحة عبر المسار الموحّد،
+      // وإلا بقيت حالة القائمة معلّقة فلا تظهر الاقتراحات عند العودة للتبويب.
       myTreeDropdown.classList.remove("show");
       myTreeDropdown.innerHTML = "";
       myTreeInput.value = "";
+      myTreeInput.blur();
       myTreePanel.classList.remove("show");
+      // تحديد شخص جديد في "شجرتي" يستبدل التحديد السابق (أحد الشرطين الوحيدين للإلغاء)
       showPersonalTree(m.data);
     };
     myTreeDropdown.appendChild(item);
@@ -5351,7 +5364,6 @@ function currentHijriYear(){
 }
 
 let modalNode = null;
-let notaryState = [];   // [{id, name, selectedWife}]
 let wivesState = [];    // [{type:'inside', wifeName, fatherId, fatherName, fatherChain, children:[]}] or [{type:'outside', notaries:[{id,name,chain3}], children:[]}]
 let motherState = null; // {fatherId, fatherName, fatherChain, auto}
 let husbandState = null; // {husbandId, husbandName, husbandChain}
@@ -5396,84 +5408,6 @@ document.querySelectorAll('input[name="deathStatus"]').forEach(r => {
   });
 });
 
-function renderNotaryChips(){
-  const box = document.getElementById("notaryList");
-  box.innerHTML = "";
-  notaryState.forEach((n, idx) => {
-    const chip = document.createElement("div");
-    chip.className = "chip";
-    const nameSpan = document.createElement("span");
-    nameSpan.textContent = n.chain3 || n.name;
-    nameSpan.onclick = async () => {
-      const otherData = await loadPersonData(n.id);
-      const wives = (otherData.wives || []).filter(w => w.type === "inside" && w.wifeName).map(w => motherDisplayName(w));
-      if (!wives.length){ customAlert("لا توجد زوجات مضافة لهذا الشخص بعد."); return; }
-      const sel = document.createElement("select");
-      sel.innerHTML = `<option value="">اختر زوجة العديل</option>` + wives.map(w => `<option ${w===n.selectedWife?"selected":""}>${w}</option>`).join("");
-      sel.onchange = () => { notaryState[idx].selectedWife = sel.value; renderNotaryChips(); };
-      chip.appendChild(sel);
-    };
-    const xSpan = document.createElement("span");
-    xSpan.className = "chip-x";
-    xSpan.textContent = "✕";
-    xSpan.onclick = (e) => { e.stopPropagation(); notaryState.splice(idx,1); renderNotaryChips(); };
-    chip.appendChild(nameSpan);
-    if (!n.reciprocal) chip.appendChild(xSpan);
-    else {
-      const autoTag = document.createElement("span");
-      autoTag.style.cssText = "color:#999;font-size:11px";
-      autoTag.textContent = "(تلقائي)";
-      chip.appendChild(autoTag);
-    }
-    if (n.selectedWife){
-      const tag = document.createElement("span");
-      tag.style.color = "#8B3E10"; tag.textContent = "(" + n.selectedWife + ")";
-      chip.appendChild(tag);
-    }
-    box.appendChild(chip);
-  });
-}
-
-const notaryInput = document.getElementById("f-notaryInput");
-const notaryDropdown = document.getElementById("notaryDropdown");
-
-notaryInput.addEventListener("input", () => {
-  const q = notaryInput.value.trim();
-  if (!q){ notaryDropdown.classList.remove("show"); notaryDropdown.innerHTML = ""; return; }
-  const parts = q.split(/\s+/).filter(Boolean);
-  let matches;
-  if (parts.length > 1){
-    matches = root.descendants().filter(d => {
-      if (d.data.type === "female") return false;
-      const chain = chainNames(d);
-      if (chain.length < parts.length) return false;
-      for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
-      return true;
-    });
-  } else {
-    matches = root.descendants().filter(d => d.data.type !== "female" && d.data.name.includes(q));
-  }
-  matches = matches.slice(0, 10);
-  if (!matches.length){ notaryDropdown.classList.remove("show"); notaryDropdown.innerHTML = ""; return; }
-  notaryDropdown.innerHTML = "";
-  matches.forEach(m => {
-    const item = document.createElement("div");
-    item.className = "autocomplete-item";
-    item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
-    item.onclick = () => {
-      const id = personId(m);
-      if (!notaryState.some(n => n.id === id)){
-        notaryState.push({ id, name: m.data.name, chain3: chainNames(m).slice(0,3).join(" بن "), selectedWife: "" });
-        renderNotaryChips();
-      }
-      notaryInput.value = "";
-      notaryDropdown.classList.remove("show");
-      notaryDropdown.innerHTML = "";
-    };
-    notaryDropdown.appendChild(item);
-  });
-  portalShowDropdown(notaryInput, notaryDropdown);
-});
 
 function makePersonSearchBox(placeholder, onSelect){
   const wrap = document.createElement("div");
@@ -5555,7 +5489,7 @@ async function getOrCreateDaughterNode(fatherNode, wifeId, wifeName, sourcePerso
       if (femaleData.id){
         try{ await db.collection("persons").doc(femaleData.id).update({ name: wifeName }); }catch(e){}
       }
-      buildAndRender();
+      refreshView(); // يستعيد "شجرتي" إن كانت مفعّلة
     }
     return femaleData;
   }
@@ -5567,7 +5501,7 @@ async function getOrCreateDaughterNode(fatherNode, wifeId, wifeName, sourcePerso
       const d = doc.data();
       femaleData = { id: doc.id, name: d.name, type: "female", gender: "female", wifeId, sourcePersonId: d.sourcePersonId || null, sourceName: d.sourceName || null, motherApproved: !!d.motherApproved };
       fatherNode.data.children.push(femaleData);
-      buildAndRender();
+      refreshView(); // يستعيد "شجرتي" إن كانت مفعّلة
       return femaleData;
     }
   }catch(e){ console.error("تعذر التحقق من وجود الأم بقاعدة البيانات", e); }
@@ -5576,7 +5510,7 @@ async function getOrCreateDaughterNode(fatherNode, wifeId, wifeName, sourcePerso
   const created = await firestoreAddPerson(fatherNode.data, name, "female", { wifeId, sourcePersonId: sourcePersonId || null, sourceName: sourceName || null, motherApproved: false });
   femaleData = { id: created.id, name, type: "female", gender: "female", wifeId, sourcePersonId: sourcePersonId || null, sourceName: sourceName || null, motherApproved: false, ancestorIds: created.ancestorIds };
   fatherNode.data.children.push(femaleData);
-  buildAndRender();
+  refreshView(); // يستعيد "شجرتي" إن كانت مفعّلة
   return femaleData;
 }
 
@@ -5974,7 +5908,7 @@ async function ensureWifeNode(wi){
   const femaleData = await getOrCreateDaughterNode(fatherNode, w.wifeId, w.wifeName);
   w._femaleNodeData = femaleData;
   const myDataRef = modalNode.data;
-  buildAndRender();
+  refreshView(); // يستعيد "شجرتي" إن كانت مفعّلة
   modalNode = root.descendants().find(n => n.data === myDataRef);
   document.getElementById("f-sonsCount").textContent = modalNode.children ? modalNode.children.filter(c => c.data.type !== "female").length : 0;
 }
@@ -6482,9 +6416,7 @@ async function openInfoModal(d){
   document.getElementById("f-bio").value = data.bio || "";
   photoDataUrl = data.photo || "";
   document.getElementById("photoPreviewWrap").innerHTML = photoDataUrl ? `<img src="${photoDataUrl}">` : "";
-  notaryState = (data.notaries || []).map(n => ({ ...n }));
   wivesState = (data.wives || []).map(w => ({ ...w, children: [...(w.children||[])], inlaws: (w.inlaws || []).map(x => ({ ...x, sonNames: [...(x.sonNames||[])] })) }));
-  renderNotaryChips();
   renderWives();
   updateAgeDisplay();
   renderCurrentSons();
@@ -6625,7 +6557,6 @@ document.getElementById("f-save").onclick = async () => {
     bio: document.getElementById("f-bio").value,
     photo: photoDataUrl,
     mother: motherState,
-    notaries: notaryState,
     wives: wivesState,
     husband: modalNode.data.type === "female" ? (husbandState ? husbandState.husbandName : null) : null,
     husbandId: modalNode.data.type === "female" ? (husbandState ? husbandState.husbandId : null) : null,
@@ -6661,6 +6592,47 @@ document.getElementById("f-save").onclick = async () => {
   });
   await saveMarriageIndex(marriageIndex);
 
+  // ═══ الربط التلقائي الكامل لملف الزوجة ═══
+  // الزوجة عقدة "سلبية": لا يُدخل فيها شيء يدويًا. كل بياناتها تُملأ تلقائيًا من ملف زوجها.
+  // هذا يفعّل: "زوج ابنة" في أصهار والدها، و"العديل"، و"أبناء الخالة" — بلا أي إدخال منفصل.
+  const myChain3 = chainNames(modalNode).slice(0, 3).join(" بن ");
+  const myChain2 = chainNames(modalNode).slice(0, 2).join(" ");
+  for (const w of wivesState){
+    if (w.type !== "inside" || !w.fatherId || !w._femaleNodeData) continue;
+    const femaleNode = root.descendants().find(n => n.data === w._femaleNodeData);
+    if (!femaleNode) continue;
+    const wifeNodeId = personId(femaleNode);
+    const wifeData = await loadPersonData(wifeNodeId);
+
+    // 1) الزوج وحالة الطلاق — تُملأ تلقائيًا
+    wifeData.husbandId = myId;
+    wifeData.husbandName = modalNode.data.name;
+    wifeData.husbandChain = myChain3;
+    wifeData.husband = myChain3;
+    wifeData.husbandDivorced = !!w.divorced;
+
+    // 2) أبناؤها — يُسندون تلقائيًا من سجل الزوجة في ملف الزوج
+    wifeData.sons = (w.children || []).slice();
+
+    // 3) وسم يفيد أن هذه البيانات مولّدة تلقائيًا (لا تُحرّر يدويًا)
+    wifeData.autoLinked = true;
+
+    await savePersonData(wifeNodeId, wifeData);
+
+    // 4) اسم عقدتها بشجرة أبيها: "زوجة <الاسم الثنائي للزوج>" أو "طليقة ..." — للجديدات فقط
+    const desiredName = (w.divorced ? "طليقة " : "زوجة ") + myChain2;
+    const isAutoName = !femaleNode.data.name ||
+                       femaleNode.data.name === "أم" ||
+                       /^(زوجة|طليقة)\s/.test(femaleNode.data.name);
+    if (isAutoName && femaleNode.data.name !== desiredName){
+      femaleNode.data.name = desiredName;
+      w.wifeName = desiredName;
+      if (femaleNode.data.id){
+        try{ await db.collection("persons").doc(femaleNode.data.id).update({ name: desiredName }); }catch(e){}
+      }
+    }
+  }
+
   if (modalNode.data.type === "female" && husbandState && husbandState.husbandId){
     const marriageIndex2 = await loadMarriageIndex();
     marriageIndex2[myId] = {
@@ -6670,17 +6642,6 @@ document.getElementById("f-save").onclick = async () => {
       divorced: !!document.getElementById("f-husbandDivorced").checked
     };
     await saveMarriageIndex(marriageIndex2);
-  }
-
-  // ربط تبادلي: أضف هذا الشخص كعديل لدى كل عديل مضاف عنده
-  for (const n of notaryState){
-    const otherData = await loadPersonData(n.id);
-    const otherNotaries = otherData.notaries || [];
-    if (!otherNotaries.some(x => x.id === myId)){
-      otherNotaries.push({ id: myId, name: modalNode.data.name, chain3: chainNames(modalNode).slice(0,3).join(" بن "), selectedWife: "", reciprocal: true });
-      otherData.notaries = otherNotaries;
-      await savePersonData(n.id, otherData);
-    }
   }
 
   // ربط "أبناء خالة": لكل زوجة من خارج القبيلة فيها عدلاء معتمدون، أضف/حدّث زوجة (أختها) في ملف كل عديل
@@ -6731,22 +6692,10 @@ document.getElementById("f-save").onclick = async () => {
 };
 
 document.getElementById("f-clearAll").onclick = async () => {
-  const ok = confirm(`مسح جميع المعلومات المضافة لـ "${modalNode.data.name}" (تاريخ الميلاد، الوظيفة، الأم، العدلاء، الزوجات، إلخ)؟\nهذا لا يحذف الشخص نفسه من الشجرة، بس يمسح بياناته الإضافية، وينظّف أي إشارة له بملفات الآخرين (كالعدلاء).\nهذا الإجراء لا يمكن التراجع عنه.`);
+  const ok = confirm(`مسح جميع المعلومات المضافة لـ "${modalNode.data.name}" (تاريخ الميلاد، الوظيفة، الأم، الزوجات، إلخ)؟\nهذا لا يحذف الشخص نفسه من الشجرة، بل يمسح بياناته الإضافية فقط.\nهذا الإجراء لا يمكن التراجع عنه.`);
   if (!ok) return;
   const myId = personId(modalNode);
   const oldData = await loadPersonData(myId);
-
-  // تنظيف تبادلي: احذفني من قائمة "العدلاء" عند كل شخص كنت مضافًا عنده
-  for (const n of (oldData.notaries || [])){
-    const otherData = await loadPersonData(n.id);
-    if (otherData.notaries && otherData.notaries.length){
-      const cleaned = otherData.notaries.filter(x => x.id !== myId);
-      if (cleaned.length !== otherData.notaries.length){
-        otherData.notaries = cleaned;
-        await savePersonData(n.id, otherData);
-      }
-    }
-  }
 
   const emptyData = {
     birthYear: "", deathStatus: "alive", deathYear: "", job: "", nickname: "", sonsCount: "", bio: "", photo: null,
@@ -6756,7 +6705,6 @@ document.getElementById("f-clearAll").onclick = async () => {
   photoDataUrl = null;
   motherState = null;
   husbandState = null;
-  notaryState = [];
   wivesState = [];
   await openInfoModal(modalNode);
   const msg = document.getElementById("f-saveMsg");
@@ -7071,9 +7019,6 @@ function renderInspectResults(node, data){
   if (data.husband){
     resultsEl.appendChild(fieldBlock("الزوج", data.husband + (data.husbandDivorced ? " (مطلّقة)" : ""), () => inspectPatchAndRefresh(node, d => { d.husband = null; d.husbandId = null; d.husbandChain = null; d.husbandDivorced = null; })));
   }
-  (data.notaries || []).forEach((n, idx) => {
-    resultsEl.appendChild(fieldBlock("عديل", n.chain3 || n.name, () => inspectPatchAndRefresh(node, d => { (d.notaries || []).splice(idx, 1); })));
-  });
 
   (data.wives || []).forEach((w, idx) => {
     const wrap = document.createElement("div");
