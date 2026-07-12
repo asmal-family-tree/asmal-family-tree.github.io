@@ -6856,14 +6856,26 @@ document.getElementById("f-save").onclick = async () => {
       rec.divorced = !!inlaw.divorced;
       (inlaw.sonNames || []).forEach(nm => { if (!rec.children.includes(nm)) rec.children.push(nm); });
 
-      // ═══ شبكة العدلاء: العدلاء المفعّلون "شقيقة" يُربطون ببعضهم تلقائيًا ═══
-      // زوجاتهم شقيقات لزوجتي، فهنّ شقيقات لبعضهن ⇒ أزواجهن عدلاء لبعضهم، وأبناؤهم أبناء خالة.
-      // العديل غير المفعّل (أخت من جهة واحدة) يبقى مرتبطًا بي وحدي، فلا يُدرج في الشبكة.
+      // ═══ شبكة العدلاء: لكل عديل تُدرج قائمة عدلائه كاملةً في inlaws ═══
+      // (أ) صاحب الملف الأصلي نفسه (أنا) عديلٌ له — كان يُخزَّن في sisterOfPersonId فقط،
+      //     فلا يظهر في واجهة "إضافة المعلومات" التي تقرأ inlaws. ندرجه هنا ليتساوى العدد لدى الجميع.
+      // (ب) بقية العدلاء المفعّلين "شقيقة" — زوجاتهم شقيقات لبعضهن ⇒ أزواجهن عدلاء لبعضهم.
+      //     العديل غير المفعّل (أخت من جهة واحدة) لا يدخل الشبكة ويبقى مرتبطًا بي وحدي.
+      rec.inlaws = rec.inlaws || [];
       if (inlaw.fullSister !== false){
-        rec.inlaws = rec.inlaws || [];
+        let meRec = rec.inlaws.find(x => x.notaryId === myId);
+        if (!meRec){
+          meRec = {
+            notaryId: myId, notaryName: modalNode.data.name, notaryChain: myChain3,
+            sonNames: [], divorced: false, confirmed: true, fullSister: true, autoLinked: true
+          };
+          rec.inlaws.push(meRec);
+        }
+        (w.children || []).forEach(nm => { if (!meRec.sonNames.includes(nm)) meRec.sonNames.push(nm); });
+
         for (const peer of confirmedInlaws){
           if (peer.notaryId === inlaw.notaryId) continue;
-          if (peer.fullSister === false) continue;   // غير مفعّل: لا يدخل الشبكة
+          if (peer.fullSister === false) continue;
           let peerRec = rec.inlaws.find(x => x.notaryId === peer.notaryId);
           if (!peerRec){
             peerRec = {
