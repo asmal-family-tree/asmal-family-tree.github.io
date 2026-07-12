@@ -1062,14 +1062,18 @@
 :root[data-style="2"] button:hover,
 :root[data-style="3"] button:hover,
 :root[data-style="2"] .dt-tab:hover,
-:root[data-style="3"] .dt-tab:hover{
-  transform: scale(1.07);
+:root[data-style="3"] .dt-tab:hover,
+:root[data-style="2"] .f-btn-sm:hover,
+:root[data-style="3"] .f-btn-sm:hover{
+  transform: scale(1.07) !important;
 }
 :root[data-style="2"] button:active,
 :root[data-style="3"] button:active,
 :root[data-style="2"] .dt-tab:active,
-:root[data-style="3"] .dt-tab:active{
-  transform: scale(0.9);
+:root[data-style="3"] .dt-tab:active,
+:root[data-style="2"] .f-btn-sm:active,
+:root[data-style="3"] .f-btn-sm:active{
+  transform: scale(0.9) !important;
 }
 /* استثناء: عناصر التحكم بالشجرة والعقد لا تتأثر حتى لا يتشوّه الرسم */
 :root[data-style="2"] .node button,
@@ -1079,10 +1083,13 @@
   transform: none !important;
 }
 
-/* 2) فتح النوافذ بانبثاق مرن */
+/* 2) فتح النوافذ بانبثاق مرن
+   ملاحظة: قواعد سطح المكتب تفرض transform بـ !important للتوسيط، و!important يتغلّب على الحركات،
+   لذلك نستخدم clip-path + opacity (لا تتعارض مع transform) للحصول على نفس إحساس الانبثاق. */
 @keyframes fxExpandPanel{
-  from{ opacity:0; transform: scaleY(.75); }
-  to{ opacity:1; transform: scaleY(1); }
+  from{ opacity:0; clip-path: inset(0 0 100% 0); }
+  60%{ opacity:1; clip-path: inset(0 0 -6% 0); }
+  to{ opacity:1; clip-path: inset(0 0 0 0); }
 }
 :root[data-style="2"] .bottom-panel.show,
 :root[data-style="3"] .bottom-panel.show,
@@ -1090,8 +1097,7 @@
 :root[data-style="3"] #infoModal.show,
 :root[data-style="2"] #sheet.show,
 :root[data-style="3"] #sheet.show{
-  transform-origin: top center;
-  animation: fxExpandPanel .5s var(--fx-overshoot);
+  animation: fxExpandPanel .5s var(--fx-overshoot) both !important;
 }
 
 /* 3) انزلاق قائمة الاقتراحات + تحريك عناصرها عند المرور */
@@ -1101,7 +1107,7 @@
 }
 :root[data-style="2"] .autocomplete-dropdown.show,
 :root[data-style="3"] .autocomplete-dropdown.show{
-  animation: fxSlideInDown .4s ease;
+  animation: fxSlideInDown .4s ease both !important;
 }
 :root[data-style="2"] .autocomplete-item,
 :root[data-style="3"] .autocomplete-item{
@@ -1109,7 +1115,7 @@
 }
 :root[data-style="2"] .autocomplete-item:hover,
 :root[data-style="3"] .autocomplete-item:hover{
-  padding-right: 32px;
+  padding-right: 32px !important;
 }
 
 /* احترام تفضيل تقليل الحركة لمن يعانون من الحساسية للحركة */
