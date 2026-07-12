@@ -4124,10 +4124,25 @@ document.getElementById("zoomOut").onclick = () => svg.transition().call(zoom.sc
 document.getElementById("zoomReset").onclick = () => svg.transition().call(zoom.transform, centerOnRoot());
 
 // سطح المكتب: عند كل تحديث للصفحة تعود الشجرة تلقائيًا لموقعها الافتراضي (الجذر بوسط أسفل الصفحة)
+// مهم: ننتظر جاهزية الشجرة فعليًا (root + أبعاد الرسم) بدل توقيت ثابت أعمى،
+// وإلا حُسب التوسيط على شجرة غير محمّلة فقُذفت خارج الشاشة (تظهر ثوانٍ ثم تختفي).
 if (window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)").matches){
-  setTimeout(() => {
-    try { svg.call(zoom.transform, centerOnRoot()); } catch(e){}
-  }, 350);
+  let centerTries = 0;
+  const tryCenterOnRoot = () => {
+    centerTries++;
+    if (centerTries > 40) return; // مهلة قصوى ~8 ثوانٍ ثم نتوقف بأمان
+    try {
+      const node = svg && svg.node && svg.node();
+      const ready = node && typeof root !== "undefined" && root &&
+                    node.clientWidth > 0 && node.clientHeight > 0 &&
+                    isFinite(sx(root)) && isFinite(sy(root));
+      if (!ready){ setTimeout(tryCenterOnRoot, 200); return; }
+      svg.call(zoom.transform, centerOnRoot());
+    } catch(e){
+      setTimeout(tryCenterOnRoot, 200);
+    }
+  };
+  setTimeout(tryCenterOnRoot, 400);
 }
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
