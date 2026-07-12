@@ -3947,7 +3947,10 @@ async function runSearch(){
       item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
       item.onclick = () => {
         searchDropdown.classList.remove("show"); searchDropdown.innerHTML = "";
-        searchPanel.classList.remove("show");
+        // بسطح المكتب تبقى اللوحة مفتوحة بعد الاختيار (تُغلق فقط بالضغط بمساحة فاضية أو بفتح تبويب آخر)
+        if (!window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)").matches){
+          searchPanel.classList.remove("show");
+        }
         showInfo(m);
       };
       searchDropdown.appendChild(item);
@@ -4129,12 +4132,26 @@ if (window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)")
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
 const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel", "attachmentsPanel"].map(id => document.getElementById(id));
+// تمسح مدخلات لوحة عند إغلاقها. تُستثنى الدردشة حتى لا تُفقد المحادثة الجارية.
+function clearPanelInputs(panel){
+  if (!panel || panel.id === "aiChatPanel") return;
+  panel.querySelectorAll('input[type="text"], input[type="number"], input[type="password"], input[type="search"], textarea')
+    .forEach(el => { el.value = ""; });
+  const relResult = panel.querySelector("#relResult");
+  if (relResult) relResult.innerHTML = "";
+}
+
 function openOnlyPanel(panel){
   const willOpen = !panel.classList.contains("show");
   const searchPanelEl = document.getElementById("searchPanel");
   const searchWasOpen = searchPanelEl.classList.contains("show");
+  // مسح بيانات أي لوحة تُغلق الآن (حتى لا تبقى مدخلات قديمة عند إعادة فتحها)
+  bottomPanels.forEach(p => {
+    if (p && p.classList.contains("show") && p !== panel) clearPanelInputs(p);
+  });
   bottomPanels.forEach(p => p.classList.remove("show"));
   if (willOpen) panel.classList.add("show");
+  else clearPanelInputs(panel); // اللوحة نفسها أُغلقت بالضغط على زرها
   // أي قائمة اقتراحات مفتوحة تُغلق فورًا مع إغلاق/تبديل اللوحات حتى لا تبقى معلّقة بالصفحة
   document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
     dd.classList.remove("show");
