@@ -46,7 +46,10 @@
     // الضغط بأي مساحة فاضية يغلق كل اللوحات المفتوحة (سطح المكتب فقط)
     document.addEventListener("click", function(e){
       if (!window.matchMedia("(min-width:1024px)").matches) return;
-      if (e.target.closest("#dtHeader, #dtChatDock, #bottomBar, .bottom-panel, #sheet, #infoModal, #infoBackdrop, #backdrop, .autocomplete-dropdown")) return;
+      if (e.target.closest("#dtHeader, #dtChatDock, #bottomBar, .bottom-panel, #sheet, #infoModal, #infoBackdrop, #backdrop, .autocomplete-dropdown, .autocomplete-item")) return;
+      // حماية إضافية: إن كان العنصر المضغوط قد أُزيل من الصفحة للتو (كاختيار اسم من قائمة تُمسح فورًا)
+      // فلا نعتبرها ضغطة بمساحة فاضية، لأن closest() يفشل على عنصر منفصل عن الصفحة.
+      if (e.target instanceof Node && !document.body.contains(e.target)) return;
       document.querySelectorAll(".bottom-panel.show").forEach(p => {
         if (typeof clearPanelInputs === "function") clearPanelInputs(p);
         p.classList.remove("show");

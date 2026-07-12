@@ -3872,6 +3872,15 @@ function portalShowDropdown(inputEl, dropdownEl){
     if (dd !== dropdownEl) dd.classList.remove("show");
   });
   if (dropdownEl.parentElement !== document.body) document.body.appendChild(dropdownEl);
+  // حماية جذرية: نوقف انتشار ضغطات القائمة قبل أن تصل لمستمع "الضغط بمساحة فاضية".
+  // بدون هذا، يُحذف عنصر الاقتراح من الصفحة فور اختياره، فيفشل فحص closest() في المستمع العام
+  // ويُعامل الاختيار كضغطة بمساحة فاضية => تُغلق اللوحة وتُمسح بياناتها (يمنع إكمال حاسبة العلاقة).
+  if (!dropdownEl._clickGuardAttached){
+    dropdownEl.addEventListener("mousedown", e => e.stopPropagation());
+    dropdownEl.addEventListener("click", e => e.stopPropagation());
+    dropdownEl.addEventListener("touchstart", e => e.stopPropagation(), { passive: true });
+    dropdownEl._clickGuardAttached = true;
+  }
   dropdownEl._portalInput = inputEl;
   dropdownEl.style.zIndex = "200";
   positionDropdownPortal(inputEl, dropdownEl);
