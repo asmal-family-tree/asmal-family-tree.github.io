@@ -1302,37 +1302,72 @@
 }
 
 /* ================================================================
-   [محدَّث] توهج الشجرة — نيون نقي بلون واحد متناسق
-   • الدوائر: حلقة حادة + هالة متجانسة (بدون ذوبان الحواف)
-   • الأسماء: نظيفة تمامًا بلا توهج (التوهج الأبيض كان يُغبّشها)
-   • الروابط: توهج خفيف بنفس اللون
+   [محدَّث ٢] توهج الشجرة — التوهج يظهر عند التفاعل فقط
+   • قبل الفأرة: بلا توهج إطلاقًا. حدّ الدائرة بحدّة إطار صندوق الاسم-عند-hover + أشد قليلًا
+   • عند الفأرة: إطار الدائرة يتوهج + اللوجو داخلها يتوهج + صندوق الاسم يتوهج
    يعمل على: لوحة التحكم (2) والمستقبلي (3) فقط
    ================================================================ */
 
-/* الدوائر: توهج نيون أخضر نقي — حلقة محددة وهالة متجانسة */
+/* ---------- الحالة الطبيعية: نظيفة بلا توهج ---------- */
 :root[data-style="2"] .node circle,
 :root[data-style="3"] .node circle{
-  filter: drop-shadow(0 0 4px var(--neon)) drop-shadow(0 0 10px var(--neon-soft));
-  transition: filter .25s ease;
+  filter: none !important;
+  transition: filter .25s ease, stroke-width .25s ease, stroke .25s ease;
 }
-:root[data-style="2"] .node:hover circle,
-:root[data-style="3"] .node:hover circle{
-  filter: drop-shadow(0 0 6px var(--neon)) drop-shadow(0 0 18px var(--neon)) brightness(1.15);
+/* حدّ الدائرة: بحدّة إطار الصندوق-عند-hover (1.4px) + أشد قليلًا => 1.8px */
+:root[data-style="2"] .node .avatar-root,
+:root[data-style="3"] .node .avatar-root,
+:root[data-style="2"] .node .avatar-joinpoint,
+:root[data-style="3"] .node .avatar-joinpoint,
+:root[data-style="2"] .node .avatar-trunk,
+:root[data-style="3"] .node .avatar-trunk,
+:root[data-style="2"] .node .avatar-leaf,
+:root[data-style="3"] .node .avatar-leaf,
+:root[data-style="2"] .node .avatar-trunk-red,
+:root[data-style="3"] .node .avatar-trunk-red,
+:root[data-style="2"] .node .avatar-trunk-green,
+:root[data-style="3"] .node .avatar-trunk-green,
+:root[data-style="2"] .node .avatar-trunk-blue,
+:root[data-style="3"] .node .avatar-trunk-blue,
+:root[data-style="2"] .node .avatar-trunk-gold,
+:root[data-style="3"] .node .avatar-trunk-gold,
+:root[data-style="2"] .node .avatar-female,
+:root[data-style="3"] .node .avatar-female{
+  stroke-width: 1.8px !important;
 }
 
-/* الأسماء: نظيفة بلا أي توهج — فقط حد رفيع متوهج حول الصندوق */
+/* صندوق الاسم واللوجو والخطوط: طبيعية تمامًا قبل الفأرة */
+:root[data-style="2"] .node .tag,
+:root[data-style="3"] .node .tag{
+  filter: none !important;
+  transition: stroke .25s ease, stroke-width .25s ease, filter .25s ease;
+}
 :root[data-style="2"] .node text,
 :root[data-style="3"] .node text{
   filter: none !important;
-  paint-order: stroke;
 }
-:root[data-style="2"] .node .tag,
-:root[data-style="3"] .node .tag{
-  stroke: var(--neon-soft) !important;
-  stroke-width: 1px !important;
-  filter: none;
-  transition: stroke .25s ease, filter .25s ease;
+:root[data-style="2"] .node .glyph,
+:root[data-style="3"] .node .glyph{
+  filter: none !important;
+  transition: filter .25s ease;
 }
+:root[data-style="2"] .link,
+:root[data-style="3"] .link{
+  filter: none !important;
+}
+
+/* ---------- عند مرور الفأرة: التوهج يظهر ---------- */
+/* إطار الدائرة يتوهج */
+:root[data-style="2"] .node:hover circle,
+:root[data-style="3"] .node:hover circle{
+  filter: drop-shadow(0 0 5px var(--neon)) drop-shadow(0 0 14px var(--neon-soft)) !important;
+}
+/* اللوجو (أيقونة الشخص) داخل الدائرة يتوهج */
+:root[data-style="2"] .node:hover .glyph,
+:root[data-style="3"] .node:hover .glyph{
+  filter: drop-shadow(0 0 4px var(--neon)) drop-shadow(0 0 9px var(--neon-soft)) !important;
+}
+/* صندوق الاسم يتوهج */
 :root[data-style="2"] .node:hover .tag,
 :root[data-style="3"] .node:hover .tag{
   stroke: var(--neon) !important;
@@ -1345,26 +1380,20 @@
   font-weight: 700 !important;
 }
 
-/* الروابط (خطوط الشجرة): توهج خفيف بنفس اللون */
-:root[data-style="2"] .link,
-:root[data-style="3"] .link{
-  filter: drop-shadow(0 0 3px var(--neon-soft));
-}
-
-/* اللمس: نفس السلوك دون توهج نص */
+/* ---------- اللمس: نفس سلوك الفأرة ---------- */
 @media (hover:none) and (pointer:coarse){
   :root[data-style="2"] .node:active circle,
   :root[data-style="3"] .node:active circle{
-    filter: drop-shadow(0 0 6px var(--neon)) drop-shadow(0 0 18px var(--neon)) brightness(1.15);
+    filter: drop-shadow(0 0 5px var(--neon)) drop-shadow(0 0 14px var(--neon-soft)) !important;
+  }
+  :root[data-style="2"] .node:active .glyph,
+  :root[data-style="3"] .node:active .glyph{
+    filter: drop-shadow(0 0 4px var(--neon)) drop-shadow(0 0 9px var(--neon-soft)) !important;
   }
   :root[data-style="2"] .node:active .tag,
   :root[data-style="3"] .node:active .tag{
     stroke: var(--neon) !important;
     stroke-width: 1.4px !important;
     filter: drop-shadow(0 0 6px var(--neon-soft)) !important;
-  }
-  :root[data-style="2"] .node:active text,
-  :root[data-style="3"] .node:active text{
-    filter: none !important;
   }
 }
