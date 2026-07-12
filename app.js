@@ -4123,7 +4123,7 @@ function showInfo(d){
       }
     }
 
-    // الأصهار: زوج ابنة / والد زوجة / أخ زوجة / نسيب (العديل)
+    // الأصهار: زوج ابنة / والد زوجة / أخ زوجة / نسيب (العديل — من داخل القبيلة ومن خارجها)
     const sadahaList = [];
     daughtersData.forEach(dd => {
       if (dd.husband && !dd.husbandDivorced){
@@ -4148,6 +4148,30 @@ function showInfo(d){
         }
       }
     }
+
+    // النوع الخامس: العديل من زوجة خارج القبيلة — يُشتق من العدلاء المعتمدين (w.inlaws).
+    // هؤلاء صهرٌ حقيقي كنظرائهم من داخل القبيلة، وكانوا يُنشأون بقاعدة البيانات دون أن يُعرضوا هنا.
+    const outsideWives = (data.wives || []).filter(w => w.type === "outside");
+    for (const w of outsideWives){
+      for (const inlaw of (w.inlaws || [])){
+        if (!inlaw.confirmed || inlaw.divorced) continue;
+        const inlawNode = root.descendants().find(n => personId(n) === inlaw.notaryId) || null;
+        const nm = inlaw.notaryChain || inlaw.notaryName;
+        if (!nm || sadahaList.some(s => s.name === nm)) continue;
+        sadahaList.push({ label: "نسيب (العديل)", name: nm, node: inlawNode });
+      }
+    }
+
+    // النوع السادس: العديل المعكوس — رجل من القبيلة أضافك أنت كعديل له،
+    // فأُنشئ بملفك سجل زوجة مرتبط (linkedOutsideWifeId + sisterOfPersonId)
+    for (const w of (data.wives || [])){
+      if (!w.linkedOutsideWifeId || !w.sisterOfPersonId || w.divorced) continue;
+      const srcNode = root.descendants().find(n => personId(n) === w.sisterOfPersonId) || null;
+      const nm = srcNode ? chainNames(srcNode).slice(0, 3).join(" بن ") : w.sisterOfPersonName;
+      if (!nm || sadahaList.some(s => s.name === nm)) continue;
+      sadahaList.push({ label: "نسيب (العديل)", name: nm, node: srcNode });
+    }
+
     const sadahaHtml = sadahaList.length
       ? `<div class="ip-row"><span class="ip-label">الأصهار</span></div>` +
         `<div class="ip-sadaha">${sadahaList.map(s => `<div class="ip-sadaha-item"><b>${s.label}:</b> ${nameChip(s.name, s.node)}</div>`).join("")}</div>`
@@ -5641,11 +5665,14 @@ async function fullyDeleteMother(sharedMother){
   }
 }
 
-async function findMotherSiblingsList(sharedMother, excludeId){
+async function findMotherSiblingsList(sharedMother, excludeId, excludeFatherNode){
   const list = [];
   for (const n of root.descendants()){
+    if (personId(n) === excludeId) continue;
+    // "الإخوة من الأم" تعني اختلاف الأب. الإخوة من نفس الأب أشقاء، وإدراجهم هنا مضلل.
+    if (excludeFatherNode && n.parent === excludeFatherNode) continue;
     const nData = await loadPersonData(personId(n));
-    if (nData.mother && nData.mother.wifeId === sharedMother.wifeId && personId(n) !== excludeId){
+    if (nData.mother && nData.mother.wifeId === sharedMother.wifeId){
       list.push(n);
     }
   }
@@ -5726,7 +5753,12 @@ async function renderMotherBox(){
     if (!isSource){
       const note = document.createElement("div");
       note.style.cssText = "font-size:12px; color:#a67c00; margin-top:4px;";
-      note.textContent = "مسجّلة أصلًا من ملف: " + (motherState.sourceName || "غير معروف");
+      // البيانات القديمة قد تفتقر sourceName، فنستنتج المصدر من الشجرة: هي زوجة مسجّلة في ملف الأب
+      const srcName = motherState.sourceName ||
+        (modalNode.parent ? modalTitleChain(modalNode.parent).join(" ") : "");
+      note.textContent = srcName
+        ? "مسجّلة أصلًا من ملف: " + srcName
+        : "مسجّلة تلقائيًا عبر زوجة مضافة لدى الأب";
       box.appendChild(note);
     }
 
@@ -5734,10 +5766,11 @@ async function renderMotherBox(){
     siblingsBox.style.cssText = "margin-top:10px;";
     siblingsBox.innerHTML = `<div class="f-label" style="margin:0 0 6px;">الإخوة غير الأشقاء من هذه الأم</div><div id="halfSiblingsList">جارِ التحميل…</div>`;
     box.appendChild(siblingsBox);
-    findMotherSiblingsList(motherState, myId).then(siblings => {
+    findMotherSiblingsList(motherState, myId, modalNode.parent).then(siblings => {
       const listEl = document.getElementById("halfSiblingsList");
       if (!listEl) return;
-      if (!siblings.length){ listEl.innerHTML = `<span style="color:#999; font-size:13px">لا يوجد بعد</span>`; return; }
+      // لا إخوة من أم (بآباء مختلفين) => نخفي القسم كليًا بدل عرض قسم فارغ مضلل
+      if (!siblings.length){ siblingsBox.style.display = "none"; return; }
       listEl.innerHTML = "";
       const chipList = document.createElement("div");
       chipList.className = "chip-list";
@@ -6082,19 +6115,41 @@ function renderWives(){
       notaryTitle.textContent = "أسماء العدلاء الخاصين بهذه الزوجة";
       block.appendChild(notaryTitle);
 
-      const searchBox = makePersonSearchBox("اكتب اسم من القبيلة، ثم اضغط عليه من القائمة", (m) => {
+      const searchBox = makePersonSearchBox("اكتب اسم من القبيلة، ثم اضغط عليه من القائمة", async (m) => {
         w.notaries = w.notaries || [];
+        w.inlaws = w.inlaws || [];
         const id = personId(m);
-        if (!w.notaries.some(x => x.id === id)){
-          w.notaries.push({ id, name: m.data.name, chain3: chainNames(m).slice(0,3).join(" بن ") });
+        const chain3 = chainNames(m).slice(0,3).join(" بن ");
+
+        // العديل مضاف مسبقًا لهذه الزوجة نفسها؟ لا نكرره.
+        if (w.inlaws.some(x => x.notaryId === id)){
+          customAlert("هذا العديل مضاف بالفعل لهذه الزوجة.");
+          return;
         }
-        const notarySons = (m.children || []).filter(c => c.data.type !== "female");
-        if (notarySons.length){
-          w.inlaws = w.inlaws || [];
-          if (!w.inlaws.some(x => x.notaryId === id)){
-            w.inlaws.push({ notaryId: id, notaryName: m.data.name, notaryChain: chainNames(m).slice(0,3).join(" بن "), sonNames: [], divorced: false, confirmed: false });
+
+        // كشف الازدواج: هل أضافك هو مسبقًا كعديل له؟ عندها نعيد استخدام رابطه بدل توليد رابط جديد.
+        let reuseLinkId = null;
+        try{
+          const hisData = await loadPersonData(id);
+          const linkedToMe = (hisData.wives || []).find(x => x.sisterOfPersonId === myId && x.linkedOutsideWifeId);
+          if (linkedToMe){
+            const alreadyUsed = (wivesState || []).some(ww => ww.outsideWifeLinkId === linkedToMe.linkedOutsideWifeId);
+            if (!alreadyUsed){
+              reuseLinkId = linkedToMe.linkedOutsideWifeId;
+              customAlert("تنبيه: هذا الشخص أضافك كعديل له مسبقًا — سيتم ربط نفس الزواج بدل إنشاء رابط مكرر.");
+            }
           }
+        }catch(e){}
+        if (reuseLinkId && !w.outsideWifeLinkId) w.outsideWifeLinkId = reuseLinkId;
+
+        if (!w.notaries.some(x => x.id === id)){
+          w.notaries.push({ id, name: m.data.name, chain3 });
         }
+        w.inlaws.push({
+          notaryId: id, notaryName: m.data.name, notaryChain: chain3,
+          sonNames: [], divorced: false, confirmed: false,
+          fullSister: true   // افتراضيًا: زوجته شقيقة زوجتي (من الأب والأم)
+        });
         renderWives();
       });
       block.appendChild(searchBox);
@@ -6152,7 +6207,22 @@ function renderWives(){
           } else {
             const sonsWrap = document.createElement("div");
             sonsWrap.className = "wife-children";
-            sons.forEach(sonNode => {
+            // الأبناء المرتبطون بزوجة أخرى لنفس العديل لا يُعرضون هنا (يستحيل أن يكون الابن من أمّين)
+            const takenByOtherWife = new Set();
+            (wivesState || []).forEach(ww => {
+              if (ww === w) return;
+              (ww.inlaws || []).forEach(il => {
+                if (il.notaryId === inlaw.notaryId) (il.sonNames || []).forEach(nm => takenByOtherWife.add(nm));
+              });
+            });
+            const availableSons = sons.filter(sn => !takenByOtherWife.has(sn.data.name) || (inlaw.sonNames || []).includes(sn.data.name));
+            if (!availableSons.length){
+              const allTaken = document.createElement("div");
+              allTaken.style.cssText = "color:#999; font-size:13px;";
+              allTaken.textContent = "كل أبناء هذا العديل مرتبطون بزوجة أخرى.";
+              wrap.appendChild(allTaken);
+            }
+            availableSons.forEach(sonNode => {
               const sName = sonNode.data.name;
               const lbl = document.createElement("label");
               const cb = document.createElement("input");
@@ -6169,6 +6239,17 @@ function renderWives(){
             });
             wrap.appendChild(sonsWrap);
           }
+
+          // خانة "شقيقة": تؤكد أن زوجته أخت زوجتك من الأب والأم، فتُربط شبكة العدلاء المفعّلين ببعضها
+          const sisLbl = document.createElement("label");
+          sisLbl.style.cssText = "display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; color:#0B3D2E; cursor:pointer";
+          const sisCb = document.createElement("input");
+          sisCb.type = "checkbox";
+          sisCb.checked = inlaw.fullSister !== false;
+          sisCb.onchange = () => { inlaw.fullSister = sisCb.checked; };
+          sisLbl.appendChild(sisCb);
+          sisLbl.append("زوجته شقيقة زوجتي (من الأب والأم) — يُربط بباقي العدلاء المفعّلين");
+          wrap.appendChild(sisLbl);
 
           const divorceLbl2 = document.createElement("label");
           divorceLbl2.style.cssText = "display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; color:#a33; cursor:pointer";
@@ -6759,8 +6840,9 @@ document.getElementById("f-save").onclick = async () => {
   // ربط "أبناء خالة": لكل زوجة من خارج القبيلة فيها عدلاء معتمدون، أضف/حدّث زوجة (أختها) في ملف كل عديل
   for (const w of wivesState){
     if (w.type !== "outside" || !w.outsideWifeLinkId) continue;
-    for (const inlaw of (w.inlaws || [])){
-      if (!inlaw.confirmed) continue;
+    const confirmedInlaws = (w.inlaws || []).filter(x => x.confirmed);
+
+    for (const inlaw of confirmedInlaws){
       const notaryData = await loadPersonData(inlaw.notaryId);
       notaryData.wives = notaryData.wives || [];
       let rec = notaryData.wives.find(x => x.linkedOutsideWifeId === w.outsideWifeLinkId);
@@ -6773,6 +6855,28 @@ document.getElementById("f-save").onclick = async () => {
       }
       rec.divorced = !!inlaw.divorced;
       (inlaw.sonNames || []).forEach(nm => { if (!rec.children.includes(nm)) rec.children.push(nm); });
+
+      // ═══ شبكة العدلاء: العدلاء المفعّلون "شقيقة" يُربطون ببعضهم تلقائيًا ═══
+      // زوجاتهم شقيقات لزوجتي، فهنّ شقيقات لبعضهن ⇒ أزواجهن عدلاء لبعضهم، وأبناؤهم أبناء خالة.
+      // العديل غير المفعّل (أخت من جهة واحدة) يبقى مرتبطًا بي وحدي، فلا يُدرج في الشبكة.
+      if (inlaw.fullSister !== false){
+        rec.inlaws = rec.inlaws || [];
+        for (const peer of confirmedInlaws){
+          if (peer.notaryId === inlaw.notaryId) continue;
+          if (peer.fullSister === false) continue;   // غير مفعّل: لا يدخل الشبكة
+          let peerRec = rec.inlaws.find(x => x.notaryId === peer.notaryId);
+          if (!peerRec){
+            peerRec = {
+              notaryId: peer.notaryId, notaryName: peer.notaryName, notaryChain: peer.notaryChain,
+              sonNames: [], divorced: !!peer.divorced, confirmed: true, fullSister: true, autoLinked: true
+            };
+            rec.inlaws.push(peerRec);
+          }
+          peerRec.divorced = !!peer.divorced;
+          (peer.sonNames || []).forEach(nm => { if (!peerRec.sonNames.includes(nm)) peerRec.sonNames.push(nm); });
+        }
+      }
+
       await savePersonData(inlaw.notaryId, notaryData);
     }
   }
