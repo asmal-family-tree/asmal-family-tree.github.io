@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
 <script>
@@ -353,6 +353,11 @@
     <label class="f-label">صورة</label>
     <input type="file" id="f-photo" accept="image/*">
     <div id="photoPreviewWrap"></div>
+
+    <div id="wifeLockNotice" style="display:none; background:#FDF3E3; border:1px solid #E0C88A; border-radius:12px; padding:12px 14px; margin:8px 0 14px; font-size:13.5px; color:#7a5a20; line-height:1.7;">
+      🔒 <b>هذا الملف غير قابل للتحرير.</b><br>
+      بيانات الزوجة تُملأ تلقائيًا من ملف زوجها (الزوج، حالة الطلاق، الأبناء). لتعديلها، افتح ملف زوجها.
+    </div>
 
     <button id="f-save" class="f-save-btn">حفظ المعلومات</button>
     <button id="f-clearAll" style="width:100%; margin-top:8px; padding:10px; border:1.5px solid #8B1E1E; border-radius:10px; background:#fff; color:#8B1E1E; font-family:'Tajawal',sans-serif; font-weight:700; cursor:pointer;">🗑️ مسح كل المعلومات المضافة</button>

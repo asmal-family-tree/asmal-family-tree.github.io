@@ -3901,7 +3901,38 @@ const searchInput = document.getElementById("search");
 const searchDropdown = document.getElementById("searchDropdown");
 let currentMatches = [];
 
+// اسم العرض بالاقتراحات: يُدرج اللقب بين قوسين بعد الاسم الأول للتمييز
+// مثال: "محمد (رشاد)" لمن اسمه محمد ولقبه رشاد
+function displayNameWithNickname(d, nickIdx){
+  const name = d.data.name;
+  if (!nickIdx) return escapeHtml(name);
+  const nick = nickIdx.get(firestorePersonInfoId(personId(d)));
+  return nick ? `${escapeHtml(name)} <span class="nick-badge">(${escapeHtml(nick)})</span>` : escapeHtml(name);
+}
+
 let nicknameIndex = null; // Map: personId(sanitized) -> nickname
+// ═══ اللقب كعنصر تمييز ═══
+// في الاقتراحات: "محمد (رشاد) أحمد مهدي" — اللقب بين قوسين بعد الاسم الأول
+// في بطاقة المعلومات: اللقب في نهاية السلسلة "— الملقب رشاد"
+function nicknameOf(nodeOrId){
+  if (!nicknameIndex) return "";
+  const id = typeof nodeOrId === "string" ? nodeOrId : personId(nodeOrId);
+  return nicknameIndex.get(id) || "";
+}
+function nameWithNickname(n){
+  const nick = nicknameOf(n);
+  return nick ? `${n.data.name} (${nick})` : n.data.name;
+}
+// سلسلة الاقتراح: الاسم الأول يحمل اللقب، والباقي كما هو
+function chainWithNickname(n){
+  const chain = chainNames(n);
+  const nick = nicknameOf(n);
+  if (!nick || !chain.length) return chain;
+  const out = chain.slice();
+  out[0] = `${out[0]} (${nick})`;
+  return out;
+}
+
 async function ensureNicknameIndexLoaded(){
   if (nicknameIndex) return nicknameIndex;
   nicknameIndex = new Map();
@@ -3955,10 +3986,11 @@ async function runSearch(){
 
   searchDropdown.innerHTML = "";
   if (matches.length){
+    const nickIdxForDisplay = await ensureNicknameIndexLoaded();
     matches.slice(0, 15).forEach(m => {
       const item = document.createElement("div");
       item.className = "autocomplete-item";
-      item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
+      item.innerHTML = `${displayNameWithNickname(m, nickIdxForDisplay)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
       item.onclick = () => {
         searchDropdown.classList.remove("show"); searchDropdown.innerHTML = "";
         // بسطح المكتب تبقى اللوحة مفتوحة بعد الاختيار (تُغلق فقط بالضغط بمساحة فاضية أو بفتح تبويب آخر)
@@ -4039,7 +4071,16 @@ function showInfo(d){
   document.getElementById("ip-name").textContent = d.data.name;
   let chain = []; let a = d;
   while(a){ chain.push(a.data.name); a = a.parent; }
-  document.getElementById("ip-path").innerHTML = "سلسلة النسب: " + chain.map(escapeHtml).join(" بن ") + `<span id="ip-rahimahu" style="color:#1E7A4C; font-weight:700; display:none;"> — رحمه الله</span>`;
+  // صيغة خاصة للزوجة: اسمها مركّب ("زوجة فلان فلان")، فلا يصح لصقه بنسب والدها بـ"بن".
+  // الصيغة الصحيحة: "زوجة صديق مهدي ابنة محمد صديق علي"
+  let pathHtml;
+  if (d.data.type === "female" && /^(زوجة|طليقة)\s/.test(d.data.name || "")){
+    const fatherChain = chain.slice(1); // نسب والدها (بدون اسمها المركّب)
+    pathHtml = escapeHtml(d.data.name) + " ابنة " + fatherChain.map(escapeHtml).join(" ");
+  } else {
+    pathHtml = chain.map(escapeHtml).join(" بن ");
+  }
+  document.getElementById("ip-path").innerHTML = "سلسلة النسب: " + pathHtml + `<span id="ip-nickname" style="color:#8B5E1F; font-weight:700; display:none;"></span>` + `<span id="ip-rahimahu" style="color:#1E7A4C; font-weight:700; display:none;"> — رحمه الله</span>`;
   sheet.classList.add("show"); backdrop.classList.add("show");
 
   const card = document.getElementById("ip-card");
@@ -4054,6 +4095,16 @@ function showInfo(d){
     findSameMotherSiblings(d)
   ]).then(async ([data, daughtersData, sameMother]) => {
     document.getElementById("ip-rahimahu").style.display = data.deathStatus === "dead" ? "inline" : "none";
+    // اللقب/الشهرة يظهر في نهاية سلسلة النسب كعنصر تمييز
+    const nickEl = document.getElementById("ip-nickname");
+    if (nickEl){
+      if (data.nickname){
+        nickEl.textContent = " — الملقب " + data.nickname;
+        nickEl.style.display = "inline";
+      } else {
+        nickEl.style.display = "none";
+      }
+    }
 
     let unclesHtml = "";
     if (data.mother && data.mother.fatherId){
@@ -4777,7 +4828,7 @@ myTreeInput.addEventListener("input", () => {
   matches.forEach(m => {
     const item = document.createElement("div");
     item.className = "autocomplete-item";
-    item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
+    item.innerHTML = `${escapeHtml(nameWithNickname(m))}<span class="chain-sub">${chainWithNickname(m).map(escapeHtml).join(" بن ")}</span>`;
     item.onclick = () => {
       // إغلاق نظيف: نُخفي القائمة ونفرّغها ثم نغلق اللوحة عبر المسار الموحّد،
       // وإلا بقيت حالة القائمة معلّقة فلا تظهر الاقتراحات عند العودة للتبويب.
@@ -5547,7 +5598,8 @@ async function ensureWifeEntryOnFather(fatherNode, sharedMother, divorced, child
 async function assignMotherToSiblingNode(siblingNode, sharedMother){
   const sid = personId(siblingNode);
   const sData = await loadPersonData(sid);
-  sData.mother = sharedMother;
+  // وسم: هذه الأم أُسندت تلقائيًا من ملف الأب، فلا يُطلب اعتماد "الإخوة من الأم" يدويًا عند حفظ ملف الابن
+  sData.mother = { ...sharedMother, autoFromFather: true, approved: true };
   await savePersonData(sid, sData);
   return true;
 }
@@ -5900,11 +5952,28 @@ function generateWifeId(){
   return "wf_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 }
 
+// يبني اسم عقدة الزوجة من حالة الطلاق الحالية + الاسم الثنائي للزوج
+// مثال: "زوجة صديق مهدي" أو "طليقة صديق مهدي"
+function buildWifeNodeName(divorced){
+  const chain2 = chainNames(modalNode).slice(0, 2).join(" ");
+  return (divorced ? "طليقة " : "زوجة ") + chain2;
+}
+
+// هل الاسم مولّد تلقائيًا (فيجوز تحديثه)؟ الأسماء التي كتبها المستخدم يدويًا لا تُمس.
+function isAutoWifeName(name){
+  return !name || name === "أم" || /^(زوجة|طليقة)\s/.test(name);
+}
+
 async function ensureWifeNode(wi){
   const w = wivesState[wi];
   if (w.type !== "inside" || !w.fatherId || !w.wifeId) return;
   const fatherNode = root.descendants().find(n => personId(n) === w.fatherId);
   if (!fatherNode) return;
+  // مهم: نحسب الاسم الصحيح من حالة "مطلقة" الحالية قبل إنشاء/تحديث العقدة،
+  // وإلا أُنشئت بالاسم القديم فظهر الاسم متأخرًا دورة كاملة عن الحالة الفعلية.
+  if (isAutoWifeName(w.wifeName)){
+    w.wifeName = buildWifeNodeName(!!w.divorced);
+  }
   const femaleData = await getOrCreateDaughterNode(fatherNode, w.wifeId, w.wifeName);
   w._femaleNodeData = femaleData;
   const myDataRef = modalNode.data;
@@ -6433,6 +6502,32 @@ async function openInfoModal(d){
   }
   renderMotherBox();
 
+  // ═══ ملف الزوجة غير قابل للتحرير ═══
+  // بيانات النساء تُسجَّل حصرًا من الملف الأصلي (الأب أو الزوج)، لا مباشرةً هنا.
+  // نُعطّل كل حقول الإدخال وزر الحفظ، ونُبقي الحذف والإغلاق فعّالين.
+  const isAutoWife = d.data.type === "female" && !!(await loadPersonData(personId(d))).autoLinked;
+  const lockNotice = document.getElementById("wifeLockNotice");
+  if (isAutoWife){
+    infoModal.querySelectorAll('input, textarea, select, button').forEach(el => {
+      if (el.id === "infoModalClose") return;   // زر الإغلاق يبقى فعّالًا
+      el.disabled = true;
+      el.style.opacity = "0.55";
+      el.style.cursor = "not-allowed";
+    });
+    const saveBtn = document.getElementById("f-save");
+    if (saveBtn){ saveBtn.disabled = true; saveBtn.style.display = "none"; }
+    if (lockNotice) lockNotice.style.display = "block";
+  } else {
+    infoModal.querySelectorAll('input, textarea, select, button').forEach(el => {
+      el.disabled = false;
+      el.style.opacity = "";
+      el.style.cursor = "";
+    });
+    const saveBtn = document.getElementById("f-save");
+    if (saveBtn){ saveBtn.disabled = false; saveBtn.style.display = ""; }
+    if (lockNotice) lockNotice.style.display = "none";
+  }
+
   infoModal.classList.add("show");
   infoBackdrop.classList.add("show");
 }
@@ -6515,7 +6610,7 @@ document.getElementById("f-save").onclick = async () => {
     customAlert("لم تكمل بيانات إضافة الأم — اختر إحدى البنات الموجودات أو أضف أمًا جديدة، أو ألغِ الإضافة (امسح اسم الأب من حقل البحث) قبل حفظ المعلومات.");
     return;
   }
-  if (motherState && motherState.wifeId && !motherState.approved){
+  if (motherState && motherState.wifeId && !motherState.approved && !motherState.autoFromFather){
     customAlert("لم يتم اعتماد بيانات الإخوة من الأم — اعتمد البيانات أو الغِ الإضافة أولًا قبل حفظ المعلومات.");
     return;
   }
@@ -6596,7 +6691,7 @@ document.getElementById("f-save").onclick = async () => {
   // الزوجة عقدة "سلبية": لا يُدخل فيها شيء يدويًا. كل بياناتها تُملأ تلقائيًا من ملف زوجها.
   // هذا يفعّل: "زوج ابنة" في أصهار والدها، و"العديل"، و"أبناء الخالة" — بلا أي إدخال منفصل.
   const myChain3 = chainNames(modalNode).slice(0, 3).join(" بن ");
-  const myChain2 = chainNames(modalNode).slice(0, 2).join(" ");
+  let wifeNameChanged = false;
   for (const w of wivesState){
     if (w.type !== "inside" || !w.fatherId || !w._femaleNodeData) continue;
     const femaleNode = root.descendants().find(n => n.data === w._femaleNodeData);
@@ -6614,34 +6709,39 @@ document.getElementById("f-save").onclick = async () => {
     // 2) أبناؤها — يُسندون تلقائيًا من سجل الزوجة في ملف الزوج
     wifeData.sons = (w.children || []).slice();
 
-    // 3) وسم يفيد أن هذه البيانات مولّدة تلقائيًا (لا تُحرّر يدويًا)
+    // 2ب) نضع وسم "أُسندت تلقائيًا" في ملف كل ابن، ليُعفى من شرط اعتماد الإخوة من الأم
+    for (const childName of (w.children || [])){
+      const childNode = (modalNode.children || []).find(cn => cn.data.name === childName && cn.data.type !== "female");
+      if (!childNode) continue;
+      const cid = personId(childNode);
+      const cData = await loadPersonData(cid);
+      if (cData.mother && cData.mother.wifeId === w.wifeId && !cData.mother.autoFromFather){
+        cData.mother = { ...cData.mother, autoFromFather: true, approved: true };
+        await savePersonData(cid, cData);
+      }
+    }
+
+    // 3) وسم: بيانات مولّدة تلقائيًا، وملفها غير قابل للتحرير اليدوي
     wifeData.autoLinked = true;
 
     await savePersonData(wifeNodeId, wifeData);
 
-    // 4) اسم عقدتها بشجرة أبيها: "زوجة <الاسم الثنائي للزوج>" أو "طليقة ..." — للجديدات فقط
-    const desiredName = (w.divorced ? "طليقة " : "زوجة ") + myChain2;
-    const isAutoName = !femaleNode.data.name ||
-                       femaleNode.data.name === "أم" ||
-                       /^(زوجة|طليقة)\s/.test(femaleNode.data.name);
-    if (isAutoName && femaleNode.data.name !== desiredName){
+    // 4) تحديث اسم عقدتها ليطابق حالة الطلاق الحالية (زوجة/طليقة + الاسم الثنائي للزوج)
+    const desiredName = buildWifeNodeName(!!w.divorced);
+    if (isAutoWifeName(femaleNode.data.name) && femaleNode.data.name !== desiredName){
       femaleNode.data.name = desiredName;
       w.wifeName = desiredName;
       if (femaleNode.data.id){
         try{ await db.collection("persons").doc(femaleNode.data.id).update({ name: desiredName }); }catch(e){}
       }
+      wifeNameChanged = true;
     }
   }
-
-  if (modalNode.data.type === "female" && husbandState && husbandState.husbandId){
-    const marriageIndex2 = await loadMarriageIndex();
-    marriageIndex2[myId] = {
-      husbandId: husbandState.husbandId,
-      husbandName: husbandState.husbandName,
-      husbandChain: husbandState.husbandChain,
-      divorced: !!document.getElementById("f-husbandDivorced").checked
-    };
-    await saveMarriageIndex(marriageIndex2);
+  // إعادة الرسم بعد تغيير الأسماء، وإلا ظل الاسم القديم معروضًا (يبدو متأخرًا دورة كاملة)
+  if (wifeNameChanged){
+    const myDataRef2 = modalNode.data;
+    refreshView();
+    modalNode = root.descendants().find(n => n.data === myDataRef2) || modalNode;
   }
 
   // ربط "أبناء خالة": لكل زوجة من خارج القبيلة فيها عدلاء معتمدون، أضف/حدّث زوجة (أختها) في ملف كل عديل

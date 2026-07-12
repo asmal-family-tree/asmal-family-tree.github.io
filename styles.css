@@ -1407,3 +1407,10 @@
   #nameTooltip{ z-index: 2100 !important; }
   .autocomplete-dropdown{ z-index: 2000 !important; }
 }
+
+/* شارة اللقب/الشهرة في قوائم الاقتراحات — عنصر تمييز بصري */
+.nick-badge{
+  color:#8B5E1F;
+  font-weight:700;
+  font-size:.92em;
+}
