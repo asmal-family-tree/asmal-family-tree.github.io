@@ -79,19 +79,24 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Tajawal',sans-serif; min-height:100vh; }
 
+:root[data-style="3"] .brand,
+:root[data-style="3"] .badge.published,
+:root[data-style="3"] .phone-link,
+:root[data-style="3"] .icon-btn.approve{ color:#fff; }
+
 .topbar{ position:sticky; top:0; z-index:20; background:var(--card-bg); border-bottom:1px solid var(--line); padding:12px 14px; display:flex; align-items:center; justify-content:space-between; }
 .brand{ font-family:'Amiri',serif; font-size:18px; font-weight:700; color:var(--emerald); }
 .back-link{ color:var(--ink); text-decoration:none; font-size:20px; width:24px; text-align:center; }
+.gear-btn{ background:transparent; border:none; color:var(--ink); font-size:20px; cursor:pointer; width:24px; padding:0; }
 
 .auth-gate{ text-align:center; padding:60px 20px; color:var(--ink); opacity:.65; font-size:14px; }
 
 .wrap{ max-width:600px; margin:0 auto; padding:14px 12px 80px; }
 .empty{ text-align:center; color:var(--ink); opacity:.55; padding:60px 20px; font-size:14px; }
 
-.thread{ margin-bottom:22px; }
-.post-card{ border:1.5px solid; border-color:color-mix(in srgb, var(--ink) 18%, var(--line)); border-radius:16px; background:var(--card-bg); overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-.connector-gap{ display:flex; justify-content:flex-end; padding-inline-end:32px; height:20px; }
-.connector-line{ width:3px; height:100%; background:color-mix(in srgb, var(--ink) 22%, var(--line)); border-radius:3px; }
+.thread{ margin-bottom:10px; }
+.post-card{ border:1px solid; border-color:color-mix(in srgb, var(--ink) 14%, var(--line)); border-radius:14px; background:var(--card-bg); overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.segment-divider{ height:1px; background:color-mix(in srgb, var(--ink) 12%, var(--line)); margin:0 16px; }
 
 .post-inner{ padding:14px 16px; }
 .post-head-row{ display:flex; align-items:center; gap:10px; }
@@ -114,7 +119,7 @@ body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Tajawal',sa
 .phone-link{ color:var(--emerald); font-weight:700; text-decoration:underline; direction:ltr; display:inline-block; }
 .post-img{ width:100%; display:block; border-radius:12px; margin-top:10px; border:1px solid var(--line); }
 
-.post-actions{ display:flex; align-items:center; justify-content:space-between; margin-top:12px; max-width:280px; }
+.post-actions{ display:flex; align-items:center; justify-content:center; gap:26px; margin-top:12px; }
 .icon-btn{ display:flex; align-items:center; justify-content:center; color:var(--ink); background:transparent; border:1.5px solid; border-color:color-mix(in srgb, var(--ink) 30%, transparent); cursor:pointer; padding:5px; border-radius:7px; width:29px; height:29px; }
 .icon-btn .ic{ font-size:15px; line-height:1; }
 .icon-btn .ic svg{ width:15px; height:15px; display:block; }
@@ -126,7 +131,8 @@ body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Tajawal',sa
 .section-label::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--emerald); }
 
 /* ============ لوحة إعدادات الحد اليومي (أدمن فقط) ============ */
-.admin-settings-panel{ background:var(--card-bg); border:1.5px solid; border-color:color-mix(in srgb, var(--ink) 18%, var(--line)); border-radius:14px; padding:14px; margin-bottom:16px; }
+.admin-settings-panel{ background:var(--card-bg); border:1.5px solid; border-color:color-mix(in srgb, var(--ink) 18%, var(--line)); border-radius:14px; padding:14px; margin-bottom:16px; display:none; }
+.admin-settings-panel.show{ display:block; }
 .asp-title{ font-size:13px; font-weight:800; color:var(--accent-blue); margin-bottom:10px; }
 .asp-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
 .asp-row label{ font-size:13px; color:var(--ink); }

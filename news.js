@@ -94,15 +94,23 @@ function compressImage(file){
     const reader = new FileReader();
     reader.onload = (ev)=>{
       const img = new Image();
-      img.onload = ()=>{
+      img.onload = async ()=>{
+        try{
+          if (img.decode) await img.decode(); // يضمن اكتمال فك ترميز الصورة قبل الرسم (يصلح ظهورها سوداء على بعض أجهزة الجوال)
+        }catch(decodeErr){ /* نتابع حتى لو فشل decode، onload كفيل غالبًا */ }
         const maxDim = 1200;
-        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        if (!w || !h){ reject(new Error("تعذّرت قراءة أبعاد الصورة")); return; }
+        const scale = Math.min(1, maxDim / Math.max(w, h));
         const canvas = document.createElement("canvas");
-        canvas.width = img.width * scale; canvas.height = img.height * scale;
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
-      img.onerror = reject;
+      img.onerror = ()=> reject(new Error("تعذّر تحميل الصورة"));
       img.src = ev.target.result;
     };
     reader.onerror = reject;
@@ -144,7 +152,12 @@ auth.onAuthStateChanged(async (user)=>{
     document.getElementById("pageWrap").style.display = "";
     if (canWriteNews()) document.getElementById("btnCompose").style.display = "flex";
     if (canModerateNews() || isAdminUser()) await cleanupExpiredPosts();
-    if (isAdminUser()) renderAdminSettingsPanel();
+    if (isAdminUser()){
+      renderAdminSettingsPanel();
+      const gearBtn = document.getElementById("adminGearBtn");
+      gearBtn.style.display = "flex";
+      gearBtn.onclick = ()=> document.getElementById("adminSettingsPanel").classList.toggle("show");
+    }
     await loadFeed();
   } catch(e){
     gate.textContent = "حدث خطأ أثناء التحقق: " + (e.message || e.code);
@@ -166,6 +179,7 @@ async function loadNewsSettings(){
 function renderAdminSettingsPanel(){
   const wrap = document.getElementById("pageWrap");
   const panel = document.createElement("div");
+  panel.id = "adminSettingsPanel";
   panel.className = "admin-settings-panel";
   panel.innerHTML = `
     <div class="asp-title">⚙️ إعدادات الحد اليومي (أدمن فقط — الأدمن نفسه بلا حد)</div>
@@ -263,16 +277,16 @@ async function loadFeed(){
     const showMain = moderator || p.status === "published" || p.authorId === uid;
     if (!showMain && updates.length === 0) continue;
 
-    let html = `<div class="thread">`;
+    let html = `<div class="thread"><div class="post-card">`;
     const items = [];
     if (showMain) items.push({ postId:p.id, updateId:null, ...p });
     updates.forEach(u => items.push({ postId:p.id, updateId:u.id, ...u }));
 
     items.forEach((item, idx)=>{
-      html += renderPostCard(item, moderator);
-      if (idx < items.length-1) html += `<div class="connector-gap"><div class="connector-line"></div></div>`;
+      html += renderSegment(item, moderator);
+      if (idx < items.length-1) html += `<div class="segment-divider"></div>`;
     });
-    html += `</div>`;
+    html += `</div></div>`;
     feed.insertAdjacentHTML("beforeend", html);
   }
 
@@ -284,41 +298,39 @@ function statusLabelAr(s){
   return { published:"منشور", pending:"بانتظار اعتماد", hidden:"مخفي" }[s] || s;
 }
 
-function renderPostCard(item, moderator){
+function renderSegment(item, moderator){
   const isUpdate = !!item.updateId;
   const idLabel = isUpdate ? `${item.postId.slice(0,5)}…-تحديث` : item.postId.slice(0,6)+"…";
   const canManageThis = moderator; // الإخفاء/الاعتماد/الحذف: للمفوَّض/الأدمن فقط
   const canAddUpdate = !isUpdate && (moderator || item.authorId === window.authUser.uid);
 
   return `
-  <div class="post-card" data-post="${item.postId}" data-update="${item.updateId||''}" data-status="${item.status}">
-    <div class="post-inner">
-      <div class="post-head-row">
-        <div class="rail"><div class="avatar"><img src="${avatarUrl(item.authorName)}" alt=""></div></div>
-        <div class="post-head">
-          ${moderator ? `<b>${escapeHtml(item.authorName||'')}</b>` : ''}
-          <span class="id-tag">#${idLabel}</span>
-          <span class="dot">·</span>
-          <span class="time">${fmtDate(item.createdAt)}</span>
-          ${moderator ? `<span class="badge ${item.status}">${statusLabelAr(item.status)}</span>` : ''}
-        </div>
+  <div class="post-inner" data-post="${item.postId}" data-update="${item.updateId||''}" data-status="${item.status}">
+    <div class="post-head-row">
+      <div class="rail"><div class="avatar"><img src="${avatarUrl(item.authorName)}" alt=""></div></div>
+      <div class="post-head">
+        ${moderator ? `<b>${escapeHtml(item.authorName||'')}</b>` : ''}
+        <span class="id-tag">#${idLabel}</span>
+        <span class="dot">·</span>
+        <span class="time">${fmtDate(item.createdAt)}</span>
+        ${moderator ? `<span class="badge ${item.status}">${statusLabelAr(item.status)}</span>` : ''}
       </div>
-      <div class="post-body">
-        ${!isUpdate && item.title ? `<div class="post-title">${escapeHtml(item.title)}</div>` : ''}
-        <div class="post-text">${linkifyPhones(item.text||'')}</div>
-        ${item.imageUrl ? `<img class="post-img" src="${item.imageUrl}">` : ''}
-      </div>
-      <div class="post-actions">
-        ${canAddUpdate ? `<button class="icon-btn btn-add-update" title="إضافة تحديث"><span class="ic">💬</span></button>` : ''}
-        <button class="icon-btn btn-share" data-title="${escapeHtml(item.title||'')}" data-text="${escapeHtml(item.text||'')}" title="مشاركة">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>
-        </button>
-        ${canManageThis ? `
-          <button class="icon-btn approve btn-approve" title="${item.status==='pending'?'اعتماد':'منشور'}" ${item.status==='published'?'disabled':''}><span class="ic">✔️</span></button>
-          <button class="icon-btn btn-hide" title="${item.status==='hidden'?'إظهار':'إخفاء'}"><span class="ic">👁️‍🗨️</span></button>
-          <button class="icon-btn delete btn-delete" title="حذف"><span class="ic">❌</span></button>
-        ` : ''}
-      </div>
+    </div>
+    <div class="post-body">
+      ${!isUpdate && item.title ? `<div class="post-title">${escapeHtml(item.title)}</div>` : ''}
+      <div class="post-text">${linkifyPhones(item.text||'')}</div>
+      ${item.imageUrl ? `<img class="post-img" src="${item.imageUrl}">` : ''}
+    </div>
+    <div class="post-actions">
+      ${canAddUpdate ? `<button class="icon-btn btn-add-update" title="إضافة تحديث"><span class="ic">💬</span></button>` : ''}
+      <button class="icon-btn btn-share" data-title="${escapeHtml(item.title||'')}" data-text="${escapeHtml(item.text||'')}" title="مشاركة">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>
+      </button>
+      ${canManageThis ? `
+        <button class="icon-btn approve btn-approve" title="${item.status==='pending'?'اعتماد':'منشور'}" ${item.status==='published'?'disabled':''}><span class="ic">✔️</span></button>
+        <button class="icon-btn btn-hide" title="${item.status==='hidden'?'إظهار':'إخفاء'}"><span class="ic">👁️‍🗨️</span></button>
+        <button class="icon-btn delete btn-delete" title="حذف"><span class="ic">❌</span></button>
+      ` : ''}
     </div>
   </div>`;
 }
@@ -340,8 +352,8 @@ function wireCardActions(){
 
   document.querySelectorAll(".btn-add-update").forEach(btn=>{
     btn.onclick = ()=>{
-      const card = btn.closest(".post-card");
-      openUpdateComposer(card.dataset.post);
+      const seg = btn.closest(".post-inner");
+      openUpdateComposer(seg.dataset.post);
     };
   });
 
@@ -363,9 +375,9 @@ function docRefFor(card){
 }
 
 async function handleModeration(btn, action){
-  const card = btn.closest(".post-card");
-  const ref = docRefFor(card);
-  const currentStatus = card.dataset.status;
+  const seg = btn.closest(".post-inner");
+  const ref = docRefFor(seg);
+  const currentStatus = seg.dataset.status;
   try{
     if (action === "approve"){
       await ref.update({ status: "published" });
@@ -457,9 +469,14 @@ function openComposer(){
   fImg.addEventListener("change", async (e)=>{
     const file = e.target.files[0];
     if (!file) return;
-    uploadedImg = await compressImage(file);
-    imgPrev.src = uploadedImg;
-    imgPrev.style.display = "block";
+    try{
+      uploadedImg = await compressImage(file);
+      imgPrev.src = uploadedImg;
+      imgPrev.style.display = "block";
+    }catch(err){
+      customAlert("تعذّر معالجة هذه الصورة، جرّب صورة أخرى.");
+      uploadedImg = null;
+    }
   });
   document.getElementById("fCancel").onclick = closeComposer;
 
@@ -526,9 +543,14 @@ function openUpdateComposer(postId){
   uImg.addEventListener("change", async (e)=>{
     const file = e.target.files[0];
     if (!file) return;
-    uploadedImg = await compressImage(file);
-    uImgPrev.src = uploadedImg;
-    uImgPrev.style.display = "block";
+    try{
+      uploadedImg = await compressImage(file);
+      uImgPrev.src = uploadedImg;
+      uImgPrev.style.display = "block";
+    }catch(err){
+      customAlert("تعذّر معالجة هذه الصورة، جرّب صورة أخرى.");
+      uploadedImg = null;
+    }
   });
   document.getElementById("uCancel").onclick = closeComposer;
 
