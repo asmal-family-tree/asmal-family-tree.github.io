@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الأخبار — بني أسمل الحكمي</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="news-styles.css?v=1">
+</head>
+<body data-style="1">
+
+<div id="customAlertBackdrop" class="ca-backdrop" style="display:none;">
+  <div id="customAlertBox" class="ca-box">
+    <div id="customAlertMsg" class="ca-msg"></div>
+    <button id="customAlertOk" class="ca-ok">حسنًا</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <a href="index.html" class="back-link" title="رجوع للشجرة">→</a>
+  <div class="brand">أخبار بني أسمل الحكمي</div>
+  <div style="width:24px;"></div>
+</div>
+
+<div id="authGate" class="auth-gate">جارٍ التحقق من الدخول...</div>
+
+<div class="wrap" id="pageWrap" style="display:none;">
+  <div id="composer" style="display:none;"></div>
+  <div id="feed"></div>
+</div>
+
+<button class="fab" id="btnCompose" title="كتابة خبر" style="display:none;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+</button>
+
+<script src="auth.js?v=5"></script>
+<script src="news.js?v=1"></script>
+</body>
+</html>
