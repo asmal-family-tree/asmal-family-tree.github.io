@@ -1742,37 +1742,39 @@ body:not(.authed) #artBackground{
   z-index:56 !important; background:rgba(255,255,255,.95) !important;
 }
 
-/* رابط الأخبار: بلا خلفية ولا حدود صلبة — فقط توهّج خفيف حول الأيقونة نفسها */
+/* رابط الأخبار: بلا خلفية ولا حدود صلبة — فقط توهّج خفيف حول الأيقونة نفسها.
+   أُنزل تحت A+/A- بمسافة كافية لتفادي تداخل التوهج معهما (كانا ملاصقين سابقًا). */
 :root[data-style="4"] #newsNavBtn{
-  position:fixed !important; top:12px !important; left:auto !important; right:14px !important;
-  width:40px; height:40px; font-size:19px; z-index:56;
+  position:fixed !important; top:56px !important; left:auto !important; right:14px !important;
+  width:36px; height:36px; font-size:18px; z-index:56;
   background:transparent !important; border:none !important;
-  box-shadow:0 0 9px 2px var(--gold) !important;
+  box-shadow:0 0 6px 1px var(--gold) !important;
 }
 
-/* صف أدوات حبة الدواء أسفل الشريط الداكن مباشرة: البحث + تصدير/استيراد + المرفقات (مُنحَّفة أكثر) */
+/* صف أدوات حبة الدواء أسفل رابط الأخبار: البحث + تصدير/استيراد + المرفقات */
 :root[data-style="4"] #searchToggle,
 :root[data-style="4"] #ioToggle,
 :root[data-style="4"] #attachmentsToggle{
-  position:fixed !important; top:76px; z-index:40;
-  width:auto; height:34px; border-radius:18px; padding:0 13px;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
-  box-shadow:var(--card-shadow);
-  display:flex; align-items:center; justify-content:center; gap:5px;
-  font-size:15px; color:var(--ink);
+  position:fixed !important; top:100px !important; z-index:40 !important;
+  width:auto !important; height:34px !important; border-radius:18px !important; padding:0 13px !important;
+  background:var(--card-bg) !important; border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)) !important;
+  box-shadow:var(--card-shadow) !important;
+  display:flex !important; align-items:center !important; justify-content:center !important; gap:5px !important;
+  font-size:15px !important; color:var(--ink) !important; white-space:nowrap !important;
 }
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
 :root[data-style="4"] #attachmentsToggle::after{
-  font-family:'Tajawal',sans-serif; font-size:12px; font-weight:700;
+  font-family:'Tajawal',sans-serif !important; font-size:12px !important; font-weight:700 !important;
+  color:var(--ink) !important; display:inline-block !important;
 }
-:root[data-style="4"] #searchToggle::after{ content:"بحث"; }
-:root[data-style="4"] #ioToggle::after{ content:"تصدير"; }
-:root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات"; }
+:root[data-style="4"] #searchToggle::after{ content:"بحث" !important; }
+:root[data-style="4"] #ioToggle::after{ content:"تصدير" !important; }
+:root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات" !important; }
 /* الترتيب من أقصى اليمين: بحث، ثم تصدير، ثم المرفقات — بمسافات كافية بينها */
-:root[data-style="4"] #searchToggle{ right:14px; }
-:root[data-style="4"] #ioToggle{ right:88px; }
-:root[data-style="4"] #attachmentsToggle{ right:172px; }
+:root[data-style="4"] #searchToggle{ right:14px !important; }
+:root[data-style="4"] #ioToggle{ right:88px !important; }
+:root[data-style="4"] #attachmentsToggle{ right:172px !important; }
 
 /* ملاحظة: A+/A- تبقى بموضعها الافتراضي (أعلى اليمين، top:10px) بلا أي تعديل —
    لأنها بشريط مختلف رأسيًا عن حبات الدواء (top:76px)، فلا تتداخل معها إطلاقًا. */
@@ -1810,7 +1812,7 @@ body:not(.authed) #artBackground{
   display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
   font-size:16px; color:var(--ink);
 }
-:root[data-style="4"] #deleteBadgeToggle::after{ content:"علامات الحذف"; font-family:'Tajawal',sans-serif; font-size:9.5px; font-weight:700; }
+:root[data-style="4"] #deleteBadgeToggle::after{ content:"علامات الحذف" !important; font-family:'Tajawal',sans-serif !important; font-size:9.5px !important; font-weight:700 !important; color:var(--ink) !important; display:inline-block !important; }
 
 /* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
 :root[data-style="4"] #bottomBar{
