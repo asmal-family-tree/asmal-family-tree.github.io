@@ -17,6 +17,32 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// ============ مزامنة ثيم/تصميم الموقع (نفس منطق app.js تمامًا) ============
+// تُستدعى فورًا (لا تنتظر تسجيل الدخول) حتى لا تظهر الصفحة بألوان افتراضية خاطئة.
+async function loadAndApplySiteTheme(ignoreLocalOverride){
+  let theme = "", layoutStyle = "";
+  try{
+    const snap = await db.collection("meta").doc("siteSettings").get();
+    if (snap.exists){
+      theme = snap.data().theme || "";
+      layoutStyle = snap.data().layoutStyle || "";
+    }
+  }catch(e){ console.warn("تعذر تحميل ثيم الموقع، استُخدم الافتراضي:", e); }
+
+  if (!ignoreLocalOverride){
+    const myTheme  = localStorage.getItem("myTheme");
+    const myLayout = localStorage.getItem("myLayout");
+    if (myTheme  !== null) theme = myTheme;
+    if (myLayout !== null) layoutStyle = myLayout;
+  }
+
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+  else document.documentElement.removeAttribute("data-theme");
+  if (layoutStyle) document.documentElement.setAttribute("data-style", layoutStyle);
+  else document.documentElement.removeAttribute("data-style");
+}
+loadAndApplySiteTheme();
+
 // ============ أدوات مساعدة ============
 function escapeHtml(str){
   if (str === null || str === undefined) return "";
@@ -98,6 +124,7 @@ auth.onAuthStateChanged(async (user)=>{
       return;
     }
     window.authUser = buildAuthUser(user.uid, snap.data());
+    if (isAdminUser()) await loadAndApplySiteTheme(true); // الأدمن يرى ثيم الموقع العام دائمًا، بلا تفضيل محلي شخصي
     if (window.authUser.status !== "active"){
       gate.textContent = "حسابك بانتظار التفعيل أو محظور. راجع المشرف.";
       return;
@@ -316,7 +343,7 @@ async function checkAndIncrementDailyCount(){
 document.getElementById("btnCompose").onclick = ()=> openComposer();
 
 function openComposer(){
-  document.getElementById("feed").style.display = "none";
+  const backdrop = document.getElementById("composerBackdrop");
   const box = document.getElementById("composer");
   uploadedImg = null;
   box.innerHTML = `
@@ -345,12 +372,12 @@ function openComposer(){
         <input type="date" id="fExpiry">
       </div>
       <button class="submit-btn" id="fSubmit">${hasNewsAutoPublish() ? "نشر مباشرة" : "إرسال للاعتماد"}</button>
-      <button class="close-composer" id="fCancel">إلغاء والرجوع للأخبار</button>
+      <button class="close-composer" id="fCancel">إلغاء</button>
     </div>
     <div class="preview-label">👁️ معاينة حية</div>
     <div id="livePreview"></div>
   `;
-  box.style.display = "";
+  backdrop.classList.add("show");
 
   const fTitle = document.getElementById("fTitle");
   const fText = document.getElementById("fText");
@@ -419,13 +446,15 @@ function openComposer(){
 }
 
 function closeComposer(){
-  document.getElementById("composer").style.display = "none";
-  document.getElementById("feed").style.display = "";
+  document.getElementById("composerBackdrop").classList.remove("show");
 }
+document.getElementById("composerBackdrop").addEventListener("click", (e)=>{
+  if (e.target.id === "composerBackdrop") closeComposer();
+});
 
 // ============ فورم إضافة تحديث لخبر موجود ============
 function openUpdateComposer(postId){
-  document.getElementById("feed").style.display = "none";
+  const backdrop = document.getElementById("composerBackdrop");
   const box = document.getElementById("composer");
   uploadedImg = null;
   box.innerHTML = `
@@ -442,10 +471,10 @@ function openUpdateComposer(postId){
         <img id="uImgPrev" class="img-preview">
       </div>
       <button class="submit-btn" id="uSubmit">${hasNewsAutoPublish() ? "نشر مباشرة" : "إرسال للاعتماد"}</button>
-      <button class="close-composer" id="uCancel">إلغاء والرجوع للأخبار</button>
+      <button class="close-composer" id="uCancel">إلغاء</button>
     </div>
   `;
-  box.style.display = "";
+  backdrop.classList.add("show");
 
   const uImg = document.getElementById("uImg");
   const uImgPrev = document.getElementById("uImgPrev");
