@@ -240,8 +240,8 @@ function renderPostCard(item, moderator){
   return `
   <div class="post-card" data-post="${item.postId}" data-update="${item.updateId||''}" data-status="${item.status}">
     <div class="post-inner">
-      <div class="rail"><div class="avatar"><img src="${avatarUrl(item.authorName)}" alt=""></div></div>
-      <div class="post-main">
+      <div class="post-head-row">
+        <div class="rail"><div class="avatar"><img src="${avatarUrl(item.authorName)}" alt=""></div></div>
         <div class="post-head">
           ${moderator ? `<b>${escapeHtml(item.authorName||'')}</b>` : ''}
           <span class="id-tag">#${idLabel}</span>
@@ -249,20 +249,22 @@ function renderPostCard(item, moderator){
           <span class="time">${fmtDate(item.createdAt)}</span>
           ${moderator ? `<span class="badge ${item.status}">${statusLabelAr(item.status)}</span>` : ''}
         </div>
+      </div>
+      <div class="post-body">
         ${!isUpdate && item.title ? `<div class="post-title">${escapeHtml(item.title)}</div>` : ''}
         <div class="post-text">${linkifyPhones(item.text||'')}</div>
         ${item.imageUrl ? `<img class="post-img" src="${item.imageUrl}">` : ''}
-        <div class="post-actions">
-          ${canAddUpdate ? `<button class="icon-btn btn-add-update" title="إضافة تحديث"><span class="ic">💬</span></button>` : ''}
-          <button class="icon-btn btn-share" data-title="${escapeHtml(item.title||'')}" data-text="${escapeHtml(item.text||'')}" title="مشاركة">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>
-          </button>
-          ${canManageThis ? `
-            <button class="icon-btn approve btn-approve" title="${item.status==='pending'?'اعتماد':'منشور'}" ${item.status==='published'?'disabled':''}><span class="ic">✔️</span></button>
-            <button class="icon-btn btn-hide" title="${item.status==='hidden'?'إظهار':'إخفاء'}"><span class="ic">👁️‍🗨️</span></button>
-            <button class="icon-btn delete btn-delete" title="حذف"><span class="ic">❌</span></button>
-          ` : ''}
-        </div>
+      </div>
+      <div class="post-actions">
+        ${canAddUpdate ? `<button class="icon-btn btn-add-update" title="إضافة تحديث"><span class="ic">💬</span></button>` : ''}
+        <button class="icon-btn btn-share" data-title="${escapeHtml(item.title||'')}" data-text="${escapeHtml(item.text||'')}" title="مشاركة">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></span>
+        </button>
+        ${canManageThis ? `
+          <button class="icon-btn approve btn-approve" title="${item.status==='pending'?'اعتماد':'منشور'}" ${item.status==='published'?'disabled':''}><span class="ic">✔️</span></button>
+          <button class="icon-btn btn-hide" title="${item.status==='hidden'?'إظهار':'إخفاء'}"><span class="ic">👁️‍🗨️</span></button>
+          <button class="icon-btn delete btn-delete" title="حذف"><span class="ic">❌</span></button>
+        ` : ''}
       </div>
     </div>
   </div>`;
