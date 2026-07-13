@@ -122,22 +122,50 @@ document.getElementById("authPassword").addEventListener("keydown", (e) => {
 async function afterSignIn(fbUser){
   if (window.__adminBootstrapping) return;
   const userDoc = await ensureUserDoc(fbUser.uid, {
-    role: "limited", displayName: (fbUser.email || "").split("@")[0], scopePersonId: null,
-    canView: true, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    role: "user",
+    status: "pending",              // الحساب الجديد معلّق حتى يفعّله المشرف
+    displayName: (fbUser.email || "").split("@")[0],
+    scopePersonId: null,
+    perms: DEFAULT_PERMS,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-  currentUser = { uid: fbUser.uid, role: userDoc.role, scopePersonId: userDoc.scopePersonId || null,
-    scopePersonName: userDoc.scopePersonName || null, displayName: userDoc.displayName,
-    canView: userDoc.canView !== false };
+
+  // بناء المستخدم عبر طبقة الصلاحيات المشتركة (auth.js)
+  window.authUser = buildAuthUser(fbUser.uid, userDoc);
+  currentUser = window.authUser;      // توافق مع الكود القائم
   window.currentUser = currentUser;
-  document.getElementById("authOverlay").classList.add("hidden");
+
   setAuthLoading(false);
-  document.getElementById("currentUserName").textContent = "👤 " + currentUser.displayName;
+
+  // حساب بانتظار التفعيل أو محظور — لا يدخل الموقع
+  if (window.authUser.status !== "active"){
+    const msg = window.authUser.status === "blocked"
+      ? "حسابك موقوف. تواصل مع المشرف."
+      : "حسابك بانتظار التفعيل من المشرف.";
+    showAuthError(msg);
+    await auth.signOut();
+    return;
+  }
+
+  document.getElementById("authOverlay").classList.add("hidden");
+  document.getElementById("currentUserName").textContent = "👤 " + window.authUser.displayName;
   document.getElementById("currentUserBadge").classList.add("show");
-  document.getElementById("noViewMsg").classList.remove("show");
-  document.getElementById("tree-wrap").classList.remove("tree-hidden");
   loadAndApplySiteTheme();
   applyRolePermissions();
 }
+
+// ---------- الدخول كضيف ----------
+async function enterAsGuest(){
+  signInAsGuest();
+  currentUser = window.authUser;
+  window.currentUser = currentUser;
+  document.getElementById("authOverlay").classList.add("hidden");
+  document.getElementById("currentUserName").textContent = "👤 ضيف";
+  document.getElementById("currentUserBadge").classList.add("show");
+  loadAndApplySiteTheme();
+  applyRolePermissions();
+}
+window.enterAsGuest = enterAsGuest;
 
 async function loadAndApplySiteTheme(){
   try{
@@ -247,32 +275,75 @@ async function firestoreDeletePerson(dataNode){
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// تطبيق الصلاحيات على الواجهة — مبني على مصفوفة perms (لا أدوار جامدة)
+// كل زر تبويب يحمل صلاحيته، والأدمن يتجاوز كل شيء.
+// ═══════════════════════════════════════════════════════════════
+
+// خريطة: زر الواجهة -> (التبويب، وضع الإخفاء)
+// mode "hide"   => يختفي تمامًا لمن لا يملك الصلاحية
+// mode "notify" => يبقى ظاهرًا، وعند الضغط تظهر رسالة (يحفّز الضيف على التسجيل)
+const TAB_PERMS = [
+  { id: "searchToggle",      page: "search",   mode: "hide" },
+  { id: "relToggle",         page: "relation", mode: "hide" },
+  { id: "myTreeToggle",      page: "myTree",   mode: "hide" },
+  { id: "recordsToggle",     page: "records",  mode: "notify" },
+  { id: "bgToggle",          page: "design",   mode: "notify" },
+  { id: "attachmentsToggle", page: "attachments", mode: "hide" },
+  { id: "ioToggle",          page: "io",       mode: "hide" },
+  { id: "deleteBadgeToggle", page: "deleteMode", mode: "hide" },
+  { id: "usersToggle",       page: "users",    mode: "hide" },
+  { id: "toggleTree",        page: "tree",     mode: "hide" }
+];
+
 function applyRolePermissions(){
-  if (!currentUser) return;
-  document.body.classList.toggle("role-limited", currentUser.role !== "admin");
-  if (currentUser.role === "admin"){
-    document.getElementById("migrateRow").style.display = "flex";
-    document.getElementById("usersToggle").style.display = "";
-    document.getElementById("recordsToggle").style.display = "";
-    document.getElementById("deleteBadgeToggle").style.display = "";
-    document.getElementById("ioToggle").style.display = "";
-    document.getElementById("toggleTree").style.display = "";
-    document.getElementById("bgToggle").style.display = "";
-    document.getElementById("attachmentsToggle").style.display = "";
-  } else {
-    document.getElementById("usersToggle").style.display = "none";
-    document.getElementById("recordsToggle").style.display = "none";
-    document.getElementById("deleteBadgeToggle").style.display = "none";
-    document.getElementById("bgToggle").style.display = "none";
-    document.getElementById("ioToggle").style.display = "none";
-    document.getElementById("toggleTree").style.display = "none";
-    document.getElementById("attachmentsToggle").style.display = "none";
-    if (currentUser.canView === false){
-      document.getElementById("tree-wrap").classList.add("tree-hidden");
-      document.getElementById("noViewMsg").classList.add("show");
-      return;
+  if (!window.authUser) return;
+  const admin = isAdminUser();
+  document.body.classList.toggle("role-limited", !admin);
+  document.body.classList.toggle("role-guest", isGuest());
+
+  for (const t of TAB_PERMS){
+    const allowed = can(t.page, "view");
+    // الزر الأصلي (شريط الجوال)
+    const el = document.getElementById(t.id);
+    if (el){
+      if (allowed){
+        el.style.display = "";
+        el.classList.remove("perm-disabled");
+      } else if (t.mode === "notify"){
+        el.style.display = "";
+        el.classList.add("perm-disabled");
+      } else {
+        el.style.display = "none";
+      }
+    }
+    // التبويب المقابل في هيدر سطح المكتب
+    const dtTab = document.querySelector(`.dt-tab[data-target="${t.id}"]`);
+    if (dtTab){
+      if (allowed){
+        dtTab.style.display = "";
+        dtTab.classList.remove("perm-disabled");
+      } else if (t.mode === "notify"){
+        dtTab.style.display = "";
+        dtTab.classList.add("perm-disabled");
+      } else {
+        dtTab.style.display = "none";
+      }
     }
   }
+
+  const migrateRow = document.getElementById("migrateRow");
+  if (migrateRow) migrateRow.style.display = admin ? "flex" : "none";
+
+  // لا صلاحية مشاهدة الشجرة إطلاقًا
+  if (!can("tree", "view")){
+    document.getElementById("tree-wrap").classList.add("tree-hidden");
+    document.getElementById("noViewMsg").classList.add("show");
+    return;
+  }
+  document.getElementById("tree-wrap").classList.remove("tree-hidden");
+  document.getElementById("noViewMsg").classList.remove("show");
+
   checkMigrationStatusAndLoad();
 }
 

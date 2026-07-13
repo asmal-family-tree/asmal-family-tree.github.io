@@ -1422,3 +1422,15 @@
    ================================================================ */
 #customAlertBackdrop{ z-index: 3000 !important; }
 #customAlertBox{ z-index: 3001 !important; }
+
+/* ================================================================
+   [الصلاحيات] عناصر يُمنع المستخدم من استخدامها
+   • perm-hidden   = مخفية تمامًا
+   • perm-disabled = ظاهرة لكن باهتة، وعند الضغط تظهر رسالة
+     (نتركها ظاهرة عمدًا للضيف ليعرف أن الميزة موجودة فيُحفَّز للتسجيل)
+   ================================================================ */
+.perm-hidden{ display:none !important; }
+.perm-disabled{ opacity:.45; position:relative; }
+.perm-disabled::after{
+  content:"🔒"; position:absolute; top:2px; left:2px; font-size:10px;
+}
