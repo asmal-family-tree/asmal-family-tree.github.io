@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=38">
+<link rel="stylesheet" href="styles.css?v=40">
 </head>
 <body>
 <script>
@@ -143,10 +143,6 @@
     <button id="exportData" title="تصدير نسخة احتياطية">⬇️ نسخة احتياطية</button>
     <label id="importDataLabel" title="استيراد نسخة">⬆️ استيراد<input type="file" id="importData" accept=".json" style="display:none"></label>
   </div>
-  <div class="io-row" id="migrateRow" style="display:none">
-    <button id="migrateBtn" title="نقل بيانات الشجرة لقاعدة البيانات">☁️ نقل البيانات لقاعدة البيانات</button>
-  </div>
-  <div id="migrateStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
 </div>
 
 <!-- تصميم الموقع: تبويب مستقل. المستخدم يغيّره لنفسه (localStorage)، والمشرف يغيّره للجميع (Firestore). -->
@@ -192,8 +188,9 @@
     <div class="admin-box-note">حسابات ينشئها المشرف مباشرة — تُفعَّل فورًا بلا انتظار.</div>
     <input type="text" id="newUserName" class="f-input" placeholder="اسم المستخدم" style="margin-bottom:8px;">
     <input type="text" id="newUserPassword" class="f-input" placeholder="كلمة المرور" style="margin-bottom:8px;">
+    <label class="f-label" style="display:block; margin-bottom:6px;">🔗 نطاق المستخدم (عقدته في الشجرة)</label>
     <div style="position:relative">
-      <input type="text" id="newUserScopeInput" class="f-input" placeholder="اسم الشخص (النقطة المسموحة)، ثم اختر من القائمة" style="margin-bottom:8px;">
+      <input type="text" id="newUserScopeInput" class="f-input" placeholder="اكتب الاسم ثم اختر من القائمة" style="margin-bottom:8px;">
       <div id="newUserScopeDropdown" class="autocomplete-dropdown"></div>
     </div>
     <button id="newUserAddBtn" class="f-btn-sm" style="width:100%">➕ إضافة مستخدم</button>
@@ -244,7 +241,6 @@
 <header id="dtHeader">
   <div class="dt-brand">🌳 بني أسمل الحكمي</div>
   <nav class="dt-tabs">
-    <button class="dt-tab" data-target="toggleTree"><span class="dt-ic">🙈</span><span>إظهار/إخفاء</span></button>
     <button class="dt-tab" data-target="myTreeToggle"><span class="dt-ic">🌳</span><span>شجرتي</span></button>
     <button class="dt-tab" data-target="searchToggle"><span class="dt-ic">🔍</span><span>البحث</span></button>
     <button class="dt-tab" data-target="relToggle"><span class="dt-ic">🧮</span><span>حاسبة العلاقة</span></button>
@@ -269,7 +265,6 @@
   <button id="ioToggle" title="استيراد وتصدير">📁</button>
   <button id="designToggle" title="تصميم الموقع">🎨</button>
   <button id="bgToggle" title="خلفية الشجرة" style="display:none">🖼️</button>
-  <button id="toggleTree" title="إخفاء/إظهار المشجرة">🙈</button>
   <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
   <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
   <button id="deleteBadgeToggle" title="إظهار/إخفاء علامات الحذف" style="display:none">🗑️</button>
@@ -400,6 +395,6 @@
 </div>
 
 <script src="auth.js?v=4"></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

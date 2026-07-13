@@ -147,6 +147,7 @@ async function afterSignIn(fbUser){
     return;
   }
 
+  document.body.classList.add("authed");   // الآن فقط تُرسم عناصر التحكم
   document.getElementById("authOverlay").classList.add("hidden");
   document.getElementById("currentUserName").textContent = "👤 " + window.authUser.displayName;
   document.getElementById("currentUserBadge").classList.add("show");
@@ -159,6 +160,7 @@ async function enterAsGuest(){
   signInAsGuest();
   currentUser = window.authUser;
   window.currentUser = currentUser;
+  document.body.classList.add("authed");
   document.getElementById("authOverlay").classList.add("hidden");
   document.getElementById("currentUserName").textContent = "👤 ضيف";
   document.getElementById("currentUserBadge").classList.add("show");
@@ -280,17 +282,24 @@ auth.onAuthStateChanged((fbUser) => {
   } else {
     currentUser = null;
     window.currentUser = null;
+    window.authUser = null;
+    document.body.classList.remove("authed");   // إخفاء كل عناصر التحكم فورًا
     document.getElementById("authOverlay").classList.remove("hidden");
   }
 });
 
 function isDbBacked(){ return currentUser && !!treeData.id; }
+// شرطان لا بد منهما معًا:
+//   ١) يملك صلاحية tree.edit  (كانت مفقودة: من له نطاق كان يضيف ولو بلا صلاحية)
+//   ٢) الموضع داخل نطاقه      (عقدته نفسها أو أحد فروعها)
+// المشرف يتجاوز قيد النطاق، لا قيد الصلاحية (فهو يملكها أصلًا).
 function canAddUnder(parentDataNode){
-  if (!currentUser) return false;
-  if (currentUser.role === "admin") return true;
-  if (!currentUser.scopePersonId) return false;
+  if (!can("tree", "edit")) return false;
+  if (isAdminUser()) return true;
+  const scope = window.authUser && window.authUser.scopePersonId;
+  if (!scope) return false;
   const ids = parentDataNode.ancestorIds || [];
-  return parentDataNode.id === currentUser.scopePersonId || ids.includes(currentUser.scopePersonId);
+  return parentDataNode.id === scope || ids.includes(scope);
 }
 
 async function firestoreAddPerson(parentDataNode, name, type, extraFields){
@@ -298,7 +307,7 @@ async function firestoreAddPerson(parentDataNode, name, type, extraFields){
   const parentAncestorIds = parentDataNode.ancestorIds || [];
   const ref = db.collection("persons").doc();
   const ancestorIds = parentAncestorIds.concat([ref.id]);
-  const pending = currentUser.role !== "admin";
+  const pending = !isAdminUser();   // إضافة غير المشرف تبقى معلّقة حتى الاعتماد
   await ref.set(Object.assign({
     name, type, parentId: parentId,
     ancestorIds, isJoinPoint: false, pendingApproval: pending,
@@ -337,8 +346,7 @@ const TAB_PERMS = [
   { id: "attachmentsToggle", page: "attachments", mode: "hide" },
   { id: "ioToggle",          page: "io",       mode: "hide" },
   { id: "deleteBadgeToggle", page: "deleteMode", mode: "hide" },
-  { id: "usersToggle",       page: "users",    mode: "hide" },
-  { id: "toggleTree",        page: "tree",     mode: "hide" }
+  { id: "usersToggle",       page: "users",    mode: "hide" }
 ];
 
 function applyRolePermissions(){
@@ -379,8 +387,6 @@ function applyRolePermissions(){
     }
   }
 
-  const migrateRow = document.getElementById("migrateRow");
-  if (migrateRow) migrateRow.style.display = admin ? "flex" : "none";
 
   // لا صلاحية مشاهدة الشجرة إطلاقًا
   if (!can("tree", "view")){
@@ -394,86 +400,21 @@ function applyRolePermissions(){
   checkMigrationStatusAndLoad();
 }
 
-// ============ نقل بيانات الشجرة إلى Firestore (مرة واحدة) ============
+// ============ تحميل الشجرة من Firestore ============
+// (النقل الأولي تمّ ونُقلت 616 عقدة؛ زرّ النقل حُذف بعد انتهاء مهمته)
 async function checkMigrationStatusAndLoad(){
   try{
-    const metaSnap = await db.collection("meta").doc("migration").get();
-    if (metaSnap.exists && metaSnap.data().done){
-      document.getElementById("migrateStatus").textContent = `✅ البيانات منقولة (${metaSnap.data().count || ""} شخص). جارِ التحميل من القاعدة…`;
-      await loadTreeFromFirestore();
-    } else {
-      document.getElementById("migrateStatus").textContent = currentUser.role === "admin"
-        ? "⚠️ البيانات لسا محلية (مو منقولة لقاعدة البيانات بعد)"
-        : "";
-    }
+    await loadTreeFromFirestore();
   }catch(e){
-    document.getElementById("migrateStatus").textContent = "تعذّر التحقق من حالة قاعدة البيانات: " + (e.message || e.code);
+    console.error("تعذّر تحميل الشجرة من قاعدة البيانات:", e);
   }
 }
 
-document.getElementById("migrateBtn").onclick = async function(){
-  if (!currentUser || currentUser.role !== "admin") return;
-  const btn = this;
-  const statusEl = document.getElementById("migrateStatus");
-  const confirmed = window.confirm("سيتم نقل كل بيانات الشجرة الحالية (٦٠٠ شخص تقريبًا) إلى قاعدة البيانات. قد يستغرق دقيقة. هل تريد المتابعة؟");
-  if (!confirmed) return;
-  btn.disabled = true;
-  statusEl.textContent = "جارِ تجهيز البيانات…";
-  try{
-    // ترقيم كل شخص برقم فريد ثابت (تسلسل ما قبل النظام Pre-order)
-    let counter = 0;
-    const records = [];
-    function walk(node, parentId, ancestorIds){
-      counter++;
-      const id = "p" + counter;
-      const myAncestorIds = ancestorIds.concat([id]);
-      records.push({
-        id, name: node.name, type: node.type || "leaf",
-        parentId: parentId,
-        ancestorIds: myAncestorIds,
-        isJoinPoint: !!node.isJoinPoint
-      });
-      (node.children || []).forEach(ch => walk(ch, id, myAncestorIds));
-    }
-    walk(treeData, null, []);
-
-    statusEl.textContent = `جارِ رفع ${records.length} شخص لقاعدة البيانات…`;
-
-    // الكتابة بدفعات (حد Firestore الأقصى 500 عملية لكل دفعة)
-    const BATCH_SIZE = 400;
-    for (let i = 0; i < records.length; i += BATCH_SIZE){
-      const batch = db.batch();
-      const slice = records.slice(i, i + BATCH_SIZE);
-      slice.forEach(rec => {
-        const ref = db.collection("persons").doc(rec.id);
-        batch.set(ref, {
-          name: rec.name, type: rec.type, parentId: rec.parentId,
-          ancestorIds: rec.ancestorIds, isJoinPoint: rec.isJoinPoint,
-          pendingApproval: false, addedBy: currentUser.uid,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      });
-      await batch.commit();
-      statusEl.textContent = `تم رفع ${Math.min(i + BATCH_SIZE, records.length)} من ${records.length}…`;
-    }
-
-    await db.collection("meta").doc("migration").set({
-      done: true, count: records.length, migratedAt: firebase.firestore.FieldValue.serverTimestamp(), migratedBy: currentUser.uid
-    });
-
-    statusEl.textContent = `✅ تم نقل ${records.length} شخص بنجاح! جارِ إعادة التحميل من القاعدة…`;
-    document.getElementById("migrateRow").style.display = "none";
-    await loadTreeFromFirestore();
-  }catch(e){
-    statusEl.textContent = "❌ خطأ أثناء النقل: " + (e.message || e.code);
-    btn.disabled = false;
-  }
-};
 
 async function loadTreeFromFirestore(){
   const snap = await db.collection("persons").get();
   if (snap.empty) return;
-  const isAdminView = currentUser && currentUser.role === "admin";
+  const isAdminView = isAdminUser();   // مصدر واحد للحقيقة (auth.js)
   const byId = new Map();
   snap.forEach(doc => {
     const d = doc.data();
@@ -491,11 +432,12 @@ async function loadTreeFromFirestore(){
   });
   if (!rootNode) return;
 
-  // للمستخدم المحدود: نعرض بس من نقطته (شخصه) نزولًا لأبنائه وأحفاده
-  if (!isAdminView && currentUser && currentUser.scopePersonId){
-    const scopeNode = byId.get(currentUser.scopePersonId);
-    if (scopeNode) rootNode = scopeNode;
-  }
+  // ملاحظة: سابقًا كانت الشجرة تُقصّ هنا عند نقطة المستخدم (scopePersonId).
+  // أُزيل ذلك لأنه خلط بين ثلاثة أدوار منفصلة:
+  //   • tree.view        => الشجرة كاملة من الجذر (قراءة)
+  //   • تبويب "شجرتي"    => فرع المستخدم (عرض مستقل)
+  //   • scopePersonId    => نقطة بدء التعديل فقط (كتابة)
+  // فربط مستخدم بعقدته كان ينكمش عرضه فجأة، وهو ليس المقصود.
 
   function clean(n){
     const out = { name: n.name, type: n.type, id: n.id, ancestorIds: n.ancestorIds };
@@ -515,7 +457,6 @@ async function loadTreeFromFirestore(){
   treeData.ancestorIds = cleaned.ancestorIds;
   treeData.children = cleaned.children || [];
   refreshView();
-  document.getElementById("migrateStatus").textContent = "✅ البيانات محمّلة من قاعدة البيانات مباشرة";
 }
 
 // ============ إدارة المستخدمين (مرحلة ٤) ============
@@ -825,6 +766,15 @@ document.getElementById("exportAllRecordsBtn").onclick = exportAllRecordsPdf;
 // كل تبويب × (مشاهدة/تعديل/حذف). التبويبات المقصورة على المشرف
 // غير معروضة هنا لأنها خارج المصفوفة أصلًا.
 // ═══════════════════════════════════════════════════════════════
+
+// اسم عقدة المستخدم بصيغة ثلاثية مفهومة (بدل "محمد" المفردة الغامضة)
+function scopeChainLabel(u){
+  if (!u.scopePersonId) return "غير محدد";
+  const node = root && root.descendants().find(d => d.data.id === u.scopePersonId);
+  if (node) return chainNames(node).slice(0, 3).join(" بن ");
+  return u.scopePersonName || u.scopePersonId;
+}
+
 let editingPermsUid = null;
 let editingPerms = null;
 let editingScope = null;   // { id, name, ancestorIds } — العقدة المرتبطة بالمستخدم
@@ -904,8 +854,9 @@ function openPermsEditor(uid, userData){
       erow.style.paddingRight = "18px";
       const elabel = document.createElement("span");
       elabel.className = "perms-row-label";
-      elabel.style.color = "#8a7a5a";
-      elabel.style.fontSize = "11.5px";
+      elabel.style.color = "#6a5c42";
+      elabel.style.fontSize = "14.5px";
+      elabel.style.fontWeight = "700";
       elabel.textContent = "↳ " + (ACTION_LABELS[action] || action);
       erow.appendChild(elabel);
 
@@ -949,7 +900,7 @@ attachPersonSearch(
   document.getElementById("permsScopeInput"),
   document.getElementById("permsScopeDropdown"),
   (picked) => {
-    editingScope = { id: picked.id, name: picked.name, ancestorIds: picked.ancestorIds };
+    editingScope = { id: picked.id, name: picked.name, ancestorIds: picked.ancestorIds, chain3: picked.chain3 };
     document.getElementById("permsScopeCurrent").textContent =
       `سيُربط بـ: ${picked.chain3}  (${picked.id})`;
   }
@@ -964,6 +915,7 @@ document.getElementById("permsSaveBtn").onclick = async () => {
     if (editingScope && editingScope.id){
       payload.scopePersonId = editingScope.id;
       payload.scopePersonName = editingScope.name || "";
+      if (editingScope.chain3) payload.scopePersonChain = editingScope.chain3;
     }
     await db.collection("users").doc(editingPermsUid).update(payload);
     statusEl.textContent = "✅ حُفظت الصلاحيات" + (editingScope ? " والنطاق" : "");
@@ -1021,7 +973,7 @@ async function refreshUsersAndPendingLists(){
           <div class="user-card-top">
             <div>
               <div class="user-card-name">${escapeHtml(u.displayName || "—")}</div>
-              <div class="user-card-sub">النطاق: ${escapeHtml(u.scopePersonName || "غير محدد")}</div>
+              <div class="user-card-sub">🔗 ${u.scopePersonId ? escapeHtml(scopeChainLabel(u)) : "<span style=\'color:#B3261E\'>لا نطاق — لن تعمل شجرتي ولا ملفه</span>"}</div>
             </div>
             ${badge}
           </div>
@@ -6996,7 +6948,7 @@ function renderCurrentSons(){
     const chip = document.createElement("div");
     chip.className = "chip";
     const hasKids = k.children && k.children.length;
-    const canDeleteThis = k.data.manuallyAdded && currentUser && currentUser.role === "admin";
+    const canDeleteThis = k.data.manuallyAdded && can("tree", "delete");
     chip.innerHTML = canDeleteThis
       ? `<span>${k.data.name}</span><span class="chip-x" title="حذف">✕</span>`
       : `<span>${k.data.name}</span>`;
@@ -7305,12 +7257,6 @@ document.getElementById("f-clearAll").onclick = async () => {
   const msg = document.getElementById("f-saveMsg");
   msg.textContent = "تم مسح كل المعلومات وتنظيف الإشارات المرتبطة 🗑️";
   setTimeout(() => { msg.textContent = ""; }, 2500);
-};
-
-document.getElementById("toggleTree").onclick = function(){
-  document.getElementById("tree-wrap").classList.toggle("tree-hidden");
-  const hidden = document.getElementById("tree-wrap").classList.contains("tree-hidden");
-  this.textContent = hidden ? "🙈" : "👁️";
 };
 
 // ═══════════════════════════════════════════════════════════════

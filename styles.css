@@ -460,7 +460,11 @@
   --trunk:#4A3218; --trunk-ring:#3A2814; --leaf:#5A3E1E; --leaf-ring:#3A2814;
   --gold:#C08A2E; --gold-soft:#EAD9B0; --gold-bright:#E0A836;
   --emerald:#3A2814; --emerald-2:#4A3218; --panel-dark:#2c2015; --panel-dark-2:#3A2814; --card-bg:#FFFCF3;
-}:root[data-style="2"] *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}:root[data-style="2"] html, :root[data-style="2"] body{ margin:0; overscroll-behavior:none; }:root[data-style="2"] body{
+}}:root[data-style="2"][data-theme="pearl-white"]{
+  --bg:#EEF1F5; --ink:#1F2933; --root:#2E3A45; --root-ring:#8FA3B8;
+  --trunk:#485A6B; --trunk-ring:#2E3A45; --leaf:#5A6B7B; --leaf-ring:#2E3A45;
+  --gold:#8FA3B8; --gold-soft:#DFE5EC; --gold-bright:#A9BDD1;
+  --emerald:#2E3A45; --emerald-2:#3E4E5C; --panel-dark:#2A343E; --panel-dark-2:#3E4E5C; --card-bg:#FFFFFF;:root[data-style="2"] *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}:root[data-style="2"] html, :root[data-style="2"] body{ margin:0; overscroll-behavior:none; }:root[data-style="2"] body{
   background:
     repeating-linear-gradient(135deg, rgba(192,138,46,.035) 0 2px, transparent 2px 26px),
     var(--bg);
@@ -547,6 +551,10 @@
   --bg:#181209; --bg-2:#1f180d; --ink:#F1E9D8; --glow:#E0A836; --gold:#E0A836;
   --root:#3A2410; --root-ring:#E0A836; --trunk:#4A3016; --trunk-ring:#E0A836; --leaf:#5A3C1C; --leaf-ring:#E0A836;
   --emerald:#3A2410; --emerald-2:#4A3016; --card-bg:#1f180d;
+}:root[data-style="3"][data-theme="pearl-white"]{
+  --bg:#EDF1F6; --bg-2:#F7F9FC; --ink:#1F2933; --glow:#5B8CB8; --gold:#5B8CB8;
+  --root:#2E3A45; --root-ring:#5B8CB8; --trunk:#4A5D70; --trunk-ring:#5B8CB8; --leaf:#5F7387; --leaf-ring:#5B8CB8;
+  --emerald:#2E3A45; --emerald-2:#3E4E5C; --card-bg:#FFFFFF;
 }:root[data-style="3"] *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}:root[data-style="3"] html, :root[data-style="3"] body{ margin:0; overscroll-behavior:none; }:root[data-style="3"] body{
   background:
     radial-gradient(circle at 15% 15%, rgba(47,227,166,.08), transparent 40%),
@@ -1535,13 +1543,129 @@
 #usersList{ max-height:none !important; overflow:visible !important; }
 
 /* تكبير خط المصفوفة وعناصر الاختيار — كانت صغيرة يصعب لمسها */
-.perms-head{ font-size:15px; margin-bottom:14px; }
-.perms-header-row{ font-size:13px; padding-bottom:9px; }
-.perms-row{ padding:11px 0; }
-.perms-row-label{ font-size:15px; }
-.perms-cell{ width:48px; }
+.perms-head{ font-size:16px; font-weight:800; margin-bottom:14px; }
+.perms-header-row{ font-size:14px; font-weight:800; padding-bottom:10px; }
+.perms-row{ padding:12px 0; }
+.perms-row-label{ font-size:16px; font-weight:700; color:var(--ink, #241a10); }
+.perms-cell{ width:52px; }
 .perms-row input[type="checkbox"],
 #permsGrid input[type="checkbox"]{
   width:22px; height:22px; cursor:pointer; accent-color:var(--emerald);
 }
-.perms-actions button{ font-size:15px; padding:12px; }
+.perms-actions button{ font-size:16px; font-weight:800; padding:13px; }
+/* الصفوف الفرعية: أعرض وأوضح مما كانت */
+#permsGrid .perms-row-label[style*="11.5"],
+#permsGrid .perms-row > .perms-row-label{ font-weight:700; }
+
+
+/* ================================================================
+   [الأبيض اللؤلؤي × التصميم المستقبلي]
+   التصميم المستقبلي مبني على لوحة داكنة: أسطحه مثبّتة بـ#181c24
+   ونصوصه فاتحة (#c9d4ce, #cfd8d2). فقلْبُ الأسطح إلى أبيض وحده
+   يجعل النص الفاتح يختفي على خلفية فاتحة.
+   لذلك كل قاعدة هنا تضبط الخلفية *والنص* معًا، ولا تفصلهما أبدًا.
+   ================================================================ */
+:root[data-style="3"][data-theme="pearl-white"]{
+  --surface:#FFFFFF;      /* الأسطح (كانت #181c24) */
+  --surface-2:#F2F5F9;    /* أسطح ثانوية */
+  --edge:#D5DDE6;         /* الحدود */
+  --text:#1F2933;         /* النص الأساسي — داكن */
+  --text-soft:#4A5763;    /* النص الثانوي — كان #c9d4ce */
+}
+
+/* — الأسطح: خلفية بيضاء + نص داكن معًا — */
+:root[data-style="3"][data-theme="pearl-white"] #bottomBar,
+:root[data-style="3"][data-theme="pearl-white"] #bottomBar button,
+:root[data-style="3"][data-theme="pearl-white"] #dtHeader,
+:root[data-style="3"][data-theme="pearl-white"] .searchbar,
+:root[data-style="3"][data-theme="pearl-white"] .searchbar input,
+:root[data-style="3"][data-theme="pearl-white"] .bottom-panel,
+:root[data-style="3"][data-theme="pearl-white"] .rel-panel,
+:root[data-style="3"][data-theme="pearl-white"] .rel-panel input,
+:root[data-style="3"][data-theme="pearl-white"] .rel-panel button,
+:root[data-style="3"][data-theme="pearl-white"] .f-input,
+:root[data-style="3"][data-theme="pearl-white"] .f-btn-sm,
+:root[data-style="3"][data-theme="pearl-white"] #sheet,
+:root[data-style="3"][data-theme="pearl-white"] #ip-card,
+:root[data-style="3"][data-theme="pearl-white"] .autocomplete-dropdown{
+  background:var(--surface) !important;
+  color:var(--text) !important;
+  border-color:var(--edge) !important;
+}
+
+/* — النصوص الفاتحة الأصلية (#c9d4ce / #cfd8d2) تُقلب إلى داكنة — */
+:root[data-style="3"][data-theme="pearl-white"] #relResult,
+:root[data-style="3"][data-theme="pearl-white"] .chain-cell,
+:root[data-style="3"][data-theme="pearl-white"] .rel-steps,
+:root[data-style="3"][data-theme="pearl-white"] #ip-card .ip-bio,
+:root[data-style="3"][data-theme="pearl-white"] #ip-card .ip-sadaha-item,
+:root[data-style="3"][data-theme="pearl-white"] #myTreeInfoPanel .mti-row,
+:root[data-style="3"][data-theme="pearl-white"] .f-row,
+:root[data-style="3"][data-theme="pearl-white"] .chip,
+:root[data-style="3"][data-theme="pearl-white"] .chip select,
+:root[data-style="3"][data-theme="pearl-white"] .autocomplete-item,
+:root[data-style="3"][data-theme="pearl-white"] .wife-children,
+:root[data-style="3"][data-theme="pearl-white"] .dt-tab,
+:root[data-style="3"][data-theme="pearl-white"] .f-label{
+  color:var(--text) !important;
+  background:var(--surface) !important;
+  border-color:var(--edge) !important;
+}
+
+/* الأسطح الثانوية (بطاقات داخلية) */
+:root[data-style="3"][data-theme="pearl-white"] #ip-card .ip-bio,
+:root[data-style="3"][data-theme="pearl-white"] #ip-card .ip-sadaha-item,
+:root[data-style="3"][data-theme="pearl-white"] .chip{
+  background:var(--surface-2) !important;
+}
+
+/* — الأزرار الفعّالة: نصها كان #fff على داكن، فيلزم إبقاء تباينها — */
+:root[data-style="3"][data-theme="pearl-white"] #bgMoveToggle.active,
+:root[data-style="3"][data-theme="pearl-white"] .wife-type-chooser #wifeTypeOutside{
+  background:#1F2933 !important;  /* أغمق من --emerald لرفع التباين مع النص الأبيض */
+  color:#FFFFFF !important;
+  border-color:#1F2933 !important;
+}
+
+/* — شارات العقد: دوائرها كانت #181c24 — */
+:root[data-style="3"][data-theme="pearl-white"] .plus-badge circle,
+:root[data-style="3"][data-theme="pearl-white"] .minus-badge circle,
+:root[data-style="3"][data-theme="pearl-white"] .approve-badge circle,
+:root[data-style="3"][data-theme="pearl-white"] .reject-badge circle,
+:root[data-style="3"][data-theme="pearl-white"] .star-badge circle{
+  fill:var(--surface) !important;
+}
+
+/* — العقدة المميّزة: كانت برتقالية متوهجة على داكن — */
+:root[data-style="3"][data-theme="pearl-white"] .node.is-focal circle[class^="avatar-"]{
+  fill:#3E6E96 !important; stroke:#5B8CB8 !important;
+  filter:drop-shadow(0 0 6px rgba(91,140,184,.35));
+}
+:root[data-style="3"][data-theme="pearl-white"] .node.is-focal .tag-text{
+  fill:#1F2933 !important;
+}
+
+/* الخلفية العامة */
+:root[data-style="3"][data-theme="pearl-white"] body,
+:root[data-style="3"][data-theme="pearl-white"] #artBackground{
+  background:var(--bg) !important;
+}
+:root[data-style="3"][data-theme="pearl-white"] .tag-text{ fill:var(--text) !important; }
+
+/* ================================================================
+   [أمن الواجهة] إخفاء كل عناصر التحكم قبل اكتمال تسجيل الدخول.
+   الحماية الحقيقية بقواعد Firestore، لكن هذا يمنع رسم الأزرار
+   وضغطها قبل أن يكتمل بناء authUser (وقد شوهد الشريط والهيدر
+   مرسومَين خلف شاشة الدخول).
+   ================================================================ */
+body:not(.authed) #bottomBar,
+body:not(.authed) #dtHeader,
+body:not(.authed) #currentUserBadge,
+body:not(.authed) #aiChatToggle,
+body:not(.authed) .zoom-controls,
+body:not(.authed) .font-controls,
+body:not(.authed) #tree-wrap,
+body:not(.authed) #ornateFrame,
+body:not(.authed) #artBackground{
+  display:none !important;
+}
