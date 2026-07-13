@@ -6946,35 +6946,114 @@ document.getElementById("toggleTree").onclick = function(){
   this.textContent = hidden ? "🙈" : "👁️";
 };
 
-document.getElementById("exportData").onclick = () => {
-  const backup = {};
-  for (let i = 0; i < localStorage.length; i++){
-    const key = localStorage.key(i);
-    if (key && key.startsWith("person:")) backup[key] = localStorage.getItem(key);
+// ═══════════════════════════════════════════════════════════════
+// النسخ الاحتياطي والاستعادة — من/إلى Firestore مباشرة
+// تنبيه: النسخة القديمة كانت تقرأ من localStorage فقط، فكانت تُصدّر بقايا محلية
+// ولا تشمل الشجرة (persons) ولا المستخدمين ولا المرفقات — أي نسخة بلا قيمة فعليًا.
+// ═══════════════════════════════════════════════════════════════
+const BACKUP_COLLECTIONS = ["persons", "personInfo", "users", "meta", "knowledgeChunks"];
+
+document.getElementById("exportData").onclick = async () => {
+  const btn = document.getElementById("exportData");
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "⏳ جارِ التصدير…";
+  try{
+    const backup = {
+      _meta: {
+        exportedAt: new Date().toISOString(),
+        version: 2,
+        source: "firestore"
+      }
+    };
+    const counts = [];
+    for (const col of BACKUP_COLLECTIONS){
+      backup[col] = {};
+      try{
+        const snap = await db.collection(col).get();
+        snap.forEach(doc => { backup[col][doc.id] = doc.data(); });
+        counts.push(`${col}: ${snap.size}`);
+      }catch(e){
+        console.warn("تعذر تصدير المجموعة", col, e);
+        counts.push(`${col}: تعذّر`);
+      }
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 1)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "asmal-full-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+    customAlert("تم تصدير نسخة كاملة ✅\n\n" + counts.join("\n"));
+  }catch(err){
+    console.error(err);
+    customAlert("تعذّر التصدير: " + (err.message || err));
+  }finally{
+    btn.disabled = false;
+    btn.textContent = original;
   }
-  const blob = new Blob([JSON.stringify(backup, null, 1)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "family-tree-backup-" + new Date().toISOString().slice(0,10) + ".json";
-  a.click();
-  URL.revokeObjectURL(url);
 };
 
 document.getElementById("importData").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = async (ev) => {
+    let backup;
     try{
-      const backup = JSON.parse(ev.target.result);
-      let count = 0;
-      Object.keys(backup).forEach(key => {
-        if (key.startsWith("person:")){ localStorage.setItem(key, backup[key]); count++; }
-      });
-      customAlert("تم استيراد بيانات " + count + " شخص بنجاح ✅");
-    } catch(err){
-      customAlert("تعذر قراءة ملف النسخة الاحتياطية.");
+      backup = JSON.parse(ev.target.result);
+    }catch(err){
+      customAlert("تعذّر قراءة الملف — تأكد أنه ملف نسخة صالح.");
+      return;
+    }
+
+    // ملخّص قبل التنفيذ
+    const summary = [];
+    let total = 0;
+    for (const col of BACKUP_COLLECTIONS){
+      const n = backup[col] ? Object.keys(backup[col]).length : 0;
+      if (n) summary.push(`${col}: ${n}`);
+      total += n;
+    }
+    if (!total){
+      customAlert("الملف لا يحتوي بيانات قابلة للاستيراد.\n(قد يكون نسخة قديمة من صيغة localStorage.)");
+      return;
+    }
+
+    const ok = confirm(
+      "استيراد نسخة احتياطية\n\n" + summary.join("\n") +
+      "\n\n⚠️ سيُستبدل أي مستند يحمل نفس المعرّف.\nهذا الإجراء لا يمكن التراجع عنه.\n\nمتابعة؟"
+    );
+    if (!ok) return;
+
+    const btnLabel = document.getElementById("importDataLabel");
+    const originalLabel = btnLabel ? btnLabel.textContent : "";
+    if (btnLabel) btnLabel.textContent = "⏳ جارِ الاستيراد…";
+
+    try{
+      let written = 0;
+      for (const col of BACKUP_COLLECTIONS){
+        const docs = backup[col];
+        if (!docs) continue;
+        const ids = Object.keys(docs);
+        // الكتابة على دفعات (حد Firestore: 500 عملية للدفعة)
+        for (let i = 0; i < ids.length; i += 400){
+          const batch = db.batch();
+          ids.slice(i, i + 400).forEach(id => {
+            batch.set(db.collection(col).doc(id), docs[id]);
+          });
+          await batch.commit();
+          written += Math.min(400, ids.length - i);
+        }
+      }
+      customAlert(`تم استيراد ${written} مستندًا بنجاح ✅\n\nسيُعاد تحميل الصفحة.`);
+      setTimeout(() => location.reload(), 1500);
+    }catch(err){
+      console.error(err);
+      customAlert("تعذّر الاستيراد: " + (err.message || err));
+    }finally{
+      if (btnLabel) btnLabel.textContent = originalLabel;
     }
   };
   reader.readAsText(file);
