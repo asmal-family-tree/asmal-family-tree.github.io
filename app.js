@@ -521,9 +521,14 @@ document.getElementById("newUserAddBtn").onclick = async function(){
   const email = usernameToEmail(username);
   try{
     const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+    // "إضافات خاصة": ينشئها المشرف مباشرة => فعّالة فورًا، بلا انتظار تفعيل.
     await db.collection("users").doc(cred.user.uid).set({
-      role: "limited", displayName: username, scopePersonId: selectedScopePerson.id,
+      role: "user",
+      status: "active",
+      displayName: username,
+      scopePersonId: selectedScopePerson.id,
       scopePersonName: selectedScopePerson.name,
+      perms: DEFAULT_PERMS,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await secondaryApp.auth().signOut();
@@ -747,6 +752,135 @@ async function exportAllRecordsPdf(){
 }
 document.getElementById("exportAllRecordsBtn").onclick = exportAllRecordsPdf;
 
+
+// ═══════════════════════════════════════════════════════════════
+// محرر مصفوفة الصلاحيات
+// كل تبويب × (مشاهدة/تعديل/حذف). التبويبات المقصورة على المشرف
+// غير معروضة هنا لأنها خارج المصفوفة أصلًا.
+// ═══════════════════════════════════════════════════════════════
+let editingPermsUid = null;
+let editingPerms = null;
+
+const ACTION_LABELS = {
+  view: "مشاهدة", edit: "تعديل", delete: "حذف",
+  exportOne: "تصدير فرد", exportAll: "تصدير الكل"
+};
+
+function openPermsEditor(uid, userData){
+  editingPermsUid = uid;
+  editingPerms = mergePerms(userData.perms);
+
+  document.getElementById("permsUserName").textContent = userData.displayName || "—";
+  const grid = document.getElementById("permsGrid");
+  grid.innerHTML = "";
+
+  // رأس الجدول
+  const head = document.createElement("div");
+  head.className = "perms-header-row";
+  head.innerHTML = `<span>التبويب</span><span class="perms-cell">👁️</span><span class="perms-cell">✏️</span><span class="perms-cell">🗑️</span>`;
+  grid.appendChild(head);
+
+  for (const [page, cfg] of Object.entries(PERM_PAGES)){
+    const row = document.createElement("div");
+    row.className = "perms-row";
+
+    const label = document.createElement("span");
+    label.className = "perms-row-label";
+    label.textContent = cfg.label;
+    row.appendChild(label);
+
+    // ثلاثة أعمدة ثابتة: مشاهدة / تعديل / حذف — نضع خانة أو شرطة
+    for (const action of ["view", "edit", "delete"]){
+      const cell = document.createElement("span");
+      cell.className = "perms-cell";
+      if (cfg.actions.includes(action)){
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!(editingPerms[page] && editingPerms[page][action]);
+        cb.onchange = () => {
+          editingPerms[page] = editingPerms[page] || {};
+          editingPerms[page][action] = cb.checked;
+          // منع التناقض: بلا "مشاهدة" لا معنى للتعديل أو الحذف
+          if (action === "view" && !cb.checked){
+            ["edit", "delete", "exportOne", "exportAll"].forEach(a => {
+              if (editingPerms[page][a]) editingPerms[page][a] = false;
+            });
+            openPermsEditorRefresh();
+          }
+        };
+        cell.appendChild(cb);
+      } else {
+        cell.textContent = "—";
+        cell.style.color = "#ccc";
+      }
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+
+    // صلاحيات إضافية خاصة بالسجلات (تصدير فرد / تصدير الكل)
+    const extras = cfg.actions.filter(a => !["view", "edit", "delete"].includes(a));
+    for (const action of extras){
+      const erow = document.createElement("div");
+      erow.className = "perms-row";
+      erow.style.paddingRight = "18px";
+      const elabel = document.createElement("span");
+      elabel.className = "perms-row-label";
+      elabel.style.color = "#8a7a5a";
+      elabel.style.fontSize = "11.5px";
+      elabel.textContent = "↳ " + (ACTION_LABELS[action] || action);
+      erow.appendChild(elabel);
+
+      const cell = document.createElement("span");
+      cell.className = "perms-cell";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!(editingPerms[page] && editingPerms[page][action]);
+      cb.onchange = () => {
+        editingPerms[page] = editingPerms[page] || {};
+        editingPerms[page][action] = cb.checked;
+      };
+      cell.appendChild(cb);
+      erow.appendChild(cell);
+      erow.appendChild(document.createElement("span"));
+      erow.appendChild(document.createElement("span"));
+      grid.appendChild(erow);
+    }
+  }
+
+  document.getElementById("permsStatus").textContent = "";
+  document.getElementById("permsEditor").style.display = "block";
+  document.getElementById("permsEditor").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// إعادة رسم المحرر بعد تغيير يؤثر على خانات أخرى
+function openPermsEditorRefresh(){
+  const name = document.getElementById("permsUserName").textContent;
+  openPermsEditor(editingPermsUid, { displayName: name, perms: editingPerms });
+}
+
+document.getElementById("permsCloseBtn").onclick = () => {
+  document.getElementById("permsEditor").style.display = "none";
+  editingPermsUid = null;
+  editingPerms = null;
+};
+
+document.getElementById("permsSaveBtn").onclick = async () => {
+  if (!editingPermsUid) return;
+  const statusEl = document.getElementById("permsStatus");
+  statusEl.textContent = "جارِ الحفظ…";
+  try{
+    await db.collection("users").doc(editingPermsUid).update({ perms: editingPerms });
+    statusEl.textContent = "✅ حُفظت الصلاحيات";
+    setTimeout(() => {
+      document.getElementById("permsEditor").style.display = "none";
+      editingPermsUid = null;
+      editingPerms = null;
+    }, 1200);
+  }catch(e){
+    statusEl.textContent = "تعذّر الحفظ: " + (e.message || e.code);
+  }
+};
+
 async function refreshUsersAndPendingLists(){
   if (!currentUser || currentUser.role !== "admin") return;
   const usersListEl = document.getElementById("usersList");
@@ -759,33 +893,94 @@ async function refreshUsersAndPendingLists(){
   uidToName.set(currentUser.uid, currentUser.displayName);
 
   try{
-    const usersSnap = await db.collection("users").where("role", "==", "limited").get();
+    // نعرض كل المستخدمين عدا المشرف نفسه
+    const usersSnap = await db.collection("users").get();
     usersSnap.forEach(doc => uidToName.set(doc.id, doc.data().displayName));
-    if (usersSnap.empty){
-      usersListEl.innerHTML = `<span style="color:#999;font-size:13px">لا يوجد مستخدمون محدودون بعد</span>`;
+
+    const others = [];
+    usersSnap.forEach(doc => { if (doc.id !== currentUser.uid) others.push(doc); });
+
+    if (!others.length){
+      usersListEl.innerHTML = `<span style="color:#999;font-size:13px">لا يوجد مستخدمون آخرون بعد</span>`;
     } else {
       usersListEl.innerHTML = "";
-      usersSnap.forEach(doc => {
+      others.forEach(doc => {
         const u = doc.data();
-        const canView = u.canView !== false;
-        const row = document.createElement("div");
-        row.className = "chip";
-        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; width:100%; box-sizing:border-box;";
-        row.innerHTML = `<span>${escapeHtml(u.displayName)} — نطاقه: ${escapeHtml(u.scopePersonName) || "؟"}</span>
-          <span style="display:flex; gap:8px; align-items:center;">
-            <span class="view-toggle" style="cursor:pointer; font-size:12px; padding:3px 8px; border-radius:10px; background:${canView ? "#E4F3EA" : "#FCE4E4"}; color:${canView ? "#1E7A4C" : "#8B1E1E"};">${canView ? "👁️ يشاهد" : "🚫 ممنوع"}</span>
-            <span class="chip-x" title="حذف">✕</span>
-          </span>`;
-        row.querySelector(".view-toggle").onclick = async () => {
-          await db.collection("users").doc(doc.id).update({ canView: !canView });
+        const uid = doc.id;
+        const status = u.status || "active";
+        const isAdm = u.role === "admin";
+
+        const badge = isAdm
+          ? `<span class="status-badge status-admin">مشرف</span>`
+          : status === "pending"
+            ? `<span class="status-badge status-pending">بانتظار التفعيل</span>`
+            : status === "blocked"
+              ? `<span class="status-badge status-blocked">محظور</span>`
+              : `<span class="status-badge status-active">فعّال</span>`;
+
+        const card = document.createElement("div");
+        card.className = "user-card";
+        card.innerHTML = `
+          <div class="user-card-top">
+            <div>
+              <div class="user-card-name">${escapeHtml(u.displayName || "—")}</div>
+              <div class="user-card-sub">النطاق: ${escapeHtml(u.scopePersonName || "غير محدد")}</div>
+            </div>
+            ${badge}
+          </div>
+          <div class="user-card-actions"></div>`;
+
+        const actions = card.querySelector(".user-card-actions");
+
+        if (!isAdm){
+          // تفعيل / حظر
+          if (status === "pending"){
+            const b = document.createElement("button");
+            b.textContent = "✅ تفعيل";
+            b.style.cssText = "background:#E3F5EA; color:#1E7A4C; border-color:#1E7A4C;";
+            b.onclick = async () => {
+              await db.collection("users").doc(uid).update({ status: "active" });
+              refreshUsersAndPendingLists();
+            };
+            actions.appendChild(b);
+          } else if (status === "active"){
+            const b = document.createElement("button");
+            b.textContent = "🚫 حظر";
+            b.onclick = async () => {
+              await db.collection("users").doc(uid).update({ status: "blocked" });
+              refreshUsersAndPendingLists();
+            };
+            actions.appendChild(b);
+          } else {
+            const b = document.createElement("button");
+            b.textContent = "↩️ رفع الحظر";
+            b.onclick = async () => {
+              await db.collection("users").doc(uid).update({ status: "active" });
+              refreshUsersAndPendingLists();
+            };
+            actions.appendChild(b);
+          }
+
+          // الصلاحيات
+          const pb = document.createElement("button");
+          pb.textContent = "🔑 الصلاحيات";
+          pb.style.cssText = "background:#FFF3D6; color:#A67C00; border-color:#C9A227;";
+          pb.onclick = () => openPermsEditor(uid, u);
+          actions.appendChild(pb);
+        }
+
+        // حذف
+        const db_ = document.createElement("button");
+        db_.textContent = "🗑️ حذف";
+        db_.style.cssText = "background:#FDE7E7; color:#B3261E; border-color:#B3261E;";
+        db_.onclick = async () => {
+          if (!confirm(`حذف المستخدم "${u.displayName}"؟\nهذا يمنعه من الدخول، ولا يحذف إضافاته السابقة.`)) return;
+          await db.collection("users").doc(uid).delete();
           refreshUsersAndPendingLists();
         };
-        row.querySelector(".chip-x").onclick = async () => {
-          if (!confirm(`حذف المستخدم "${u.displayName}"؟ (هذا يمنعه من الدخول، ولا يحذف إضافاته السابقة)`)) return;
-          await db.collection("users").doc(doc.id).delete();
-          refreshUsersAndPendingLists();
-        };
-        usersListEl.appendChild(row);
+        actions.appendChild(db_);
+
+        usersListEl.appendChild(card);
       });
     }
   }catch(e){

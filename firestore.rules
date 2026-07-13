@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════ دوال مساعدة ═══════════
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasProfile() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // مستخدم فعّال: له ملف، وحالته active (ليست pending ولا blocked)
+    function isActive() {
+      return hasProfile() && userDoc().status == 'active';
+    }
+
+    function isAdmin() {
+      return isActive() && userDoc().role == 'admin';
+    }
+
+    // الفحص المركزي للصلاحية: can('tree','edit')
+    // الأدمن يتجاوز كل شيء. غيره يحتاج perms[page][action] == true
+    function myScopeId() {
+      return userDoc().scopePersonId;
+    }
+
+    function can(page, action) {
+      return isAdmin() ||
+        (isActive() &&
+         'perms' in userDoc() &&
+         page in userDoc().perms &&
+         action in userDoc().perms[page] &&
+         userDoc().perms[page][action] == true);
+    }
+
+    // ═══════════ المستخدمون ═══════════
+    // القراءة: المستخدم يقرأ ملفه فقط. الأدمن يقرأ الجميع.
+    // الكتابة: الأدمن وحده — لا يمكن لأحد رفع صلاحيات نفسه.
+    match /users/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+
+      // التسجيل الذاتي: يُسمح بإنشاء ملف "معلّق" فقط، بلا صلاحيات ولا دور admin.
+      // يبقى pending حتى يفعّله الأدمن.
+      allow create: if isAdmin() ||
+        (isSignedIn() && request.auth.uid == uid &&
+         request.resource.data.status == 'pending' &&
+         request.resource.data.role != 'admin');
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ═══════════ الشجرة ═══════════
+    match /persons/{personId} {
+      allow read: if can('tree', 'view');
+
+      // المشرف يكتب مباشرة.
+      // المحرر (صلاحية tree.edit) لا تُنشر إضافته إلا معلّقة (pendingApproval)
+      // وداخل نطاقه فقط، ثم يعتمدها المشرف.
+      allow create: if isAdmin() ||
+        (can('tree', 'edit') &&
+         request.resource.data.pendingApproval == true &&
+         myScopeId() in request.resource.data.ancestorIds);
+
+      allow update: if isAdmin() ||
+        (can('tree', 'edit') && resource.data.pendingApproval == true);
+
+      allow delete: if isAdmin() ||
+        (can('tree', 'delete') && resource.data.pendingApproval == true);
+    }
+
+    // ═══════════ معلومات الأشخاص ═══════════
+    match /personInfo/{docId} {
+      allow read:   if can('info', 'view');
+      allow create: if can('info', 'edit');
+      allow update: if can('info', 'edit');
+      allow delete: if can('info', 'delete');
+    }
+
+    // ═══════════ القائمة الإخبارية ═══════════
+    // الكاتب يعدّل/يحذف منشوره، والأدمن يحذف أي منشور.
+    match /posts/{postId} {
+      allow read:   if can('news', 'view');
+      allow create: if can('news', 'edit') &&
+                       request.resource.data.authorId == request.auth.uid;
+      allow update: if isAdmin() ||
+                       (can('news', 'edit') && resource.data.authorId == request.auth.uid);
+      allow delete: if isAdmin() ||
+                       (can('news', 'delete') && resource.data.authorId == request.auth.uid);
+    }
+
+    // ═══════════ الإعدادات العامة ═══════════
+    // القراءة للجميع (الاستايل يُطبَّق حتى قبل تسجيل الدخول)
+    // الكتابة للأدمن وحده
+    match /meta/{doc} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // ═══════════ المرفقات ═══════════
+    // القراءة والكتابة للأدمن فقط (قرار: المرفقات خارج المصفوفة)
+    match /knowledgeChunks/{docId} {
+      allow read:  if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ═══════════ حد المساعد الذكي ═══════════
+    // يُكتب من الخادم (Cloudflare Worker) لا من المتصفح، وإلا أمكن تجاوز الحد.
+    match /aiUsage/{uid} {
+      allow read:  if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    // ═══════════ الافتراضي: منع كل ما سواه ═══════════
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

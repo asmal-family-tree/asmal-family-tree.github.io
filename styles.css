@@ -1434,3 +1434,62 @@
 .perm-disabled::after{
   content:"🔒"; position:absolute; top:2px; left:2px; font-size:10px;
 }
+
+/* ================================================================
+   [إدارة المستخدمين] إضافات خاصة + مصفوفة الصلاحيات
+   ================================================================ */
+.admin-box{
+  border:1.5px solid var(--gold, #C9A227); border-radius:12px;
+  padding:12px 14px 14px; margin:0 0 4px; background:rgba(201,162,39,.05);
+}
+.admin-box legend{
+  font-weight:700; font-size:13px; color:#8B5E1F; padding:0 8px;
+}
+.admin-box-note{ font-size:11.5px; color:#8a7a5a; margin-bottom:10px; line-height:1.5; }
+
+/* بطاقة المستخدم */
+.user-card{
+  border:1.3px solid #EFE7D8; border-radius:12px; padding:10px 12px;
+  margin-bottom:8px; background:#FFFDF7;
+}
+.user-card-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.user-card-name{ font-weight:700; font-size:14px; color:#0B3D2E; }
+.user-card-sub{ font-size:11.5px; color:#8a7a5a; margin-top:2px; }
+.user-card-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.user-card-actions button{
+  font-size:11.5px; padding:5px 10px; border-radius:8px; border:1px solid #ddd;
+  background:#fff; cursor:pointer; font-family:inherit;
+}
+.user-card-actions button:hover{ background:#f5f5f5; }
+
+/* شارات الحالة */
+.status-badge{
+  font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;
+}
+.status-active{  background:#E3F5EA; color:#1E7A4C; }
+.status-pending{ background:#FFF3D6; color:#A67C00; }
+.status-blocked{ background:#FDE7E7; color:#B3261E; }
+.status-admin{   background:#0B3D2E; color:#F0D98C; }
+
+/* مصفوفة الصلاحيات */
+#permsEditor{
+  margin-top:12px; border:1.5px solid #0B3D2E; border-radius:12px;
+  padding:12px; background:#FFFDF7;
+}
+.perms-head{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:13px; color:#0B3D2E; margin-bottom:10px; font-weight:600;
+}
+.perms-row{
+  display:grid; grid-template-columns:1fr auto auto auto;
+  gap:6px; align-items:center; padding:7px 0; border-bottom:1px solid #F0EAD8;
+}
+.perms-row:last-child{ border-bottom:none; }
+.perms-row-label{ font-size:12.5px; color:#333; }
+.perms-cell{ width:38px; text-align:center; }
+.perms-header-row{
+  display:grid; grid-template-columns:1fr auto auto auto; gap:6px;
+  font-size:10.5px; color:#8a7a5a; font-weight:700; padding-bottom:6px;
+  border-bottom:1.5px solid #E5D9B8;
+}
+.perms-actions{ display:flex; gap:8px; margin-top:12px; }
