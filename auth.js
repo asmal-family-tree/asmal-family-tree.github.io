@@ -58,12 +58,14 @@ const GUEST_PERMS = {
 };
 
 // ---------- الحالة ----------
-let authUser = null;   // { uid, displayName, role, status, scopePersonId, perms, isGuest }
+// مصدر واحد للحقيقة: window.authUser
+// (سبب خلل سابق: app.js يكتب في window.authUser بينما الدوال تقرأ متغيرًا محليًا منفصلًا)
 window.authUser = null;
 
-function isAdminUser(){ return !!(authUser && authUser.role === "admin"); }
-function isGuest(){ return !!(authUser && authUser.isGuest); }
-function isSignedIn(){ return !!(authUser && !authUser.isGuest); }
+function getAuthUser(){ return window.authUser; }
+function isAdminUser(){ const u = window.authUser; return !!(u && u.role === "admin"); }
+function isGuest(){ const u = window.authUser; return !!(u && u.isGuest); }
+function isSignedIn(){ const u = window.authUser; return !!(u && !u.isGuest); }
 
 /**
  * الفحص المركزي للصلاحيات.
@@ -71,12 +73,12 @@ function isSignedIn(){ return !!(authUser && !authUser.isGuest); }
  * الأدمن يتجاوز كل شيء. التبويبات المقصورة على الأدمن تُرفض لغيره دائمًا.
  */
 function can(page, action = "view"){
-  if (!authUser) return false;
-  if (authUser.status === "blocked") return false;
-  if (authUser.status === "pending") return false;   // بانتظار التفعيل
-  if (isAdminUser()) return true;
+  const u = window.authUser;
+  if (!u) return false;
+  if (u.status === "blocked" || u.status === "pending") return false;
+  if (isAdminUser()) return true;                       // الأدمن يتجاوز كل شيء
   if (ADMIN_ONLY_PAGES.includes(page)) return false;
-  const p = authUser.perms && authUser.perms[page];
+  const p = u.perms && u.perms[page];
   return !!(p && p[action] === true);
 }
 window.can = can;
@@ -115,7 +117,7 @@ function buildAuthUser(uid, doc){
 
 /** الدخول كضيف — بلا حساب */
 function signInAsGuest(){
-  authUser = {
+  window.authUser = {
     uid: null,
     displayName: "ضيف",
     role: "guest",
@@ -124,13 +126,11 @@ function signInAsGuest(){
     perms: GUEST_PERMS,
     isGuest: true
   };
-  window.authUser = authUser;
-  return authUser;
+  return window.authUser;
 }
 window.signInAsGuest = signInAsGuest;
 
 function clearAuthUser(){
-  authUser = null;
   window.authUser = null;
 }
 window.clearAuthUser = clearAuthUser;
