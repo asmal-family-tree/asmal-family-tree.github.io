@@ -1000,7 +1000,6 @@
 
 /* سطح المكتب: إخفاء زر إظهار/إخفاء الشجرة نهائيًا — الشجرة تبقى ظاهرة دائمًا */
 @media (min-width:1024px) and (hover:hover) and (pointer:fine){
-  #dtHeader .dt-tab[data-target="toggleTree"]{ display:none !important; }
   #tree-wrap.tree-hidden #tree-svg,
   #tree-wrap.tree-hidden .zoom-fab,
   #tree-wrap.tree-hidden #exitFocus{ display:block !important; }
@@ -1526,13 +1525,15 @@
    فتُقصّ المصفوفة ولا يمكن تمريرها. نجعلها لوحة مركزية بارتفاع
    محدود وتمرير داخلي — نفس نموذج #relPanel.
    ================================================================ */
-#usersPanel.bottom-panel{
-  left:0; right:0; bottom:0; top:0; margin:auto; height:fit-content;
-  max-width:520px; width:94%;
-  max-height:86vh; max-height:86dvh; overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  background:var(--card-bg); border-radius:16px;
-  box-shadow:var(--card-shadow-lg); padding:16px 14px;
+@media (max-width:1023px){
+  #usersPanel.bottom-panel{
+    left:0; right:0; bottom:0; top:0; margin:auto; height:fit-content;
+    max-width:520px; width:94%;
+    max-height:86vh; max-height:86dvh; overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    background:var(--card-bg); border-radius:16px;
+    box-shadow:var(--card-shadow-lg); padding:16px 14px;
+  }
 }
 
 /* محرر الصلاحيات: يمتد بكامل عرض اللوحة بلا صندوق داخلي ولا تمرير خاص */
