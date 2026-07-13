@@ -1667,5 +1667,7 @@ body:not(.authed) .font-controls,
 body:not(.authed) #tree-wrap,
 body:not(.authed) #ornateFrame,
 body:not(.authed) #artBackground{
-  display:none !important;
+  visibility:hidden;
+  pointer-events:none;
+  opacity:0;
 }

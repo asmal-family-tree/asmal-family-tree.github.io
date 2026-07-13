@@ -121,14 +121,25 @@ document.getElementById("authPassword").addEventListener("keydown", (e) => {
 
 async function afterSignIn(fbUser){
   if (window.__adminBootstrapping) return;
-  const userDoc = await ensureUserDoc(fbUser.uid, {
-    role: "user",
-    status: "pending",              // الحساب الجديد معلّق حتى يفعّله المشرف
-    displayName: (fbUser.email || "").split("@")[0],
-    scopePersonId: null,
-    perms: DEFAULT_PERMS,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+
+  let userDoc;
+  try{
+    userDoc = await ensureUserDoc(fbUser.uid, {
+      role: "user",
+      status: "pending",              // الحساب الجديد معلّق حتى يفعّله المشرف
+      displayName: (fbUser.email || "").split("@")[0],
+      scopePersonId: null,
+      perms: DEFAULT_PERMS,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){
+    // لو فشلت قراءة الملف (شبكة/قواعد) كانت الدالة تنهار صامتة،
+    // فيبقى المستخدم على شاشة نصف محمّلة بلا هيدر ولا رسالة.
+    setAuthLoading(false);
+    showAuthError("تعذّر تحميل ملف الحساب: " + (e.message || e.code));
+    await auth.signOut();
+    return;
+  }
 
   // بناء المستخدم عبر طبقة الصلاحيات المشتركة (auth.js)
   window.authUser = buildAuthUser(fbUser.uid, userDoc);
