@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=44">
+<link rel="stylesheet" href="styles.css?v=46">
 </head>
 <body>
 <script>
@@ -104,6 +104,12 @@
     <button id="zoomReset">⟳</button>
   </div>
   <button id="exitFocus" class="exit-focus">✕ عرض الشجرة كاملة</button>
+
+  <!-- ===== MINIMAP START (إضافة معزولة — احذف هذا العنصر بالكامل لحذف الميزة) ===== -->
+  <div id="minimapBox" title="خريطة مصغّرة — اضغط للانتقال">
+    <svg id="minimapSvg"></svg>
+  </div>
+  <!-- ===== MINIMAP END ===== -->
 </div>
 
 <div id="myTreeInfoPanel">
@@ -165,6 +171,7 @@
     <button class="f-btn-sm layout-btn" data-style="">الافتراضي</button>
     <button class="f-btn-sm layout-btn" data-style="2">لوحة التحكم</button>
     <button class="f-btn-sm layout-btn" data-style="3">المستقبلي</button>
+    <button class="f-btn-sm layout-btn" data-style="4">أسمل</button>
   </div>
   <div id="layoutStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
 
@@ -398,7 +405,7 @@
   </div>
 </div>
 
-<script src="auth.js?v=4"></script>
-<script src="app.js?v=11"></script>
+<script src="auth.js?v=5"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
