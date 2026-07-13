@@ -553,10 +553,16 @@
   --root:#3A2410; --root-ring:#E0A836; --trunk:#4A3016; --trunk-ring:#E0A836; --leaf:#5A3C1C; --leaf-ring:#E0A836;
   --emerald:#3A2410; --emerald-2:#4A3016; --card-bg:#1f180d;
 }:root[data-style="3"][data-theme="pearl-white"]{
-  --bg:#EDF1F6; --bg-2:#F7F9FC; --ink:#1F2933; --glow:#5B8CB8; --gold:#5B8CB8;
-  --root:#2E3A45; --root-ring:#5B8CB8; --trunk:#4A5D70; --trunk-ring:#5B8CB8; --leaf:#5F7387; --leaf-ring:#5B8CB8;
-  --emerald:#2E3A45; --emerald-2:#3E4E5C; --card-bg:#FFFFFF;
-}:root[data-style="3"] *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}:root[data-style="3"] html, :root[data-style="3"] body{ margin:0; overscroll-behavior:none; }:root[data-style="3"] body{
+  --bg:#E4EAF1; --bg-2:#F2F6FA; --ink:#1F2933; --glow:#3E6E96; --gold:#3E6E96;
+  --root:#22303C; --root-ring:#3E6E96; --trunk:#3C4E5F; --trunk-ring:#3E6E96; --leaf:#4E6275; --leaf-ring:#3E6E96;
+  --emerald:#22303C; --emerald-2:#33465A; --card-bg:#FFFFFF;
+  /* بطاقة الاسم: داكنة بنص فاتح لتبرز على الخلفية الفاتحة
+     (في بقية الاستايلات العكس: بطاقة فاتحة على خلفية داكنة) */
+  --tagbg:#22303C; --tagborder:#3E6E96;
+}
+:root[data-style="3"][data-theme="pearl-white"] .tag{ fill:#22303C !important; stroke:#3E6E96 !important; }
+:root[data-style="3"][data-theme="pearl-white"] .tag-text{ fill:#F2F6FA !important; }
+:root[data-style="3"][data-theme="pearl-white"] .link{ stroke:#7C90A4 !important; opacity:.85 !important; }:root[data-style="3"] *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}:root[data-style="3"] html, :root[data-style="3"] body{ margin:0; overscroll-behavior:none; }:root[data-style="3"] body{
   background:
     radial-gradient(circle at 15% 15%, rgba(47,227,166,.08), transparent 40%),
     radial-gradient(circle at 85% 85%, rgba(242,212,121,.06), transparent 40%),
@@ -1652,7 +1658,28 @@
 :root[data-style="3"][data-theme="pearl-white"] #artBackground{
   background:var(--bg) !important;
 }
-:root[data-style="3"][data-theme="pearl-white"] .tag-text{ fill:var(--text) !important; }
+:root[data-style="3"][data-theme="pearl-white"] #dtHeader{
+  background:linear-gradient(180deg, #22303C 0%, #16212B 100%) !important;
+  border-bottom:2px solid #3E6E96 !important;
+  box-shadow:0 4px 20px rgba(30,45,60,.35) !important;
+}
+:root[data-style="3"][data-theme="pearl-white"] #dtHeader .dt-tab,
+:root[data-style="3"][data-theme="pearl-white"] #dtHeader .dt-brand{
+  background:transparent !important; color:#DCE6F0 !important; border-color:transparent !important;
+}
+:root[data-style="3"][data-theme="pearl-white"] #dtHeader .dt-tab:hover,
+:root[data-style="3"][data-theme="pearl-white"] #dtHeader .dt-tab.active{
+  color:#8FB8DC !important; background:rgba(143,184,220,.12) !important;
+}
+:root[data-style="3"][data-theme="pearl-white"] #bottomBar{
+  background:#22303C !important; border-top:2px solid #3E6E96 !important;
+}
+:root[data-style="3"][data-theme="pearl-white"] #bottomBar button{
+  background:transparent !important; color:#DCE6F0 !important;
+}
+:root[data-style="3"][data-theme="pearl-white"] #bottomBar button.active{
+  color:#22303C !important; background:#8FB8DC !important;
+}
 
 /* ================================================================
    [أمن الواجهة] إخفاء كل عناصر التحكم قبل اكتمال تسجيل الدخول.
@@ -1672,4 +1699,27 @@ body:not(.authed) #artBackground{
   visibility:hidden;
   pointer-events:none;
   opacity:0;
+}
+
+/* ================================================================
+   [إصلاح] .bottom-panel كانت بلا خلفية في التصاميم الثلاثة،
+   فتظهر الشجرة خلف التبويب المفتوح على الجوال واللوحي.
+   (سطح المكتب ≥1024px له تعريفه الخاص بخلفية، فلا يتأثر.)
+   ================================================================ */
+@media (max-width:1023px){
+  .bottom-panel:not(#relPanel){
+    background:var(--card-bg, #FFFDF6);
+    border:1px solid var(--tagborder, #c9b077);
+    border-radius:16px 16px 0 0;
+    box-shadow:var(--card-shadow-lg, 0 -8px 30px rgba(20,15,5,.24));
+    padding:14px;
+  }
+  /* التصميم المستقبلي داكن: نضمن أن اللوحة تتبع سطحه لا الأبيض */
+  :root[data-style="3"] .bottom-panel:not(#relPanel){
+    background:var(--bg-2, #161f18);
+    border-color:var(--glow, #2FE3A6);
+  }
+  :root[data-style="2"] .bottom-panel:not(#relPanel){
+    background:var(--card-bg, #FBFAF3);
+  }
 }

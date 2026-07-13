@@ -4581,7 +4581,7 @@ if (window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)")
 }
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
-const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel", "attachmentsPanel"].map(id => document.getElementById(id));
+const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "designPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel", "attachmentsPanel"].map(id => document.getElementById(id));
 // تمسح مدخلات لوحة عند إغلاقها. تُستثنى الدردشة حتى لا تُفقد المحادثة الجارية.
 function clearPanelInputs(panel){
   if (!panel || panel.id === "aiChatPanel") return;
