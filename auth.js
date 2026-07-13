@@ -33,10 +33,14 @@ const ADMIN_ONLY_PAGES = ["attachments", "io", "deleteMode", "users", "backgroun
 
 // ---------- المصفوفة الافتراضية لكل مستخدم جديد ----------
 // الفلسفة: يقرأ كل شيء، ولا يعدّل شيئًا. الأدمن يرقّيه لاحقًا.
+// استثناء: تبويب "الأخبار" — الأيقونتان ✏️/🗑️ لهما معنى خاص هنا (المرحلة 3):
+//   news.edit   = "كتابة خبر جديد" — متاحة افتراضيًا للجميع (خلاف بقية التبويبات)
+//   news.delete = "مفوَّض بالاعتماد" — يعتمد/يخفي/يحذف أخبار الآخرين — false افتراضيًا، يُمنح يدويًا
+//   النشر المباشر (تجاوز الاعتماد) حقل منفصل خارج المصفوفة: doc.newsAutoPublish (انظر buildAuthUser)
 const DEFAULT_PERMS = {
   tree:     { view: true, edit: false, delete: false },
   info:     { view: true, edit: false, delete: false },
-  news:     { view: true, edit: false, delete: false },
+  news:     { view: true, edit: true, delete: false },
   search:   { view: true },
   relation: { view: true },
   myTree:   { view: true },
@@ -117,9 +121,23 @@ function buildAuthUser(uid, doc){
     scopePersonName: doc.scopePersonName || null,
     perms: isAdmin ? null : (hasPerms ? mergePerms(doc.perms) : mergePerms(null)),
     legacyNoPerms: !isAdmin && !hasPerms,
+    newsAutoPublish: !!doc.newsAutoPublish,   // نشر مباشر بلا اعتماد (حقل مستقل، خارج المصفوفة — نفس أسلوب scopePersonId)
     isGuest: false
   };
 }
+
+/** المرحلة 3 — أدوات مساعدة لصلاحيات الأخبار (تُستخدم في news.js) */
+function canWriteNews(){ return can("news", "edit"); }
+window.canWriteNews = canWriteNews;
+
+function canModerateNews(){ return isAdminUser() || can("news", "delete"); }
+window.canModerateNews = canModerateNews;
+
+function hasNewsAutoPublish(){
+  const u = window.authUser;
+  return !!(u && (isAdminUser() || u.newsAutoPublish === true));
+}
+window.hasNewsAutoPublish = hasNewsAutoPublish;
 
 /** الدخول كضيف — بلا حساب */
 function signInAsGuest(){
