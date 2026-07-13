@@ -83,6 +83,11 @@ function todayKey(){
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
 }
 
+function todayISODate(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
 // ضغط الصورة (نفس أسلوب app.js: أقصى بُعد 1200، جودة 0.7)
 function compressImage(file){
   return new Promise((resolve, reject)=>{
@@ -106,8 +111,9 @@ function compressImage(file){
 }
 
 // ============ الحالة العامة ============
-let dailyLimit = 2;          // يُستبدل بقيمة meta/newsSettings الفعلية
-let uploadedImg = null;      // صورة الخبر الجاري كتابته (Data URL)
+let dailyLimitPerUser = 2;      // للمستخدمين العاديين — يُستبدل بقيمة meta/newsSettings الفعلية
+let dailyLimitPerTrusted = 5;   // للمحررين الموثوقين (autoPublish) — رقم مستقل
+let uploadedImg = null;         // صورة الخبر الجاري كتابته (Data URL)
 
 // ============ تسجيل الدخول والتحقق من الصلاحية ============
 auth.onAuthStateChanged(async (user)=>{
@@ -138,6 +144,7 @@ auth.onAuthStateChanged(async (user)=>{
     document.getElementById("pageWrap").style.display = "";
     if (canWriteNews()) document.getElementById("btnCompose").style.display = "flex";
     if (canModerateNews() || isAdminUser()) await cleanupExpiredPosts();
+    if (isAdminUser()) renderAdminSettingsPanel();
     await loadFeed();
   } catch(e){
     gate.textContent = "حدث خطأ أثناء التحقق: " + (e.message || e.code);
@@ -147,10 +154,56 @@ auth.onAuthStateChanged(async (user)=>{
 async function loadNewsSettings(){
   try{
     const snap = await db.collection("meta").doc("newsSettings").get();
-    if (snap.exists && typeof snap.data().dailyLimitPerUser === "number"){
-      dailyLimit = snap.data().dailyLimitPerUser;
+    if (snap.exists){
+      const d = snap.data();
+      if (typeof d.dailyLimitPerUser === "number") dailyLimitPerUser = d.dailyLimitPerUser;
+      if (typeof d.dailyLimitPerTrusted === "number") dailyLimitPerTrusted = d.dailyLimitPerTrusted;
     }
-  }catch(e){ /* يبقى الافتراضي 2 عند أي خطأ */ }
+  }catch(e){ /* تبقى القيم الافتراضية عند أي خطأ */ }
+}
+
+// لوحة صغيرة أعلى الصفحة، للأدمن فقط، لتعديل الحدين اليوميين
+function renderAdminSettingsPanel(){
+  const wrap = document.getElementById("pageWrap");
+  const panel = document.createElement("div");
+  panel.className = "admin-settings-panel";
+  panel.innerHTML = `
+    <div class="asp-title">⚙️ إعدادات الحد اليومي (أدمن فقط — الأدمن نفسه بلا حد)</div>
+    <div class="asp-row">
+      <label>الحد العام (مستخدم عادي)</label>
+      <input type="number" min="0" id="aspUser" value="${dailyLimitPerUser}">
+    </div>
+    <div class="asp-row">
+      <label>حد المحررين الموثوقين</label>
+      <input type="number" min="0" id="aspTrusted" value="${dailyLimitPerTrusted}">
+    </div>
+    <button id="aspSave">حفظ الحدود</button>
+    <div id="aspStatus" class="asp-status"></div>
+  `;
+  wrap.prepend(panel);
+
+  document.getElementById("aspSave").onclick = async ()=>{
+    const statusEl = document.getElementById("aspStatus");
+    const newUser = parseInt(document.getElementById("aspUser").value, 10);
+    const newTrusted = parseInt(document.getElementById("aspTrusted").value, 10);
+    if (isNaN(newUser) || isNaN(newTrusted) || newUser < 0 || newTrusted < 0){
+      statusEl.textContent = "أدخل أرقامًا صحيحة صالحة.";
+      return;
+    }
+    statusEl.textContent = "جارٍ الحفظ...";
+    try{
+      await db.collection("meta").doc("newsSettings").set({
+        dailyLimitPerUser: newUser,
+        dailyLimitPerTrusted: newTrusted
+      }, { merge: true });
+      dailyLimitPerUser = newUser;
+      dailyLimitPerTrusted = newTrusted;
+      statusEl.textContent = "✅ تم الحفظ.";
+      setTimeout(()=> statusEl.textContent = "", 2000);
+    }catch(e){
+      statusEl.textContent = "تعذّر الحفظ: " + (e.message || e.code);
+    }
+  };
 }
 
 // حذف فعلي للأخبار المنتهية عند دخول من يملك صلاحية الاعتماد
@@ -329,13 +382,21 @@ async function handleModeration(btn, action){
 }
 
 // ============ الحد اليومي للكتابة ============
+function effectiveDailyLimit(){
+  if (isAdminUser()) return Infinity;
+  if (hasNewsAutoPublish()) return dailyLimitPerTrusted;
+  return dailyLimitPerUser;
+}
+
 async function checkAndIncrementDailyCount(){
+  if (isAdminUser()) return true; // الأدمن بلا حد إطلاقًا — لا حتى يُحسب له عدّاد
+  const limit = effectiveDailyLimit();
   const uid = window.authUser.uid;
   const ref = db.collection("users").doc(uid).collection("dailyCounts").doc(todayKey());
   return db.runTransaction(async (tx)=>{
     const snap = await tx.get(ref);
     const current = snap.exists ? (snap.data().count || 0) : 0;
-    if (current >= dailyLimit) throw new Error(`وصلت الحد اليومي للكتابة (${dailyLimit} أخبار/تحديثات في اليوم). حاول غدًا.`);
+    if (current >= limit) throw new Error(`وصلت الحد اليومي للكتابة (${limit} أخبار/تحديثات في اليوم). حاول غدًا.`);
     tx.set(ref, { count: current + 1 }, { merge: true });
     return true;
   });
@@ -351,7 +412,7 @@ function openComposer(){
   box.innerHTML = `
     <div class="composer">
       <h3>✏️ كتابة خبر جديد</h3>
-      <div class="limit-note">الحد اليومي: ${dailyLimit} خبر/تحديث لكل مستخدم.</div>
+      <div class="limit-note">${isAdminUser() ? "بصفتك أدمن: بلا حد يومي." : `الحد اليومي: ${effectiveDailyLimit()} خبر/تحديث لك.`}</div>
       <div class="field">
         <label>العنوان</label>
         <input type="text" id="fTitle" placeholder="عنوان الخبر">
@@ -371,13 +432,11 @@ function openComposer(){
       </div>
       <div class="field">
         <label>تاريخ الحذف (اختياري — يبقى للأبد إن تُرك فارغًا)</label>
-        <input type="date" id="fExpiry">
+        <input type="date" id="fExpiry" min="${todayISODate()}">
       </div>
       <button class="submit-btn" id="fSubmit">${hasNewsAutoPublish() ? "نشر مباشرة" : "إرسال للاعتماد"}</button>
       <button class="close-composer" id="fCancel">إلغاء</button>
     </div>
-    <div class="preview-label">👁️ معاينة حية</div>
-    <div id="livePreview"></div>
   `;
   backdrop.classList.add("show");
 
@@ -387,18 +446,6 @@ function openComposer(){
   const imgPrev = document.getElementById("imgPrev");
   const fSubmit = document.getElementById("fSubmit");
 
-  function updatePreview(){
-    document.getElementById("livePreview").innerHTML = renderPostCard({
-      postId: "preview", updateId: null,
-      authorId: window.authUser.uid, authorName: window.authUser.displayName,
-      title: fTitle.value || "عنوان الخبر", text: fText.value || "نص الخبر سيظهر هنا...",
-      imageUrl: uploadedImg, createdAt: firebase.firestore.Timestamp.now(),
-      status: hasNewsAutoPublish() ? "published" : "pending"
-    }, true);
-  }
-
-  fTitle.addEventListener("input", updatePreview);
-  fText.addEventListener("input", updatePreview);
   document.getElementById("tbImage").onclick = ()=> fImg.click();
   document.getElementById("tbLink").onclick = ()=>{
     const url = prompt("الصق الرابط هنا:");
@@ -406,7 +453,6 @@ function openComposer(){
     const start = fText.selectionStart, end = fText.selectionEnd;
     fText.value = fText.value.slice(0,start) + url + fText.value.slice(end);
     fText.focus();
-    updatePreview();
   };
   fImg.addEventListener("change", async (e)=>{
     const file = e.target.files[0];
@@ -414,7 +460,6 @@ function openComposer(){
     uploadedImg = await compressImage(file);
     imgPrev.src = uploadedImg;
     imgPrev.style.display = "block";
-    updatePreview();
   });
   document.getElementById("fCancel").onclick = closeComposer;
 
@@ -443,8 +488,6 @@ function openComposer(){
       fSubmit.disabled = false;
     }
   };
-
-  updatePreview();
 }
 
 function closeComposer(){
@@ -462,7 +505,7 @@ function openUpdateComposer(postId){
   box.innerHTML = `
     <div class="composer">
       <h3>💬 إضافة تحديث</h3>
-      <div class="limit-note">الحد اليومي: ${dailyLimit} خبر/تحديث لكل مستخدم.</div>
+      <div class="limit-note">${isAdminUser() ? "بصفتك أدمن: بلا حد يومي." : `الحد اليومي: ${effectiveDailyLimit()} خبر/تحديث لك.`}</div>
       <div class="field">
         <label>نص التحديث</label>
         <textarea id="uText" placeholder="مثال: خرج بحمد الله من المستشفى..."></textarea>
