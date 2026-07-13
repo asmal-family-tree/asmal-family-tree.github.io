@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=36">
+<link rel="stylesheet" href="styles.css?v=38">
 </head>
 <body>
 <script>
@@ -149,6 +149,28 @@
   <div id="migrateStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
 </div>
 
+<!-- تصميم الموقع: تبويب مستقل. المستخدم يغيّره لنفسه (localStorage)، والمشرف يغيّره للجميع (Firestore). -->
+<div id="designPanel" class="bottom-panel">
+  <label class="f-label">🎨 استايل الموقع</label>
+  <div class="chip-list" id="themeChooser">
+    <button class="f-btn-sm theme-btn" data-theme="">الافتراضي</button>
+    <button class="f-btn-sm theme-btn" data-theme="royal-green">الأخضر الملكي</button>
+    <button class="f-btn-sm theme-btn" data-theme="desert-gold">الذهبي الصحراوي</button>
+    <button class="f-btn-sm theme-btn" data-theme="pearl-white">الأبيض اللؤلؤي</button>
+  </div>
+  <div id="themeStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+
+  <label class="f-label" style="margin-top:16px; display:block;">🖥️ شكل الواجهة</label>
+  <div class="chip-list" id="layoutChooser">
+    <button class="f-btn-sm layout-btn" data-style="">الافتراضي</button>
+    <button class="f-btn-sm layout-btn" data-style="2">لوحة التحكم</button>
+    <button class="f-btn-sm layout-btn" data-style="3">المستقبلي</button>
+  </div>
+  <div id="layoutStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+
+  <div id="designScopeNote" style="font-size:11.5px; color:#8a7a5a; text-align:center; margin-top:12px; line-height:1.6;"></div>
+</div>
+
 <div id="bgPanel" class="bottom-panel">
   <div class="io-row">
     <label id="bgFileLabel" title="رفع صورة أو PDF كخلفية">🖼️ رفع خلفية (صورة أو PDF)<input type="file" id="bgFileInput" accept="image/*,application/pdf" style="display:none"></label>
@@ -187,6 +209,14 @@
       <span>مصفوفة صلاحيات: <b id="permsUserName"></b></span>
       <button id="permsCloseBtn" class="chip-x" style="font-size:18px;">✕</button>
     </div>
+    <!-- ربط المستخدم بعقدته في الشجرة (يحدد "شجرتي" و"ملفي" بالسجلات) -->
+    <label class="f-label" style="display:block; margin-bottom:6px;">🔗 نطاق المستخدم (عقدته في الشجرة)</label>
+    <div style="position:relative; margin-bottom:12px;">
+      <input type="text" id="permsScopeInput" class="f-input" placeholder="اكتب الاسم ثم اختر من القائمة">
+      <div id="permsScopeDropdown" class="autocomplete-dropdown"></div>
+    </div>
+    <div id="permsScopeCurrent" style="font-size:11.5px; color:#8a7a5a; margin:-6px 0 12px;"></div>
+
     <div id="permsGrid"></div>
     <div class="perms-actions">
       <button id="permsSaveBtn" class="f-btn-sm" style="flex:1; background:#0B3D2E;">💾 حفظ الصلاحيات</button>
@@ -196,22 +226,6 @@
 
   <label class="f-label" style="margin-top:14px; display:block;">📋 إضافات بانتظار الاعتماد</label>
   <div id="pendingList" style="max-height:220px; overflow-y:auto;"></div>
-
-  <label class="f-label" style="margin-top:14px; display:block;">🎨 استايل الموقع (يظهر للجميع)</label>
-  <div class="chip-list" id="themeChooser">
-    <button class="f-btn-sm theme-btn" data-theme="">الافتراضي</button>
-    <button class="f-btn-sm theme-btn" data-theme="royal-green">الأخضر الملكي</button>
-    <button class="f-btn-sm theme-btn" data-theme="desert-gold">الذهبي الصحراوي</button>
-  </div>
-  <div id="themeStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
-
-  <label class="f-label" style="margin-top:14px; display:block;">🖥️ تصميم الموقع (شكل الواجهة، يظهر للجميع)</label>
-  <div class="chip-list" id="layoutChooser">
-    <button class="f-btn-sm layout-btn" data-style="">الافتراضي</button>
-    <button class="f-btn-sm layout-btn" data-style="2">لوحة التحكم</button>
-    <button class="f-btn-sm layout-btn" data-style="3">المستقبلي</button>
-  </div>
-  <div id="layoutStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
 
   <label class="f-label" style="margin-top:14px; display:block;">🔍 فحص بيانات شخص (تنظيف الأخطاء)</label>
   <div style="position:relative">
@@ -235,6 +249,7 @@
     <button class="dt-tab" data-target="searchToggle"><span class="dt-ic">🔍</span><span>البحث</span></button>
     <button class="dt-tab" data-target="relToggle"><span class="dt-ic">🧮</span><span>حاسبة العلاقة</span></button>
     <button class="dt-tab" data-target="attachmentsToggle"><span class="dt-ic">📚</span><span>المرفقات</span></button>
+    <button class="dt-tab" data-target="designToggle"><span class="dt-ic">🎨</span><span>تصميم الموقع</span></button>
     <button class="dt-tab" data-target="bgToggle"><span class="dt-ic">🖼️</span><span>المظهر</span></button>
     <button class="dt-tab" data-target="usersToggle"><span class="dt-ic">👥</span><span>المستخدمون</span></button>
     <button class="dt-tab" data-target="recordsToggle"><span class="dt-ic">📋</span><span>السجلات</span></button>
@@ -252,7 +267,8 @@
   <button id="relToggle" title="حاسبة العلاقة">🧮</button>
   <button id="myTreeToggle" title="شجرتي الخاصة">🌳</button>
   <button id="ioToggle" title="استيراد وتصدير">📁</button>
-  <button id="bgToggle" title="خلفية الشجرة">🖼️</button>
+  <button id="designToggle" title="تصميم الموقع">🎨</button>
+  <button id="bgToggle" title="خلفية الشجرة" style="display:none">🖼️</button>
   <button id="toggleTree" title="إخفاء/إظهار المشجرة">🙈</button>
   <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
   <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
@@ -383,7 +399,7 @@
   </div>
 </div>
 
-<script src="auth.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="auth.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

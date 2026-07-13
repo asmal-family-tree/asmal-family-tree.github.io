@@ -27,6 +27,8 @@ const PERM_PAGES = {
 };
 
 // التبويبات المقصورة على الأدمن — خارج المصفوفة تمامًا
+// خارج المصفوفة تمامًا — لا تظهر بمحرر الصلاحيات، ولا تُمنح لأحد:
+// 📚 المرفقات · 📁 استيراد/تصدير · 🗑️ وضع الحذف · 👥 المستخدمون · 🖼️ المظهر (رفع الخلفية)
 const ADMIN_ONLY_PAGES = ["attachments", "io", "deleteMode", "users", "background"];
 
 // ---------- المصفوفة الافتراضية لكل مستخدم جديد ----------
@@ -38,7 +40,7 @@ const DEFAULT_PERMS = {
   search:   { view: true },
   relation: { view: true },
   myTree:   { view: true },
-  records:  { view: true, exportOne: false, exportAll: false },
+  records:  { view: true, exportOne: true, exportAll: false },   // يصدّر ملفه هو
   ai:       { view: true },
   design:   { view: true }
 };
@@ -103,6 +105,9 @@ function mergePerms(saved){
 /** بناء كائن المستخدم من مستند Firestore */
 function buildAuthUser(uid, doc){
   const isAdmin = doc.role === "admin";
+  // توافق مع البيانات القديمة: مستخدم بلا perms أُنشئ قبل نظام الصلاحيات.
+  // لا نمنحه المصفوفة الافتراضية كاملة، بل مشاهدة فقط، حتى يضبطه المشرف صراحةً.
+  const hasPerms = !!doc.perms;
   return {
     uid,
     displayName: doc.displayName || "مستخدم",
@@ -110,7 +115,8 @@ function buildAuthUser(uid, doc){
     status: doc.status || "active",
     scopePersonId: doc.scopePersonId || null,
     scopePersonName: doc.scopePersonName || null,
-    perms: isAdmin ? null : mergePerms(doc.perms),
+    perms: isAdmin ? null : (hasPerms ? mergePerms(doc.perms) : mergePerms(null)),
+    legacyNoPerms: !isAdmin && !hasPerms,
     isGuest: false
   };
 }

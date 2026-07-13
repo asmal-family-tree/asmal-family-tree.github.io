@@ -167,14 +167,38 @@ async function enterAsGuest(){
 }
 window.enterAsGuest = enterAsGuest;
 
+// الاستايل له مستويان:
+//   • المشرف يحفظ في meta/siteSettings  => يصير الافتراضي للجميع
+//   • المستخدم يحفظ في localStorage      => يغيّره لنفسه فقط، ويتجاوز به العام
+// عند التحميل: نقرأ العام، ثم إن وُجد اختيار شخصي فهو الذي يُطبَّق.
 async function loadAndApplySiteTheme(){
+  let theme = "", layoutStyle = "";
   try{
     const snap = await db.collection("meta").doc("siteSettings").get();
-    const theme = snap.exists ? (snap.data().theme || "") : "";
-    const layoutStyle = snap.exists ? (snap.data().layoutStyle || "") : "";
-    applyTheme(theme);
-    applyLayoutStyle(layoutStyle);
+    if (snap.exists){
+      theme = snap.data().theme || "";
+      layoutStyle = snap.data().layoutStyle || "";
+    }
   }catch(e){ console.error("تعذر تحميل استايل الموقع", e); }
+
+  if (!isAdminUser()){
+    const myTheme  = localStorage.getItem("myTheme");
+    const myLayout = localStorage.getItem("myLayout");
+    if (myTheme  !== null) theme = myTheme;
+    if (myLayout !== null) layoutStyle = myLayout;
+  }
+
+  applyTheme(theme);
+  applyLayoutStyle(layoutStyle);
+}
+
+// ملاحظة توضيحية أسفل لوحة التصميم
+function renderDesignScopeNote(){
+  const el = document.getElementById("designScopeNote");
+  if (!el) return;
+  el.textContent = isAdminUser()
+    ? "بصفتك المشرف، اختيارك هنا يصير الاستايل الافتراضي للجميع."
+    : "اختيارك هنا يخصّك وحدك — لا يغيّر شكل الموقع على غيرك.";
 }
 
 function applyTheme(theme){
@@ -195,8 +219,18 @@ function applyLayoutStyle(layoutStyle){
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
   btn.onclick = async () => {
+    if (!guard("design")) return;
     const layoutStyle = btn.dataset.style;
     const statusEl = document.getElementById("layoutStatus");
+
+    if (!isAdminUser()){
+      localStorage.setItem("myLayout", layoutStyle);
+      applyLayoutStyle(layoutStyle);
+      statusEl.textContent = "✅ طُبِّق التصميم عليك";
+      setTimeout(() => { statusEl.textContent = ""; }, 2000);
+      return;
+    }
+
     statusEl.textContent = "جارِ الحفظ…";
     try{
       await db.collection("meta").doc("siteSettings").set({ layoutStyle }, { merge: true });
@@ -211,8 +245,18 @@ document.querySelectorAll(".layout-btn").forEach(btn => {
 
 document.querySelectorAll(".theme-btn").forEach(btn => {
   btn.onclick = async () => {
+    if (!guard("design")) return;
     const theme = btn.dataset.theme;
     const statusEl = document.getElementById("themeStatus");
+
+    if (!isAdminUser()){
+      localStorage.setItem("myTheme", theme);
+      applyTheme(theme);
+      statusEl.textContent = "✅ طُبِّق الاستايل عليك";
+      setTimeout(() => { statusEl.textContent = ""; }, 2000);
+      return;
+    }
+
     statusEl.textContent = "جارِ الحفظ…";
     try{
       await db.collection("meta").doc("siteSettings").set({ theme }, { merge: true });
@@ -288,7 +332,8 @@ const TAB_PERMS = [
   { id: "relToggle",         page: "relation", mode: "hide" },
   { id: "myTreeToggle",      page: "myTree",   mode: "hide" },
   { id: "recordsToggle",     page: "records",  mode: "notify" },
-  { id: "bgToggle",          page: "design",   mode: "notify" },
+  { id: "designToggle",      page: "design",   mode: "notify" },
+  { id: "bgToggle",          page: "background", mode: "hide" },
   { id: "attachmentsToggle", page: "attachments", mode: "hide" },
   { id: "ioToggle",          page: "io",       mode: "hide" },
   { id: "deleteBadgeToggle", page: "deleteMode", mode: "hide" },
@@ -301,6 +346,8 @@ function applyRolePermissions(){
   const admin = isAdminUser();
   document.body.classList.toggle("role-limited", !admin);
   document.body.classList.toggle("role-guest", isGuest());
+  // إخفاء أزرار ➕ الإضافة على العقد لمن لا يملك صلاحية تعديل الشجرة
+  document.body.classList.toggle("no-tree-edit", !can("tree", "edit"));
 
   for (const t of TAB_PERMS){
     const allowed = can(t.page, "view");
@@ -474,41 +521,61 @@ async function loadTreeFromFirestore(){
 // ============ إدارة المستخدمين (مرحلة ٤) ============
 let selectedScopePerson = null; // { id, name, ancestorIds }
 
+
+// ═══════════════════════════════════════════════════════════════
+// بحث مشترك عن شخص بالشجرة، لربط المستخدم بعقدته (scopePersonId).
+// يُستخدم في موضعين: نموذج "إضافات خاصة"، ومحرر الصلاحيات.
+// ═══════════════════════════════════════════════════════════════
+function attachPersonSearch(inputEl, dropdownEl, onPick){
+  inputEl.addEventListener("input", () => {
+    const q = inputEl.value.trim();
+    dropdownEl.innerHTML = "";
+    if (!q){ dropdownEl.classList.remove("show"); return; }
+
+    const parts = q.split(/\s+/).filter(Boolean);
+    let matches;
+    if (parts.length > 1){
+      // اسم مركّب: نطابق السلسلة كلها بالترتيب (نجيب محمد أحمد…)
+      matches = root.descendants().filter(d => {
+        if (d.data.type === "female") return false;
+        const chain = chainNames(d);
+        if (chain.length < parts.length) return false;
+        for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
+        return true;
+      });
+    } else {
+      matches = root.descendants().filter(d => d.data.type !== "female" && d.data.name.includes(q));
+    }
+    matches = matches.slice(0, 30);
+    if (!matches.length){ dropdownEl.classList.remove("show"); return; }
+
+    matches.forEach(m => {
+      const item = document.createElement("div");
+      item.className = "autocomplete-item";
+      item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
+      item.onclick = () => {
+        onPick({
+          id: m.data.id,
+          name: m.data.name,
+          ancestorIds: m.data.ancestorIds || [],
+          chain3: chainNames(m).slice(0, 3).join(" ")
+        });
+        inputEl.value = chainNames(m).slice(0, 3).join(" ");
+        dropdownEl.classList.remove("show");
+      };
+      dropdownEl.appendChild(item);
+    });
+    portalShowDropdown(inputEl, dropdownEl);
+  });
+}
+
 const newUserScopeInput = document.getElementById("newUserScopeInput");
 const newUserScopeDropdown = document.getElementById("newUserScopeDropdown");
-newUserScopeInput.addEventListener("input", () => {
-  selectedScopePerson = null;
-  const q = newUserScopeInput.value.trim();
-  newUserScopeDropdown.innerHTML = "";
-  if (!q){ newUserScopeDropdown.classList.remove("show"); return; }
-  const parts = q.split(/\s+/).filter(Boolean);
-  let matches;
-  if (parts.length > 1){
-    matches = root.descendants().filter(d => {
-      if (d.data.type === "female") return false;
-      const chain = chainNames(d);
-      if (chain.length < parts.length) return false;
-      for (let i = 0; i < parts.length; i++) if (!chain[i].includes(parts[i])) return false;
-      return true;
-    });
-  } else {
-    matches = root.descendants().filter(d => d.data.type !== "female" && d.data.name.includes(q));
-  }
-  matches = matches.slice(0, 30);
-  if (!matches.length){ newUserScopeDropdown.classList.remove("show"); return; }
-  matches.forEach(m => {
-    const item = document.createElement("div");
-    item.className = "autocomplete-item";
-    item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
-    item.onclick = () => {
-      selectedScopePerson = { id: m.data.id, name: m.data.name, ancestorIds: m.data.ancestorIds || [] };
-      newUserScopeInput.value = chainNames(m).slice(0, 3).join(" ");
-      newUserScopeDropdown.classList.remove("show");
-    };
-    newUserScopeDropdown.appendChild(item);
-  });
-  portalShowDropdown(newUserScopeInput, newUserScopeDropdown);
+// نموذج "إضافات خاصة" يستخدم نفس بحث الأشخاص المشترك
+attachPersonSearch(newUserScopeInput, newUserScopeDropdown, (picked) => {
+  selectedScopePerson = { id: picked.id, name: picked.name, ancestorIds: picked.ancestorIds };
 });
+newUserScopeInput.addEventListener("input", () => { selectedScopePerson = null; });
 
 document.getElementById("newUserAddBtn").onclick = async function(){
   const username = document.getElementById("newUserName").value.trim();
@@ -760,6 +827,7 @@ document.getElementById("exportAllRecordsBtn").onclick = exportAllRecordsPdf;
 // ═══════════════════════════════════════════════════════════════
 let editingPermsUid = null;
 let editingPerms = null;
+let editingScope = null;   // { id, name, ancestorIds } — العقدة المرتبطة بالمستخدم
 
 const ACTION_LABELS = {
   view: "مشاهدة", edit: "تعديل", delete: "حذف",
@@ -769,8 +837,19 @@ const ACTION_LABELS = {
 function openPermsEditor(uid, userData){
   editingPermsUid = uid;
   editingPerms = mergePerms(userData.perms);
+  editingScope = userData.scopePersonId
+    ? { id: userData.scopePersonId, name: userData.scopePersonName || "", ancestorIds: null }
+    : null;
 
   document.getElementById("permsUserName").textContent = userData.displayName || "—";
+
+  // النطاق الحالي
+  const scopeInput = document.getElementById("permsScopeInput");
+  const scopeCurrent = document.getElementById("permsScopeCurrent");
+  scopeInput.value = "";
+  scopeCurrent.textContent = editingScope
+    ? `النطاق الحالي: ${editingScope.name || editingScope.id}`
+    : "لا يوجد نطاق مرتبط — لن تعمل له \"شجرتي\" ولا \"ملفي\" بالسجلات.";
   const grid = document.getElementById("permsGrid");
   grid.innerHTML = "";
 
@@ -862,15 +941,32 @@ document.getElementById("permsCloseBtn").onclick = () => {
   document.getElementById("permsEditor").style.display = "none";
   editingPermsUid = null;
   editingPerms = null;
+  editingScope = null;
 };
+
+// بحث النطاق داخل محرر الصلاحيات
+attachPersonSearch(
+  document.getElementById("permsScopeInput"),
+  document.getElementById("permsScopeDropdown"),
+  (picked) => {
+    editingScope = { id: picked.id, name: picked.name, ancestorIds: picked.ancestorIds };
+    document.getElementById("permsScopeCurrent").textContent =
+      `سيُربط بـ: ${picked.chain3}  (${picked.id})`;
+  }
+);
 
 document.getElementById("permsSaveBtn").onclick = async () => {
   if (!editingPermsUid) return;
   const statusEl = document.getElementById("permsStatus");
   statusEl.textContent = "جارِ الحفظ…";
   try{
-    await db.collection("users").doc(editingPermsUid).update({ perms: editingPerms });
-    statusEl.textContent = "✅ حُفظت الصلاحيات";
+    const payload = { perms: editingPerms };
+    if (editingScope && editingScope.id){
+      payload.scopePersonId = editingScope.id;
+      payload.scopePersonName = editingScope.name || "";
+    }
+    await db.collection("users").doc(editingPermsUid).update(payload);
+    statusEl.textContent = "✅ حُفظت الصلاحيات" + (editingScope ? " والنطاق" : "");
     setTimeout(() => {
       document.getElementById("permsEditor").style.display = "none";
       editingPermsUid = null;
@@ -882,7 +978,8 @@ document.getElementById("permsSaveBtn").onclick = async () => {
 };
 
 async function refreshUsersAndPendingLists(){
-  if (!currentUser || currentUser.role !== "admin") return;
+  // دفاع بالعمق: حتى لو فُتحت اللوحة بطريقة ما، لا تُحمّل بيانات المستخدمين لغير المشرف
+  if (!isAdminUser()) return;
   const usersListEl = document.getElementById("usersList");
   const pendingListEl = document.getElementById("pendingList");
   usersListEl.innerHTML = "جارِ التحميل…";
@@ -4560,32 +4657,35 @@ function openOnlyPanel(panel){
 // ---------- حاسبة العلاقة ----------
 const relToggle = document.getElementById("relToggle");
 const relPanel = document.getElementById("relPanel");
-relToggle.onclick = () => openOnlyPanel(relPanel);
+relToggle.onclick = () => { if (!guard("relation")) return; openOnlyPanel(relPanel); };
 
 const searchToggle = document.getElementById("searchToggle");
 const searchPanel = document.getElementById("searchPanel");
 searchToggle.onclick = () => {
+  if (!guard("search")) return;
   if (openOnlyPanel(searchPanel)) document.getElementById("search").focus();
 };
 
 const ioToggle = document.getElementById("ioToggle");
 const ioPanel = document.getElementById("ioPanel");
-ioToggle.onclick = () => openOnlyPanel(ioPanel);
+ioToggle.onclick = () => { if (!guard("io")) return; openOnlyPanel(ioPanel); };
 
 const bgToggle = document.getElementById("bgToggle");
 const bgPanel = document.getElementById("bgPanel");
-bgToggle.onclick = () => openOnlyPanel(bgPanel);
+bgToggle.onclick = () => { if (!guard("background")) return; openOnlyPanel(bgPanel); };
+designToggle.onclick = () => { if (!guard("design")) return; openOnlyPanel(designPanel); renderDesignScopeNote(); };
 
 const usersToggle = document.getElementById("usersToggle");
 const usersPanel = document.getElementById("usersPanel");
-usersToggle.onclick = () => { openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); };
+usersToggle.onclick = () => { if (!guard("users")) return; openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); };
 
 const recordsToggle = document.getElementById("recordsToggle");
 const recordsPanel = document.getElementById("recordsPanel");
-recordsToggle.onclick = () => { openOnlyPanel(recordsPanel); refreshRecordsList(); };
+recordsToggle.onclick = () => { if (!guard("records")) return; openOnlyPanel(recordsPanel); refreshRecordsList(); };
 
 const deleteBadgeToggle = document.getElementById("deleteBadgeToggle");
 deleteBadgeToggle.onclick = () => {
+  if (!guard("deleteMode")) return;
   const on = document.body.classList.toggle("show-delete-badges");
   deleteBadgeToggle.classList.toggle("active", on);
 };
@@ -4601,6 +4701,7 @@ const aiChatSend = document.getElementById("aiChatSend");
 const aiChatStatus = document.getElementById("aiChatStatus");
 
 aiChatToggle.onclick = () => {
+  if (!guard("ai")) return;
   openOnlyPanel(aiChatPanel);
   if (!aiChatMessages.childElementCount){
     appendAiChatMessage("bot", "أهلًا! اسألني عن أي شخص، علاقة قرابة، أو معلومة مضافة في شجرة بني أسمل الحكمي.");
@@ -4899,7 +5000,7 @@ const attachFileInput = document.getElementById("attachFileInput");
 const attachStatus = document.getElementById("attachStatus");
 const attachmentsList = document.getElementById("attachmentsList");
 
-attachmentsToggle.onclick = () => { openOnlyPanel(attachmentsPanel); refreshAttachmentsList(); };
+attachmentsToggle.onclick = () => { if (!guard("attachments")) return; openOnlyPanel(attachmentsPanel); refreshAttachmentsList(); };
 
 function chunkTextForKnowledge(text, size){
   size = size || 900;
@@ -5089,7 +5190,7 @@ async function buildAiKnowledgeContext(question){
 // ---------- شجرتي الخاصة ----------
 const myTreeToggle = document.getElementById("myTreeToggle");
 const myTreePanel = document.getElementById("myTreePanel");
-myTreeToggle.onclick = () => openOnlyPanel(myTreePanel);
+myTreeToggle.onclick = () => { if (!guard("myTree")) return; openOnlyPanel(myTreePanel); };
 
 const myTreeInput = document.getElementById("myTreeInput");
 const myTreeDropdown = document.getElementById("myTreeDropdown");
