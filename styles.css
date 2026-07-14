@@ -1725,99 +1725,55 @@ body:not(.authed) #artBackground{
 }
 
 /* ============================================================
-   التصميم الرابع: "أسمل" — يطابق الصورة المرجعية شكلًا (حبة دواء،
-   شريط علوي داكن، صندوق أبيض مدوّر للتكبير) — الألوان تتبع الثيمات
-   الأربعة تلقائيًا عبر المتغيرات الحالية (--ink/--bg/--card-bg/--gold).
+   التصميم الرابع: "أسمل" — إعادة ترتيب بصري بالكامل بلا حذف أي عنصر
+   الألوان تتبع تلقائيًا نفس متغيرات الثيمات الأربعة الحالية (لا حاجة
+   لتعريف ألوان جديدة، لأن :root[data-theme="..."] تُطبَّق بمعزل عن
+   data-style أصلًا). هذا القسم يغيّر التخطيط فقط.
    ============================================================ */
 
-/* شريط علوي داكن خلفي فقط (لا وظيفة له) لإعطاء نفس شكل الهيدر بالمرجع */
-#asmalHeaderBar{ display:none; }
-:root[data-style="4"] #asmalHeaderBar{
-  display:block; position:fixed; inset:0 0 auto 0; height:64px;
-  background:var(--ink); z-index:48;
-}
-
-/* شارة المستخدم تبقى بموضعها الحالي (كما طلب)، فقط نتأكد من ظهورها فوق الشريط الداكن ونعدّل ألوانها لتناسبه */
-:root[data-style="4"] #currentUserBadge{
-  z-index:56 !important; background:rgba(255,255,255,.95) !important;
-}
-
-/* رابط الأخبار: بلا خلفية ولا حدود صلبة — فقط توهّج خفيف حول الأيقونة نفسها.
-   أُنزل تحت A+/A- بمسافة كافية لتفادي تداخل التوهج معهما (كانا ملاصقين سابقًا). */
+/* رابط الأخبار العائم يتموضع بجانب شارة المستخدم أعلى اليسار، بدل موضعه الافتراضي أسفلها */
 :root[data-style="4"] #newsNavBtn{
-  position:fixed !important; top:56px !important; left:auto !important; right:14px !important;
-  width:36px; height:36px; font-size:18px; z-index:56;
-  background:transparent !important; border:none !important;
-  box-shadow:0 0 6px 1px var(--gold) !important;
+  top:10px !important; left:64px !important; width:40px; height:40px; font-size:17px;
 }
 
-/* صف أدوات حبة الدواء أسفل رابط الأخبار: البحث + تصدير/استيراد + المرفقات */
+/* صف أدوات جديد أعلى الشاشة: البحث + الاستيراد/التصدير + المرفقات — نفس الأزرار الحقيقية، فقط مُعاد وضعها */
 :root[data-style="4"] #searchToggle,
 :root[data-style="4"] #ioToggle,
 :root[data-style="4"] #attachmentsToggle{
-  position:fixed !important; top:100px !important; z-index:40 !important;
-  width:auto !important; height:34px !important; border-radius:18px !important; padding:0 13px !important;
-  background:var(--card-bg) !important; border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)) !important;
-  box-shadow:var(--card-shadow) !important;
-  display:flex !important; align-items:center !important; justify-content:center !important; gap:5px !important;
-  font-size:15px !important; color:var(--ink) !important; white-space:nowrap !important;
-}
-:root[data-style="4"] #searchToggle::after,
-:root[data-style="4"] #ioToggle::after,
-:root[data-style="4"] #attachmentsToggle::after{
-  font-family:'Tajawal',sans-serif !important; font-size:12px !important; font-weight:700 !important;
-  color:var(--ink) !important; display:inline-block !important;
-}
-:root[data-style="4"] #searchToggle::after{ content:"بحث" !important; }
-:root[data-style="4"] #ioToggle::after{ content:"تصدير" !important; }
-:root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات" !important; }
-/* الترتيب من أقصى اليمين: بحث، ثم تصدير، ثم المرفقات — بمسافات كافية بينها */
-:root[data-style="4"] #searchToggle{ right:14px !important; }
-:root[data-style="4"] #ioToggle{ right:88px !important; }
-:root[data-style="4"] #attachmentsToggle{ right:172px !important; }
-
-/* ملاحظة: A+/A- تبقى بموضعها الافتراضي (أعلى اليمين، top:10px) بلا أي تعديل —
-   لأنها بشريط مختلف رأسيًا عن حبات الدواء (top:76px)، فلا تتداخل معها إطلاقًا. */
-
-/* الصندوق الموحّد: تكبير+تصغير+إعادة تعيين+علامات الحذف كوحدة واحدة متصلة بلا فجوة،
-   مرفوعة لمنتصف الشاشة رأسيًا (بنفس عمودها الأفقي السابق) */
-:root[data-style="4"] .zoom-fab{
-  position:fixed !important; left:14px !important; top:calc(50% - 84px) !important; bottom:auto !important;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
-  border-radius:14px 14px 0 0; box-shadow:var(--card-shadow); padding:0; gap:0 !important;
-  border-bottom:none;
-}
-:root[data-style="4"] .zoom-fab button{
-  width:60px !important; height:56px !important; border-radius:0 !important;
-  display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  background:transparent !important; border:none !important; box-shadow:none !important;
-  font-size:16px; color:var(--ink);
-}
-:root[data-style="4"] .zoom-fab button:not(:last-child){
-  border-bottom:1px solid color-mix(in srgb, var(--ink) 10%, var(--line)) !important;
-}
-:root[data-style="4"] #zoomIn::after{ content:"تكبير"; }
-:root[data-style="4"] #zoomOut::after{ content:"تصغير"; }
-:root[data-style="4"] #zoomReset::after{ content:"إعادة تعيين"; }
-:root[data-style="4"] .zoom-fab button::after{ font-family:'Tajawal',sans-serif; font-size:10px; font-weight:700; }
-
-/* علامات الحذف: ملتصقة مباشرة أسفل صندوق التكبير بلا فجوة ولا حدود مزدوجة، فتبدو صندوقًا واحدًا متصلًا */
-:root[data-style="4"] #deleteBadgeToggle{
-  position:fixed !important; left:14px !important; z-index:40;
-  top:calc(50% + 84px) !important; bottom:auto !important;
-  width:60px; height:56px; border-radius:0 0 14px 14px;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
-  border-top:none;
+  position:fixed !important; top:62px; z-index:40;
+  width:42px; height:42px; border-radius:50%;
+  background:var(--card-bg); border:1.5px solid var(--gold);
   box-shadow:var(--card-shadow);
-  display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  font-size:16px; color:var(--ink);
+  display:flex; align-items:center; justify-content:center; font-size:18px;
 }
-:root[data-style="4"] #deleteBadgeToggle::after{ content:"علامات الحذف" !important; font-family:'Tajawal',sans-serif !important; font-size:9.5px !important; font-weight:700 !important; color:var(--ink) !important; display:inline-block !important; }
+:root[data-style="4"] #searchToggle{ right:14px; }
+:root[data-style="4"] #ioToggle{ right:64px; }
+:root[data-style="4"] #attachmentsToggle{ right:114px; }
 
-/* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
-:root[data-style="4"] #bottomBar{
-  background:var(--ink) !important; border-radius:22px !important; margin:0 10px 10px !important;
-  bottom:10px !important; box-shadow:0 6px 20px rgba(0,0,0,.25) !important;
+/* علامات الحذف: تطفو فوق الشجرة يسارًا (تحل محل موضع "ملء الشاشة" سابقًا) بدل بقائها بالشريط السفلي */
+:root[data-style="4"] #deleteBadgeToggle{
+  position:fixed !important; bottom:calc(var(--barh, 64px) + 130px); left:14px; z-index:40;
+  width:46px; height:46px; border-radius:50%;
+  background:var(--card-bg); border:1.5px solid var(--gold); box-shadow:var(--card-shadow);
+  display:flex !important; align-items:center; justify-content:center; font-size:19px;
 }
-:root[data-style="4"] #bottomBar button{ color:#fff !important; }
 
+/* ملاحظة: بما أن position:fixed يُخرج العنصر من تدفق الشريط السفلي تلقائيًا (بلا حاجة لإخفاء إضافي)،
+   يبقى الشريط السفلي فيه فقط: شجرتي، حاسبة العلاقة، تصميم الموقع، المظهر، المستخدمون، السجلات، المساعد الذكي. */
+
+/* ============================================================
+   ===== MINIMAP START — إضافة معزولة بالكامل (تصميم "أسمل" فقط) =====
+   لحذف الميزة كليًا: احذف هذه الفقرة من هنا حتى "MINIMAP END"،
+   بالإضافة لعنصر #minimapBox بـ index.html وقسم JS المقابل بـ app.js.
+   ============================================================ */
+#minimapBox{
+  display:none; position:fixed; top:110px; right:14px; z-index:35;
+  width:130px; height:100px; background:var(--card-bg); border:1.5px solid var(--gold);
+  border-radius:10px; box-shadow:var(--card-shadow); overflow:hidden;
+}
+:root[data-style="4"] #minimapBox{ display:block; }
+#minimapSvg{ width:100%; height:100%; display:block; cursor:pointer; }
+#minimapSvg .mm-link{ stroke:var(--line); stroke-width:.6; opacity:.8; }
+#minimapSvg .mm-node{ fill:var(--gold); }
+#minimapSvg .mm-viewport{ fill:rgba(180,140,20,.18); stroke:var(--maroon); stroke-width:1; }
+/* ===== MINIMAP END ===== */

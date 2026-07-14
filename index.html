@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=49">
+<link rel="stylesheet" href="styles.css?v=46">
 </head>
 <body>
 <script>
@@ -88,7 +88,6 @@
   <button id="uiScaleUp" title="تكبير">A+</button>
 </div>
 <div id="noViewMsg">🚫 لا تملك حاليًا صلاحية عرض المشجرة. تواصل مع محمد رشاد.</div>
-<div id="asmalHeaderBar"></div>
 <div id="nameTooltip"></div>
 <a id="newsNavBtn" href="news.html" data-perm="news" data-perm-action="view" title="الأخبار"
    style="position:fixed; top:70px; left:14px; z-index:50; width:46px; height:46px; border-radius:50%;
@@ -100,11 +99,17 @@
 <div id="tree-wrap" class="tree-hidden">
   <svg id="tree-svg"></svg>
   <div class="zoom-fab">
-    <button id="zoomIn" title="تكبير">＋</button>
-    <button id="zoomOut" title="تصغير">－</button>
-    <button id="zoomReset" title="إعادة تعيين">⟳</button>
+    <button id="zoomIn">＋</button>
+    <button id="zoomOut">－</button>
+    <button id="zoomReset">⟳</button>
   </div>
   <button id="exitFocus" class="exit-focus">✕ عرض الشجرة كاملة</button>
+
+  <!-- ===== MINIMAP START (إضافة معزولة — احذف هذا العنصر بالكامل لحذف الميزة) ===== -->
+  <div id="minimapBox" title="خريطة مصغّرة — اضغط للانتقال">
+    <svg id="minimapSvg"></svg>
+  </div>
+  <!-- ===== MINIMAP END ===== -->
 </div>
 
 <div id="myTreeInfoPanel">
@@ -401,6 +406,6 @@
 </div>
 
 <script src="auth.js?v=5"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
