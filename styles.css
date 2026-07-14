@@ -1872,6 +1872,15 @@ body:not(.authed) #artBackground{
   max-width:40px; overflow:hidden; transition:max-width .25s ease;
 }
 :root[data-style="4"] #asmalAdminMenuItems.open{ max-width:280px; }
+/* زر التشغيل بموضع أيقونة الأخبار: دائرة خضراء بأيقونة ☰ (بدل صورة الأخبار)، أخبار حقيقية تظهر كعنصر أول داخل القائمة */
+:root[data-style="4"] #newsNavBtn.admin-toggle-mode{
+  background:var(--emerald) !important; box-shadow:0 3px 8px rgba(0,0,0,.25) !important; border-radius:50%;
+}
+:root[data-style="4"] #newsNavBtn.admin-toggle-mode::after{ content:none !important; }
+:root[data-style="4"] #newsNavBtn.admin-toggle-mode::before{
+  content:"☰"; display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; font-size:20px; color:#fff;
+}
 :root[data-style="4"] #asmalAdminMenuItems #asmalAdminNewsLink{
   width:40px; height:40px; flex:none; display:block;
   filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
@@ -1909,3 +1918,11 @@ body:not(.authed) #artBackground{
   top:100% !important; bottom:auto !important;
 }
 /* ===== ASMAL ADMIN MENU / INLINE SEARCH END ===== */
+
+/* تبديل مواضع أيقونة الأخبار وأزرار A+/A- ببقية التصاميم (غير أسمل) فقط — كل أيقونة تنتقل لمكان الأخرى */
+:root:not([data-style="4"]) #newsNavBtn{
+  top:10px !important; left:auto !important; right:10px !important;
+}
+:root:not([data-style="4"]) #uiScaleControls{
+  top:70px !important; right:auto !important; left:14px !important;
+}

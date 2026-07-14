@@ -266,12 +266,14 @@ function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
   }
 
   if (style4Admin){
+    newsBtn.classList.add("admin-toggle-mode");
     // بحث ثم المرفقات ثم تصدير — بهذا الترتيب داخل القائمة (تظهر يمين لليسار: أخبار،بحث،مرفقات،تصدير)
     menuItems.appendChild(searchToggle);
     menuItems.appendChild(attachmentsToggle);
     menuItems.appendChild(ioToggle);
     if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
   } else if (style4NonAdmin){
+    newsBtn.classList.remove("admin-toggle-mode");
     menuItems.classList.remove("open");
     bottomBar.appendChild(searchToggle);
     bottomBar.appendChild(attachmentsToggle);
@@ -279,6 +281,7 @@ function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
     searchToggle.style.setProperty("display", "none", "important");
     if (searchbar.parentElement !== inlineSearchBox) inlineSearchBox.appendChild(searchbar);
   } else {
+    newsBtn.classList.remove("admin-toggle-mode");
     menuItems.classList.remove("open");
     bottomBar.appendChild(searchToggle);
     bottomBar.appendChild(attachmentsToggle);
