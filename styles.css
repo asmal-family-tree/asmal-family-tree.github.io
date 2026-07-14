@@ -1788,6 +1788,7 @@ body:not(.authed) #artBackground{
   border-radius:4px 16px 16px 16px !important;
   background:var(--card-bg); box-shadow:var(--card-shadow-lg);
   padding:12px !important;
+  z-index:57 !important;
 }
 
 /* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */

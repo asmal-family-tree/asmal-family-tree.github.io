@@ -155,7 +155,7 @@ auth.onAuthStateChanged(async (user)=>{
     if (isAdminUser()){
       renderAdminSettingsPanel();
       const gearBtn = document.getElementById("adminGearBtn");
-      gearBtn.style.display = "flex";
+      gearBtn.style.visibility = "visible";
       gearBtn.onclick = ()=> document.getElementById("adminSettingsPanel").classList.toggle("show");
     }
     await loadFeed();
@@ -240,19 +240,25 @@ async function loadFeed(){
   const moderator = canModerateNews();
   let posts = [];
 
-  if (moderator){
-    const snap = await db.collection("posts").orderBy("createdAt","desc").get();
-    posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    posts.sort((a,b)=> (a.status==="pending"?-1:0) - (b.status==="pending"?-1:0));
-  } else {
-    const [pubSnap, mineSnap] = await Promise.all([
-      db.collection("posts").where("status","==","published").orderBy("createdAt","desc").get(),
-      db.collection("posts").where("authorId","==", uid).get()
-    ]);
-    const map = new Map();
-    pubSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
-    mineSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
-    posts = [...map.values()].sort((a,b)=> (b.createdAt?.toMillis()||0) - (a.createdAt?.toMillis()||0));
+  try{
+    if (moderator){
+      const snap = await db.collection("posts").orderBy("createdAt","desc").get();
+      posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      posts.sort((a,b)=> (a.status==="pending"?-1:0) - (b.status==="pending"?-1:0));
+    } else {
+      const [pubSnap, mineSnap] = await Promise.all([
+        db.collection("posts").where("status","==","published").orderBy("createdAt","desc").get(),
+        db.collection("posts").where("authorId","==", uid).get()
+      ]);
+      const map = new Map();
+      pubSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
+      mineSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
+      posts = [...map.values()].sort((a,b)=> (b.createdAt?.toMillis()||0) - (a.createdAt?.toMillis()||0));
+    }
+  }catch(e){
+    feed.innerHTML = `<div class="empty">تعذّر تحميل الأخبار: ${escapeHtml(e.message || e.code || "خطأ غير معروف")}</div>`;
+    console.error("news loadFeed error:", e);
+    return;
   }
 
   // إخفاء أي خبر منتهي الصلاحية من العرض فورًا (حتى قبل حذفه الفعلي لاحقًا)
@@ -269,7 +275,13 @@ async function loadFeed(){
   }
 
   for (const p of posts){
-    const updatesSnap = await db.collection("posts").doc(p.id).collection("updates").orderBy("createdAt","asc").get();
+    let updatesSnap;
+    try{
+      updatesSnap = await db.collection("posts").doc(p.id).collection("updates").orderBy("createdAt","asc").get();
+    }catch(e){
+      console.warn("تعذّر تحميل تحديثات الخبر", p.id, e);
+      continue; // نتخطى هذا الخبر فقط بدل إيقاف عرض البقية بالكامل
+    }
     let updates = updatesSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     if (!moderator){
       updates = updates.filter(u => u.status === "published" || u.authorId === uid);

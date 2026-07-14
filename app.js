@@ -229,6 +229,7 @@ function applyLayoutStyle(layoutStyle){
     b.classList.toggle("active", b.dataset.style === layoutStyle);
   });
   placeDeleteBadgeCellForAsmal(layoutStyle);
+  applyAsmalAdminOnlyVisibility();
 }
 
 // ===== ASMAL DELETE-CELL START (معزول — احذف هذه الدالة والسطر الذي يستدعيها بأمان لإلغاء الميزة) =====
@@ -246,6 +247,26 @@ function placeDeleteBadgeCellForAsmal(layoutStyle){
   }
 }
 // ===== ASMAL DELETE-CELL END =====
+
+// ===== ASMAL ADMIN-ONLY START (معزول — احذف هذه الدالة واستدعاءاتها بأمان لإلغاء القيد) =====
+// تصميم "أسمل" فقط: المرفقات + تصدير/استيراد + تفعيل الحذف لا تظهر إلا للأدمن.
+// نستخدم style.setProperty(..., 'important') حتى تتغلّب على display:flex!important
+// الخاصة بتصميم أسمل بالأنماط، بلا حاجة لتعديل تلك القواعد.
+function applyAsmalAdminOnlyVisibility(){
+  const style4Active = document.documentElement.getAttribute("data-style") === "4";
+  const admin = (typeof isAdminUser === "function") && isAdminUser();
+  ["ioToggle", "attachmentsToggle", "deleteBadgeToggle"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (style4Active && !admin){
+      el.style.setProperty("display", "none", "important");
+    } else {
+      el.style.removeProperty("display");
+    }
+  });
+}
+window.applyAsmalAdminOnlyVisibility = applyAsmalAdminOnlyVisibility;
+// ===== ASMAL ADMIN-ONLY END =====
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
   btn.onclick = async () => {
