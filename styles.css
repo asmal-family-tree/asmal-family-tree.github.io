@@ -1762,18 +1762,18 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #attachmentsToggle{
   position:fixed !important; top:14px !important; z-index:56 !important;
   left:auto !important; bottom:auto !important;
-  width:auto !important; height:36px !important; border-radius:20px !important;
-  padding:0 13px !important; gap:6px !important;
+  width:auto !important; height:18px !important; border-radius:10px !important;
+  padding:0 6px !important; gap:3px !important;
   background:var(--card-bg) !important; border:1px solid var(--line) !important; box-shadow:none !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:15px !important; color:var(--ink) !important;
+  font-size:8px !important; color:var(--ink) !important;
   filter:none;
 }
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
 :root[data-style="4"] #attachmentsToggle::after{
   content:none; /* تُستبدل أدناه بنص فعلي لكل زر */
-  font-family:'Tajawal',sans-serif; font-size:11px; font-weight:700;
+  font-family:'Tajawal',sans-serif; font-size:6px; font-weight:700;
 }
 :root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات" !important; }
 :root[data-style="4"] #searchToggle::after{ content:"بحث" !important; }
