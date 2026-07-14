@@ -1956,3 +1956,28 @@ body:not(.authed) #artBackground{
 #regLoading{ color:#888; font-size:13px; margin-top:10px; }
 #openRegisterLink, #closeRegisterLink{ color:#0B3D2E; }
 /* ===== SELF-REGISTER END ===== */
+
+/* ============================================================
+   ===== AUTH BOTTOM ROW START (زر الدخول كضيف + رابط التسجيل) =====
+   يعتمد على متغيرات الثيم الحالية (--emerald/--gold) فيتغيّر تلقائيًا
+   مع تبديل الثيم/التصميم، بلا أي كود إضافي.
+   ============================================================ */
+.auth-bottom-row{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:18px; gap:10px;
+}
+.register-link{
+  color:var(--emerald); text-decoration:underline; font-size:13px; font-weight:700;
+  white-space:nowrap;
+}
+.guest-btn{
+  display:flex; align-items:center; gap:6px; text-decoration:none;
+  background:var(--emerald); border:3px double var(--gold);
+  border-radius:14px; padding:8px 12px; position:relative;
+}
+.guest-btn-flourish{ color:var(--gold); font-size:16px; opacity:.8; }
+.guest-btn-icon{ font-size:20px; }
+.guest-btn-text{ display:flex; flex-direction:column; align-items:flex-end; }
+.guest-btn-title{ color:var(--gold); font-weight:700; font-size:13px; line-height:1.3; }
+.guest-btn-sub{ color:#cfead9; font-size:10px; line-height:1.2; }
+/* ===== AUTH BOTTOM ROW END ===== */

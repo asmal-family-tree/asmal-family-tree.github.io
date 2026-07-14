@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=62">
+<link rel="stylesheet" href="styles.css?v=63">
 </head>
 <body>
 <script>
@@ -77,8 +77,18 @@
     <button id="authLoginBtn">دخول</button>
     <div id="authError"></div>
     <div id="authLoading" style="display:none">جارِ التحقق…</div>
-    <a id="openRegisterLink" href="#" style="display:block; text-align:center; margin-top:14px; font-size:13px;">ليس لديك حساب؟ سجّل الآن</a>
-    <a id="guestEnterLink" href="#" style="display:block; text-align:center; margin-top:8px; font-size:13px;">الدخول كضيف (مشاهدة فقط)</a>
+    <div class="auth-bottom-row">
+      <a id="openRegisterLink" href="#" class="register-link">التسجيل ➕</a>
+      <a id="guestEnterLink" href="#" class="guest-btn">
+        <span class="guest-btn-flourish">›</span>
+        <span class="guest-btn-icon">🕵️</span>
+        <span class="guest-btn-text">
+          <span class="guest-btn-title">الدخول كضيف</span>
+          <span class="guest-btn-sub">(مشاهدة فقط)</span>
+        </span>
+        <span class="guest-btn-flourish">‹</span>
+      </a>
+    </div>
   </div>
 </div>
 
