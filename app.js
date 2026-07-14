@@ -185,12 +185,13 @@ window.enterAsGuest = enterAsGuest;
 //   • المستخدم يحفظ في localStorage      => يغيّره لنفسه فقط، ويتجاوز به العام
 // عند التحميل: نقرأ العام، ثم إن وُجد اختيار شخصي فهو الذي يُطبَّق.
 async function loadAndApplySiteTheme(){
-  let theme = "", layoutStyle = "";
+  let theme = "royal-green", layoutStyle = "4"; // الافتراضي الجديد: أسمل بالأخضر الملكي، ما لم يُحدَّد غيره صراحة
   try{
     const snap = await db.collection("meta").doc("siteSettings").get();
     if (snap.exists){
-      theme = snap.data().theme || "";
-      layoutStyle = snap.data().layoutStyle || "";
+      const d = snap.data();
+      if ("theme" in d) theme = d.theme;             // موجود صراحة (حتى لو فارغ = المشرف اختار "الافتراضي" عمدًا)
+      if ("layoutStyle" in d) layoutStyle = d.layoutStyle;
     }
   }catch(e){ console.error("تعذر تحميل استايل الموقع", e); }
 
@@ -230,8 +231,63 @@ function applyLayoutStyle(layoutStyle){
   });
   placeDeleteBadgeCellForAsmal(layoutStyle);
   applyAsmalAdminOnlyVisibility();
-  placeIconsRowForAsmal(layoutStyle);
+  placeAsmalAdminMenuOrInlineSearch(layoutStyle);
 }
+
+// ===== ASMAL ADMIN MENU / INLINE SEARCH START (معزول — احذف هذه الدالة واستدعاءها بأمان لإلغاء الميزة) =====
+// أسمل + أدمن: بحث/مرفقات/تصدير تُنقل داخل قائمة منسدلة تفتح من موضع أيقونة الأخبار يسارًا.
+// أسمل + غير أدمن: أيقونة البحث تختفي، ويظهر بدلها مربع كتابة بحث مباشر ودائم في الهدر.
+// أي تصميم آخر: كل شيء يعود لمكانه الأصلي (الشريط السفلي / لوحة البحث المنبثقة).
+let _asmalNewsClickBound = false;
+function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
+  const menuItems = document.getElementById("asmalAdminMenuItems");
+  const inlineSearchBox = document.getElementById("asmalInlineSearch");
+  const newsBtn = document.getElementById("newsNavBtn");
+  const bottomBar = document.getElementById("bottomBar");
+  const searchToggle = document.getElementById("searchToggle");
+  const ioToggle = document.getElementById("ioToggle");
+  const attachmentsToggle = document.getElementById("attachmentsToggle");
+  const searchbar = document.querySelector("#searchPanel .searchbar");
+  const searchPanel = document.getElementById("searchPanel");
+  if (!menuItems || !inlineSearchBox || !newsBtn || !bottomBar || !searchToggle || !ioToggle || !attachmentsToggle || !searchbar || !searchPanel) return;
+
+  const style4Admin = layoutStyle === "4" && isAdminUser();
+  const style4NonAdmin = layoutStyle === "4" && !isAdminUser();
+
+  // تفعيل اعتراض ضغطة أيقونة الأخبار مرة واحدة فقط (يتحقق من الحالة الحالية عند كل ضغطة)
+  if (!_asmalNewsClickBound){
+    newsBtn.addEventListener("click", (e)=>{
+      if (document.documentElement.getAttribute("data-style") === "4" && isAdminUser()){
+        e.preventDefault();
+        menuItems.classList.toggle("open");
+      }
+    });
+    _asmalNewsClickBound = true;
+  }
+
+  if (style4Admin){
+    // بحث ثم المرفقات ثم تصدير — بهذا الترتيب داخل القائمة (تظهر يمين لليسار: أخبار،بحث،مرفقات،تصدير)
+    menuItems.appendChild(searchToggle);
+    menuItems.appendChild(attachmentsToggle);
+    menuItems.appendChild(ioToggle);
+    if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
+  } else if (style4NonAdmin){
+    menuItems.classList.remove("open");
+    bottomBar.appendChild(searchToggle);
+    bottomBar.appendChild(attachmentsToggle);
+    bottomBar.appendChild(ioToggle);
+    searchToggle.style.setProperty("display", "none", "important");
+    if (searchbar.parentElement !== inlineSearchBox) inlineSearchBox.appendChild(searchbar);
+  } else {
+    menuItems.classList.remove("open");
+    bottomBar.appendChild(searchToggle);
+    bottomBar.appendChild(attachmentsToggle);
+    bottomBar.appendChild(ioToggle);
+    searchToggle.style.removeProperty("display");
+    if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
+  }
+}
+// ===== ASMAL ADMIN MENU / INLINE SEARCH END =====
 
 // ===== ASMAL ICONS-ROW START (معزول — احذف هذه الدالة والسطر الذي يستدعيها بأمان لإلغاء الميزة) =====
 // تصميم "أسمل" فقط: ينقل المرفقات/بحث/تصدير فعليًا لحاوية فلكس واحدة (بدل تموضع يدوي منفصل لكل زر)،

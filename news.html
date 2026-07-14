@@ -8,7 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-<link rel="stylesheet" href="news-styles.css?v=3">
+<link rel="stylesheet" href="news-styles.css?v=4">
 </head>
 <body>
 
@@ -22,7 +22,10 @@
 <div class="topbar">
   <a href="index.html" class="back-link" title="رجوع للشجرة">→</a>
   <div class="brand">أخبار بني أسمل الحكمي</div>
-  <button id="adminGearBtn" class="gear-btn" title="إعدادات الحد اليومي" style="visibility:hidden;">⚙️</button>
+  <div class="topbar-left">
+    <span id="newsUserName"></span>
+    <button id="adminGearBtn" class="gear-btn" title="إعدادات الحد اليومي" style="visibility:hidden;">⚙️</button>
+  </div>
 </div>
 
 <div id="authGate" class="auth-gate">جارٍ التحقق من الدخول...</div>
@@ -47,6 +50,6 @@
 </button>
 
 <script src="auth.js?v=5"></script>
-<script src="news.js?v=5"></script>
+<script src="news.js?v=6"></script>
 </body>
 </html>

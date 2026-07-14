@@ -1742,17 +1742,20 @@ body:not(.authed) #artBackground{
   z-index:56 !important; background:rgba(255,255,255,.95) !important;
 }
 
-/* أيقونة الأخبار: استبدال بصري بالصورة المرفقة (بخلفية شفافة)، بلا تأطير ولا خلفية،
-   وتوهج يتبع حواف الأيقونة نفسها (drop-shadow بدل box-shadow) */
-:root[data-style="4"] #newsNavBtn{
-  position:fixed !important; top:12px !important; left:auto !important; right:14px !important;
-  width:40px; height:40px; z-index:56;
+/* أيقونة الأخبار الجديدة (news-icon.png) — تُطبَّق الآن على كل التصاميم، بخلفية شفافة وتوهج يتبع حوافها */
+#newsNavBtn{
   font-size:0 !important; background:transparent !important; border:none !important; box-shadow:none !important;
 }
-:root[data-style="4"] #newsNavBtn::after{
+#newsNavBtn::after{
   content:""; display:block; width:100%; height:100%;
   background-image:url('news-icon.png'); background-size:contain; background-position:center; background-repeat:no-repeat;
   filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
+}
+
+/* موضع خاص بتصميم أسمل فقط (بقية التصاميم تبقى بموضعها الأصلي من الـHTML) */
+:root[data-style="4"] #newsNavBtn{
+  position:fixed !important; top:12px !important; left:auto !important; right:14px !important;
+  width:40px; height:40px; z-index:56;
 }
 
 /* حاوية الأيقونات الثلاث (المرفقات/بحث/تصدير): فلكس حقيقي يضمن تباعدًا متساويًا،
@@ -1846,3 +1849,63 @@ body:not(.authed) #artBackground{
   bottom:10px !important; box-shadow:0 6px 20px rgba(0,0,0,.25) !important;
 }
 :root[data-style="4"] #bottomBar button{ color:#fff !important; }
+
+/* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
+#themeChooser, #layoutChooser{
+  flex-wrap:nowrap !important; overflow-x:auto; -webkit-overflow-scrolling:touch;
+}
+#themeChooser .theme-btn, #layoutChooser .layout-btn{
+  flex:0 0 auto; white-space:nowrap;
+}
+
+/* ============================================================
+   ===== ASMAL ADMIN MENU / INLINE SEARCH START (معزول) =====
+   القائمة المنسدلة الإدارية (أدمن + أسمل فقط): تفتح من موضع
+   أيقونة الأخبار يسارًا، وتكشف بحث/مرفقات/تصدير بهذا الترتيب.
+   البحث المضمّن الدائم (غير الأدمن + أسمل فقط): مربع كتابة بحث
+   حقيقي دائم من موضع الأخبار حتى شارة المستخدم، بلا أيقونة.
+   ============================================================ */
+#asmalAdminMenuItems{ display:none; }
+:root[data-style="4"] #asmalAdminMenuItems{
+  display:flex !important; position:fixed; top:12px; right:14px; z-index:56;
+  align-items:center; gap:10px;
+  max-width:40px; overflow:hidden; transition:max-width .25s ease;
+}
+:root[data-style="4"] #asmalAdminMenuItems.open{ max-width:280px; }
+:root[data-style="4"] #asmalAdminMenuItems #asmalAdminNewsLink{
+  width:40px; height:40px; flex:none; display:block;
+  filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
+}
+:root[data-style="4"] #asmalAdminMenuItems #searchToggle,
+:root[data-style="4"] #asmalAdminMenuItems #ioToggle,
+:root[data-style="4"] #asmalAdminMenuItems #attachmentsToggle{
+  position:static !important; flex:none !important;
+  width:36px !important; height:36px !important; border-radius:50% !important;
+  padding:0 !important; margin:0 !important;
+  background:var(--card-bg) !important; border:1px solid var(--line) !important; box-shadow:none !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  font-size:15px !important; color:var(--ink) !important;
+}
+:root[data-style="4"] #asmalAdminMenuItems #searchToggle::after,
+:root[data-style="4"] #asmalAdminMenuItems #ioToggle::after,
+:root[data-style="4"] #asmalAdminMenuItems #attachmentsToggle::after{ content:none !important; }
+
+#asmalInlineSearch{ display:none; }
+:root[data-style="4"] #asmalInlineSearch{
+  display:flex !important; position:fixed; top:12px; right:64px; left:170px; height:40px; z-index:56;
+  align-items:center;
+}
+:root[data-style="4"] #asmalInlineSearch .searchbar{
+  position:relative !important; width:100% !important; max-width:none !important; margin:0 !important;
+  display:flex !important; align-items:center;
+  background:var(--card-bg); border:1px solid var(--line); border-radius:20px; padding:0 12px; height:36px;
+}
+:root[data-style="4"] #asmalInlineSearch .searchbar svg{ width:16px; height:16px; flex:none; color:var(--ink); }
+:root[data-style="4"] #asmalInlineSearch .searchbar input{
+  border:none !important; background:transparent !important; outline:none; flex:1;
+  font-size:13px !important; padding:0 8px !important; color:var(--ink);
+}
+:root[data-style="4"] #asmalInlineSearch .autocomplete-dropdown.dropdown-up{
+  top:100% !important; bottom:auto !important;
+}
+/* ===== ASMAL ADMIN MENU / INLINE SEARCH END ===== */

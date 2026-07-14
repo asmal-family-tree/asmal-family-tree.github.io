@@ -150,6 +150,7 @@ auth.onAuthStateChanged(async (user)=>{
     await loadNewsSettings();
     gate.style.display = "none";
     document.getElementById("pageWrap").style.display = "";
+    document.getElementById("newsUserName").textContent = window.authUser.displayName || "";
     if (canWriteNews()) document.getElementById("btnCompose").style.display = "flex";
     if (canModerateNews() || isAdminUser()) await cleanupExpiredPosts();
     if (isAdminUser()){
