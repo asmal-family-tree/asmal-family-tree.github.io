@@ -1755,23 +1755,29 @@ body:not(.authed) #artBackground{
   filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
 }
 
-/* بحث + تصدير/استيراد + المرفقات: داخل الهدر الداكن، بين أيقونة الأخبار وشارة المستخدم.
-   الترتيب: المرفقات (بجانب أيقونة الأخبار يمينًا) ← بحث (وسط) ← تصدير (يسارًا، بجانب شارة المستخدم).
-   بلا خلفية ولا إطار ولا تسميات نصية — فقط الأيقونة بتوهج يتبع حدودها الفعلية */
+/* بحث + تصدير/استيراد + المرفقات: داخل الهدر الداكن، بشكل "شارة" (أيقونة + نص جنبًا لجنب).
+   الترتيب: المرفقات (بجانب أيقونة الأخبار يمينًا) ← بحث (وسط) ← تصدير (يسارًا، بجانب شارة المستخدم). */
 :root[data-style="4"] #searchToggle,
 :root[data-style="4"] #ioToggle,
 :root[data-style="4"] #attachmentsToggle{
   position:fixed !important; top:14px !important; z-index:56 !important;
   left:auto !important; bottom:auto !important;
-  width:36px !important; height:36px !important; border-radius:0 !important; padding:0 !important;
-  background:transparent !important; border:none !important; box-shadow:none !important;
+  width:auto !important; height:36px !important; border-radius:20px !important;
+  padding:0 13px !important; gap:6px !important;
+  background:var(--card-bg) !important; border:1px solid var(--line) !important; box-shadow:none !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:18px !important; color:var(--ink) !important;
-  filter:drop-shadow(0 0 3px var(--gold));
+  font-size:15px !important; color:var(--ink) !important;
+  filter:none;
 }
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
-:root[data-style="4"] #attachmentsToggle::after{ content:none !important; }
+:root[data-style="4"] #attachmentsToggle::after{
+  content:none; /* تُستبدل أدناه بنص فعلي لكل زر */
+  font-family:'Tajawal',sans-serif; font-size:11px; font-weight:700;
+}
+:root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات" !important; }
+:root[data-style="4"] #searchToggle::after{ content:"بحث" !important; }
+:root[data-style="4"] #ioToggle::after{ content:"تصدير" !important; }
 :root[data-style="4"] #attachmentsToggle{ right:64px !important; left:auto !important; }
 :root[data-style="4"] #searchToggle{ left:50% !important; right:auto !important; transform:translateX(-50%); }
 :root[data-style="4"] #ioToggle{ left:170px !important; right:auto !important; }
