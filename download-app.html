@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تثبيت تطبيق شجرة بني أسمل الحكمي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{ --emerald:#0B3D2E; --emerald-2:#124d3a; --gold:#C08A2E; --gold-bright:#E4C441; --cream:#FBF3E3; }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Tajawal',sans-serif; background:linear-gradient(180deg, var(--emerald) 0%, var(--emerald-2) 100%);
+    min-height:100vh; padding:24px 16px 60px; color:#fff;
+  }
+  .wrap{ max-width:480px; margin:0 auto; }
+  .app-icon{ width:110px; height:110px; border-radius:26px; display:block; margin:10px auto 16px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  h1{ text-align:center; font-size:22px; margin:0 0 6px; }
+  .sub{ text-align:center; color:#cfead9; font-size:14px; margin:0 0 30px; }
+
+  .card{ background:var(--cream); color:#241a10; border-radius:18px; padding:22px 20px; margin-bottom:20px; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  .card h2{ font-size:18px; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .card p{ font-size:13.5px; color:#5a4a35; line-height:1.8; margin:0 0 14px; }
+
+  .btn{
+    display:block; text-align:center; width:100%; padding:14px; border-radius:12px; border:none;
+    font-family:'Tajawal',sans-serif; font-weight:900; font-size:16px; cursor:pointer; text-decoration:none;
+  }
+  .btn-android{ background:var(--emerald); color:#fff; }
+  .btn-android:active{ transform:scale(.98); }
+
+  .steps{ margin:16px 0 0; padding:0; list-style:none; counter-reset:step; }
+  .steps li{
+    counter-increment:step; position:relative; padding:8px 0 8px 0; padding-right:38px;
+    font-size:13.5px; color:#5a4a35; line-height:1.7;
+  }
+  .steps li::before{
+    content:counter(step); position:absolute; right:0; top:6px; width:26px; height:26px; border-radius:50%;
+    background:var(--gold); color:#fff; font-weight:900; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .note{ font-size:12px; color:#8a7550; background:#fff8ea; border:1px dashed var(--gold); border-radius:10px; padding:10px 12px; margin-top:14px; line-height:1.7; }
+  .divider{ text-align:center; color:#cfead9; font-size:12px; margin:24px 0; opacity:.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img src="icon-192.png" alt="شعار بني أسمل" class="app-icon">
+  <h1>🌳 شجرة بني أسمل الحكمي</h1>
+  <p class="sub">ثبّت التطبيق على جوالك لتجربة أسرع وأسهل</p>
+
+  <div class="card">
+    <h2>🤖 أندرويد</h2>
+    <p>حمّل التطبيق مباشرة وثبّته على جوالك بخطوتين بسيطتين.</p>
+    <a href="asmal-app.apk" class="btn btn-android" download>⬇️ تحميل التطبيق الآن</a>
+    <ul class="steps">
+      <li>بعد اكتمال التحميل، اضغط على الإشعار أو الملف بالأسفل</li>
+      <li>لو ظهرت رسالة "مصادر غير معروفة"، اضغط "السماح" أو "متابعة التثبيت" — هذا طبيعي تمامًا لأن التطبيق غير مرفوع على متجر Google Play بعد</li>
+      <li>اضغط "تثبيت"، وانتظر ثوانٍ حتى يظهر بقائمة تطبيقاتك</li>
+    </ul>
+    <div class="note">⚠️ التطبيق آمن 100% — رسالة "مصادر غير معروفة" تظهر تلقائيًا لأي تطبيق يُثبَّت خارج متجر Google Play، بغض النظر عن مصدره.</div>
+  </div>
+
+  <div class="divider">──────────</div>
+
+  <div class="card">
+    <h2>🍎 آيفون (iOS)</h2>
+    <p>على آيفون، التطبيق يُضاف مباشرة من متصفح Safari — بلا تحميل أي ملف.</p>
+    <ul class="steps">
+      <li>افتح هذا الرابط من متصفح <b>Safari</b> تحديدًا (لازم Safari، مو أي متصفح آخر)</li>
+      <li>اضغط أيقونة المشاركة <b>⬆️</b> بأسفل الشاشة (أو أعلاها حسب جهازك)</li>
+      <li>مرّر لأسفل واختر <b>"إضافة إلى الشاشة الرئيسية"</b> (Add to Home Screen)</li>
+      <li>اضغط <b>"إضافة"</b> أعلى يمين الشاشة</li>
+    </ul>
+    <div class="note">✅ بعدها، ستظهر أيقونة التطبيق على شاشتك الرئيسية، وتفتح بلا شريط المتصفح — تجربة تطبيق كاملة.</div>
+  </div>
+</div>
+</body>
+</html>

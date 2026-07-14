@@ -24,9 +24,43 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=63">
+<link rel="stylesheet" href="styles.css?v=64">
 </head>
 <body>
+
+<!-- ===== APP INSTALL BANNER START (معزول — احذف هذا القسم بأمان لإلغاء الميزة) ===== -->
+<div id="appInstallBanner" style="display:none;">
+  <span id="appInstallBannerText">📱 ثبّت التطبيق لتجربة أسرع وأسهل</span>
+  <a id="appInstallBannerBtn" href="download-app.html">تثبيت التطبيق</a>
+  <button id="appInstallBannerClose" title="إغلاق">✕</button>
+</div>
+<script>
+(function(){
+  function isInstalledApp(){
+    try{
+      return window.matchMedia('(display-mode: standalone)').matches ||
+             window.matchMedia('(display-mode: fullscreen)').matches ||
+             document.referrer.indexOf('android-app://') === 0 ||
+             window.navigator.standalone === true; // آيفون: مضاف للشاشة الرئيسية
+    }catch(e){ return false; }
+  }
+  if (isInstalledApp()) return; // داخل التطبيق فعليًا — لا داعي لأي تنبيه
+  if (localStorage.getItem('appInstallBannerDismissed') === '1') return; // المستخدم أغلقه سابقًا
+  document.addEventListener('DOMContentLoaded', function(){
+    var banner = document.getElementById('appInstallBanner');
+    if (banner) banner.style.display = 'flex';
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    var closeBtn = document.getElementById('appInstallBannerClose');
+    if (closeBtn) closeBtn.addEventListener('click', function(){
+      document.getElementById('appInstallBanner').style.display = 'none';
+      localStorage.setItem('appInstallBannerDismissed', '1');
+    });
+  });
+})();
+</script>
+<!-- ===== APP INSTALL BANNER END ===== -->
+
 <script>
 (function(){
   // تصميم سطح المكتب: التبويبات الأفقية بالهيدر لا تكرر أي منطق برمجي؛ كل تبويب "يفعّل" نفس الزر الأصلي المخفي
