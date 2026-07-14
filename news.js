@@ -239,6 +239,7 @@ async function loadFeed(){
   const uid = window.authUser.uid;
   const moderator = canModerateNews();
   let posts = [];
+  let debugInfo = "";
 
   try{
     if (moderator){
@@ -250,6 +251,10 @@ async function loadFeed(){
         db.collection("posts").where("status","==","published").orderBy("createdAt","desc").get(),
         db.collection("posts").where("authorId","==", uid).get()
       ]);
+      // ===== DEBUG TEMP START (احذف هذا السطر بعد انتهاء التشخيص) =====
+      debugInfo = `[تشخيص مؤقت] pubSnap=${pubSnap.size} mineSnap=${mineSnap.size} uid=${uid}`;
+      console.log(debugInfo);
+      // ===== DEBUG TEMP END =====
       const map = new Map();
       pubSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
       mineSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
@@ -267,7 +272,7 @@ async function loadFeed(){
 
   feed.innerHTML = "";
   if (posts.length === 0){
-    feed.innerHTML = `<div class="empty">لا توجد أخبار حاليًا</div>`;
+    feed.innerHTML = `<div class="empty">لا توجد أخبار حاليًا${debugInfo ? "<br><small style='opacity:.6'>"+escapeHtml(debugInfo)+"</small>" : ""}</div>`;
     return;
   }
   if (moderator){
