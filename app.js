@@ -119,8 +119,123 @@ document.getElementById("authPassword").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("authLoginBtn").click();
 });
 
+// ===== SELF-REGISTER START (المرحلة 5 — معزول تمامًا، احذف هذا القسم بأمان لإلغاء الميزة) =====
+let regSelectedScope = null;
+
+document.getElementById("openRegisterLink").onclick = (e) => {
+  e.preventDefault();
+  document.getElementById("authOverlay").classList.add("hidden");
+  document.getElementById("registerOverlay").style.display = "flex";
+};
+document.getElementById("closeRegisterLink").onclick = (e) => {
+  e.preventDefault();
+  document.getElementById("registerOverlay").style.display = "none";
+  document.getElementById("authOverlay").classList.remove("hidden");
+};
+
+function showRegError(msg){ document.getElementById("regError").textContent = msg || ""; }
+function setRegLoading(on){
+  document.getElementById("regLoading").style.display = on ? "block" : "none";
+}
+
+// الخطوة الأولى: التحقق من رمز الدعوة + إنشاء حساب Firebase Auth فقط (بلا ملف مستخدم بعد)
+document.getElementById("regNextBtn").onclick = async function(){
+  const username = document.getElementById("regUsername").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const phone = document.getElementById("regPhone").value.trim();
+  const birthDate = document.getElementById("regBirthDate").value;
+  const inviteCode = document.getElementById("regInviteCode").value.trim();
+
+  showRegError("");
+  if (!username || !password){ showRegError("أدخل اسم المستخدم وكلمة المرور"); return; }
+  if (password.length < 6){ showRegError("كلمة المرور يجب أن تكون ٦ أحرف على الأقل"); return; }
+  if (!phone){ showRegError("أدخل رقم الجوال"); return; }
+  if (!birthDate){ showRegError("أدخل تاريخ الميلاد"); return; }
+  if (!inviteCode){ showRegError("أدخل رمز الدعوة"); return; }
+
+  setRegLoading(true);
+  try{
+    const codeSnap = await db.collection("meta").doc("registrationSettings").get();
+    const realCode = codeSnap.exists ? (codeSnap.data().inviteCode || "") : "";
+    if (!realCode || inviteCode !== realCode){
+      setRegLoading(false);
+      showRegError("رمز الدعوة غير صحيح");
+      return;
+    }
+  }catch(e){
+    setRegLoading(false);
+    showRegError("تعذّر التحقق من رمز الدعوة: " + (e.message || e.code));
+    return;
+  }
+
+  const email = usernameToEmail(username);
+  window.__selfRegistering = true; // يمنع afterSignIn من التدخل (بنفس أسلوب __adminBootstrapping)
+  try{
+    await auth.createUserWithEmailAndPassword(email, password);
+  }catch(err){
+    window.__selfRegistering = false;
+    setRegLoading(false);
+    if (err.code === "auth/email-already-in-use") showRegError("اسم المستخدم هذا مستخدم بالفعل");
+    else if (err.code === "auth/weak-password") showRegError("كلمة المرور ضعيفة جدًا");
+    else showRegError("خطأ: " + (err.message || err.code));
+    return;
+  }
+
+  // الآن أصبح موثّقًا فعليًا، فتُتاح له قراءة بيانات الشجرة للبحث عن نفسه
+  try{ await loadTreeFromFirestore(); }catch(e){ console.error("تعذّر تحميل الشجرة للتسجيل:", e); }
+
+  window.__regPendingData = { username, phone, birthDate };
+  setRegLoading(false);
+  document.getElementById("regStep1").style.display = "none";
+  document.getElementById("regStep2").style.display = "block";
+};
+
+const regScopeInput = document.getElementById("regScopeInput");
+const regScopeDropdown = document.getElementById("regScopeDropdown");
+attachPersonSearch(regScopeInput, regScopeDropdown, (picked) => {
+  regSelectedScope = { id: picked.id, name: picked.name, ancestorIds: picked.ancestorIds };
+});
+regScopeInput.addEventListener("input", () => { regSelectedScope = null; });
+
+// الخطوة الثانية: إنشاء ملف المستخدم الفعلي بعد اختيار العقدة
+document.getElementById("regFinishBtn").onclick = async function(){
+  showRegError("");
+  if (!regSelectedScope){ showRegError("اختر اسمك من القائمة المنسدلة (عقدة الشجرة)"); return; }
+  const data = window.__regPendingData || {};
+  setRegLoading(true);
+  try{
+    await db.collection("users").doc(auth.currentUser.uid).set({
+      role: "user",
+      status: "pending",
+      displayName: data.username || "",
+      scopePersonId: regSelectedScope.id,
+      scopePersonName: regSelectedScope.name,
+      phone: data.phone || "",
+      birthDate: data.birthDate || "",
+      perms: DEFAULT_PERMS,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){
+    setRegLoading(false);
+    showRegError("تعذّر إنشاء ملف الحساب: " + (e.message || e.code));
+    return;
+  }
+
+  await auth.signOut();
+  window.__selfRegistering = false;
+  window.__regPendingData = null;
+  setRegLoading(false);
+  document.getElementById("regStep1").style.display = "block";
+  document.getElementById("regStep2").style.display = "none";
+  document.getElementById("registerOverlay").style.display = "none";
+  document.getElementById("authOverlay").classList.remove("hidden");
+  showAuthError("تم التسجيل بنجاح! حسابك الآن بانتظار تفعيل المشرف.");
+};
+// ===== SELF-REGISTER END =====
+
 async function afterSignIn(fbUser){
   if (window.__adminBootstrapping) return;
+  if (window.__selfRegistering) return; // تسجيل ذاتي جارٍ — لا تتدخل حتى ننتهي (المرحلة 5)
 
   let userDoc;
   try{
@@ -1106,6 +1221,8 @@ async function refreshUsersAndPendingLists(){
             <div>
               <div class="user-card-name">${escapeHtml(u.displayName || "—")}</div>
               <div class="user-card-sub">🔗 ${u.scopePersonId ? escapeHtml(scopeChainLabel(u)) : "<span style=\'color:#B3261E\'>لا نطاق — لن تعمل شجرتي ولا ملفه</span>"}</div>
+              ${u.phone ? `<div class="user-card-sub">📱 ${escapeHtml(u.phone)}</div>` : ""}
+              ${u.birthDate ? `<div class="user-card-sub">🎂 ${escapeHtml(u.birthDate)}</div>` : ""}
             </div>
             ${badge}
           </div>
@@ -4761,7 +4878,37 @@ designToggle.onclick = () => { if (!guard("design")) return; openOnlyPanel(desig
 
 const usersToggle = document.getElementById("usersToggle");
 const usersPanel = document.getElementById("usersPanel");
-usersToggle.onclick = () => { if (!guard("users")) return; openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); };
+usersToggle.onclick = () => { if (!guard("users")) return; openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); loadInviteCodeUI(); };
+
+// ===== SELF-REGISTER START (المرحلة 5) — إدارة رمز الدعوة من لوحة الأدمن =====
+async function loadInviteCodeUI(){
+  const input = document.getElementById("inviteCodeInput");
+  const statusEl = document.getElementById("inviteCodeStatus");
+  if (!input) return;
+  try{
+    const snap = await db.collection("meta").doc("registrationSettings").get();
+    input.value = snap.exists ? (snap.data().inviteCode || "") : "";
+  }catch(e){
+    statusEl.textContent = "تعذّر تحميل الرمز الحالي";
+  }
+}
+const inviteCodeSaveBtn = document.getElementById("inviteCodeSaveBtn");
+if (inviteCodeSaveBtn){
+  inviteCodeSaveBtn.onclick = async function(){
+    const input = document.getElementById("inviteCodeInput");
+    const statusEl = document.getElementById("inviteCodeStatus");
+    const code = input.value.trim();
+    if (!code){ statusEl.textContent = "أدخل رمزًا صحيحًا"; return; }
+    statusEl.textContent = "جارِ الحفظ…";
+    try{
+      await db.collection("meta").doc("registrationSettings").set({ inviteCode: code }, { merge: true });
+      statusEl.textContent = "تم الحفظ ✓";
+    }catch(e){
+      statusEl.textContent = "تعذّر الحفظ: " + (e.message || e.code);
+    }
+  };
+}
+// ===== SELF-REGISTER END =====
 
 const recordsToggle = document.getElementById("recordsToggle");
 const recordsPanel = document.getElementById("recordsPanel");

@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=61">
+<link rel="stylesheet" href="styles.css?v=62">
 </head>
 <body>
 <script>
@@ -77,8 +77,40 @@
     <button id="authLoginBtn">دخول</button>
     <div id="authError"></div>
     <div id="authLoading" style="display:none">جارِ التحقق…</div>
+    <a id="openRegisterLink" href="#" style="display:block; text-align:center; margin-top:14px; font-size:13px;">ليس لديك حساب؟ سجّل الآن</a>
   </div>
 </div>
+
+<!-- ===== SELF-REGISTER START (المرحلة 5 — معزول، احذف هذا القسم بأمان لإلغاء الميزة) ===== -->
+<div id="registerOverlay" style="display:none;">
+  <div id="registerCard">
+    <h2>تسجيل حساب جديد</h2>
+    <p class="sub">لأفراد قبيلة بني أسمل الحكمي فقط</p>
+
+    <div id="regStep1">
+      <input id="regUsername" type="text" placeholder="اسم المستخدم" autocomplete="username">
+      <input id="regPassword" type="password" placeholder="كلمة المرور" autocomplete="new-password">
+      <input id="regPhone" type="tel" placeholder="رقم الجوال">
+      <input id="regBirthDate" type="date" placeholder="تاريخ الميلاد">
+      <input id="regInviteCode" type="text" placeholder="رمز الدعوة">
+      <button id="regNextBtn">التالي</button>
+    </div>
+
+    <div id="regStep2" style="display:none;">
+      <p class="sub" style="margin-top:0;">اختر اسمك من الشجرة لربط حسابك بعقدتك</p>
+      <div style="position:relative">
+        <input id="regScopeInput" type="text" placeholder="اكتب اسمك للبحث…">
+        <div id="regScopeDropdown" class="autocomplete-dropdown"></div>
+      </div>
+      <button id="regFinishBtn">إنهاء التسجيل</button>
+    </div>
+
+    <div id="regError"></div>
+    <div id="regLoading" style="display:none">جارِ التسجيل…</div>
+    <a id="closeRegisterLink" href="#" style="display:block; text-align:center; margin-top:14px; font-size:13px;">لديك حساب؟ سجّل الدخول</a>
+  </div>
+</div>
+<!-- ===== SELF-REGISTER END ===== -->
 <div id="currentUserBadge">
   <span id="currentUserName"></span>
   <button id="logoutBtn">خروج</button>
@@ -198,6 +230,16 @@
 </div>
 
 <div id="usersPanel" class="bottom-panel">
+
+  <!-- ===== SELF-REGISTER START (المرحلة 5) — إدارة رمز الدعوة ===== -->
+  <fieldset class="admin-box">
+    <legend>🎟️ رمز دعوة التسجيل الذاتي</legend>
+    <div class="admin-box-note">من يملك هذا الرمز يقدر يسجّل حسابًا (بانتظار تفعيلك بعدها).</div>
+    <input type="text" id="inviteCodeInput" class="f-input" placeholder="رمز الدعوة الحالي" style="margin-bottom:8px;">
+    <button id="inviteCodeSaveBtn" class="f-btn-sm" style="width:100%">💾 حفظ الرمز</button>
+    <div id="inviteCodeStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+  </fieldset>
+  <!-- ===== SELF-REGISTER END ===== -->
 
   <!-- إضافات خاصة: حسابات ينشئها الأدمن مباشرة — فعّالة فورًا بلا تفعيل -->
   <fieldset class="admin-box">
@@ -412,6 +454,6 @@
 </div>
 
 <script src="auth.js?v=5"></script>
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

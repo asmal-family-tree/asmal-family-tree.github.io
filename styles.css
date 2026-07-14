@@ -1926,3 +1926,33 @@ body:not(.authed) #artBackground{
 :root:not([data-style="4"]) #uiScaleControls{
   top:70px !important; right:auto !important; left:14px !important;
 }
+
+/* ============================================================
+   ===== SELF-REGISTER START (المرحلة 5 — معزول تمامًا) =====
+   شاشة التسجيل الذاتي — بنفس شكل شاشة تسجيل الدخول تمامًا.
+   لحذف الميزة: احذف هذا القسم + عنصري HTML (registerOverlay/registerCard)
+   + دوال JS الخاصة بالتسجيل بـ app.js.
+   ============================================================ */
+#registerOverlay{
+  position:fixed; inset:0; z-index:200; background:linear-gradient(180deg, var(--emerald) 0%, var(--emerald-2) 100%);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+#registerCard{
+  background:var(--card-bg); border-radius:18px; padding:28px 24px; width:100%; max-width:360px;
+  box-shadow:0 10px 40px rgba(0,0,0,.35); font-family:'Tajawal',sans-serif; text-align:center;
+  max-height:90vh; overflow-y:auto;
+}
+#registerCard h2{ margin:0 0 4px 0; color:#0B3D2E; font-size:20px; }
+#registerCard p.sub{ margin:0 0 20px 0; color:#888; font-size:13px; }
+#registerCard input{
+  width:100%; box-sizing:border-box; padding:11px 12px; margin-bottom:12px; border-radius:10px;
+  border:1.5px solid #ddd; font-family:'Tajawal',sans-serif; font-size:15px; text-align:right;
+}
+#registerCard button{
+  width:100%; padding:12px; border:none; border-radius:10px; background:#0B3D2E; color:#fff;
+  font-family:'Tajawal',sans-serif; font-weight:700; font-size:15px; cursor:pointer; margin-top:4px;
+}
+#regError{ color:#8B1E1E; font-size:13px; margin-top:10px; min-height:18px; }
+#regLoading{ color:#888; font-size:13px; margin-top:10px; }
+#openRegisterLink, #closeRegisterLink{ color:#0B3D2E; }
+/* ===== SELF-REGISTER END ===== */
