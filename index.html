@@ -146,7 +146,18 @@
       <input id="regUsername" type="text" placeholder="اسم المستخدم" autocomplete="username">
       <input id="regPassword" type="password" placeholder="كلمة المرور" autocomplete="new-password">
       <input id="regPhone" type="tel" placeholder="رقم الجوال">
-      <input id="regBirthDate" type="date" placeholder="تاريخ الميلاد">
+      <div style="display:flex; gap:6px; margin-bottom:12px;">
+        <select id="regBirthDay" style="flex:1; padding:11px 6px; border-radius:10px; border:1.5px solid #ddd; font-family:'Tajawal',sans-serif;">
+          <option value="">اليوم</option>
+        </select>
+        <select id="regBirthMonthHijri" style="flex:1.6; padding:11px 6px; border-radius:10px; border:1.5px solid #ddd; font-family:'Tajawal',sans-serif;">
+          <option value="">الشهر</option>
+        </select>
+        <select id="regBirthYearHijri" style="flex:1; padding:11px 6px; border-radius:10px; border:1.5px solid #ddd; font-family:'Tajawal',sans-serif;">
+          <option value="">السنة</option>
+        </select>
+      </div>
+      <div style="font-size:11px; color:#8a7550; margin:-8px 0 12px;">تاريخ الميلاد (هجري)</div>
       <input id="regInviteCode" type="text" placeholder="رمز الدعوة">
       <button id="regNextBtn">التالي</button>
     </div>
@@ -509,7 +520,7 @@
 </div>
 
 <script src="auth.js?v=5"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {

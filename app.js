@@ -138,19 +138,42 @@ function setRegLoading(on){
   document.getElementById("regLoading").style.display = on ? "block" : "none";
 }
 
+// ملء قوائم التاريخ الهجري (اليوم/الشهر/السنة) — معزول، لا يمس أي كود آخر
+(function fillHijriBirthDateSelects(){
+  const dayEl = document.getElementById("regBirthDay");
+  const monthEl = document.getElementById("regBirthMonthHijri");
+  const yearEl = document.getElementById("regBirthYearHijri");
+  if (!dayEl || !monthEl || !yearEl) return;
+  for (let d = 1; d <= 30; d++){
+    const o = document.createElement("option"); o.value = d; o.textContent = d; dayEl.appendChild(o);
+  }
+  const hijriMonths = ["محرم","صفر","ربيع الأول","ربيع الآخر","جمادى الأولى","جمادى الآخرة","رجب","شعبان","رمضان","شوال","ذو القعدة","ذو الحجة"];
+  hijriMonths.forEach((m, i) => {
+    const o = document.createElement("option"); o.value = i + 1; o.textContent = m; monthEl.appendChild(o);
+  });
+  const currentHijriYear = 1447; // تقريبي، للنطاق فقط
+  for (let y = currentHijriYear; y >= currentHijriYear - 100; y--){
+    const o = document.createElement("option"); o.value = y; o.textContent = y; yearEl.appendChild(o);
+  }
+})();
+
 // الخطوة الأولى: التحقق من رمز الدعوة + إنشاء حساب Firebase Auth فقط (بلا ملف مستخدم بعد)
 document.getElementById("regNextBtn").onclick = async function(){
   const username = document.getElementById("regUsername").value.trim();
   const password = document.getElementById("regPassword").value;
   const phone = document.getElementById("regPhone").value.trim();
-  const birthDate = document.getElementById("regBirthDate").value;
+  const bDay = document.getElementById("regBirthDay").value;
+  const bMonth = document.getElementById("regBirthMonthHijri").value;
+  const bMonthText = bMonth ? document.getElementById("regBirthMonthHijri").selectedOptions[0].textContent : "";
+  const bYear = document.getElementById("regBirthYearHijri").value;
+  const birthDate = (bDay && bMonth && bYear) ? `${bDay} ${bMonthText} ${bYear}هـ` : "";
   const inviteCode = document.getElementById("regInviteCode").value.trim();
 
   showRegError("");
   if (!username || !password){ showRegError("أدخل اسم المستخدم وكلمة المرور"); return; }
   if (password.length < 6){ showRegError("كلمة المرور يجب أن تكون ٦ أحرف على الأقل"); return; }
   if (!phone){ showRegError("أدخل رقم الجوال"); return; }
-  if (!birthDate){ showRegError("أدخل تاريخ الميلاد"); return; }
+  if (!birthDate){ showRegError("أدخل تاريخ الميلاد (اليوم والشهر والسنة)"); return; }
   if (!inviteCode){ showRegError("أدخل رمز الدعوة"); return; }
 
   setRegLoading(true);
