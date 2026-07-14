@@ -4143,90 +4143,10 @@ function buildAndRender(){
     const branchTextColor = { "trunk-red":"#8B1E1E", "trunk-green":"#1E7A4C", "trunk-blue":"#1E7A9C", "trunk-gold":"#B8860B" };
     if (branchTextColor[d.data.type]) s.select(".tag-text").attr("fill", branchTextColor[d.data.type]);
   });
-
-  // ===== MINIMAP HOOK (سطر معزول — احذفه بأمان إن حُذفت الخريطة المصغّرة) =====
-  if (window.redrawMinimapTree) window.redrawMinimapTree();
 }
 
 buildAndRender();
 svg.call(zoom.transform, centerOnRoot());
-
-/* ============================================================
-   ===== MINIMAP START — قسم الخريطة المصغّرة (إضافة معزولة بالكامل) =====
-   لحذف هذه الميزة كليًا: احذف هذا القسم من هنا حتى "MINIMAP END"،
-   واحذف من HTML عنصر #minimapBox، ومن CSS كل قواعد #minimapBox/#minimapSvg،
-   واحذف من buildAndRender السطر الذي يستدعي window.redrawMinimapTree.
-   لا يوجد أي اعتماد آخر بالكود على هذا القسم.
-   ============================================================ */
-(function initMinimap(){
-  const box = document.getElementById("minimapBox");
-  if (!box) return; // العنصر غير موجود بالـHTML — لا شيء يُنفَّذ (آمن تمامًا)
-
-  const mmW = 130, mmH = 100;
-  const mmSvg = d3.select("#minimapSvg").attr("viewBox", `0 0 ${mmW} ${mmH}`);
-  const mmG = mmSvg.append("g");
-  const mmViewport = mmSvg.append("rect").attr("class", "mm-viewport");
-
-  function currentScale(){
-    return Math.min(mmW / Math.max(width, 1), mmH / Math.max(height, 1));
-  }
-
-  function updateViewportRect(){
-    try{
-      const t = d3.zoomTransform(svg.node());
-      const scale = currentScale();
-      const vx = (-t.x / t.k) * scale;
-      const vy = (-t.y / t.k) * scale;
-      const vw = (svg.node().clientWidth / t.k) * scale;
-      const vh = (svg.node().clientHeight / t.k) * scale;
-      mmViewport.attr("x", vx).attr("y", vy).attr("width", vw).attr("height", vh);
-    }catch(e){ /* أي خطأ هنا لا يؤثر على الشجرة الأصلية */ }
-  }
-
-  function redrawMinimapTree(){
-    try{
-      if (!root) return;
-      const scale = currentScale();
-      mmG.selectAll("*").remove();
-      mmG.selectAll("line.mm-link")
-        .data(root.links())
-        .join("line")
-        .attr("class", "mm-link")
-        .attr("x1", l => sx(l.source) * scale)
-        .attr("y1", l => sy(l.source) * scale)
-        .attr("x2", l => sx(l.target) * scale)
-        .attr("y2", l => sy(l.target) * scale);
-      mmG.selectAll("circle.mm-node")
-        .data(root.descendants())
-        .join("circle")
-        .attr("class", "mm-node")
-        .attr("cx", d => sx(d) * scale)
-        .attr("cy", d => sy(d) * scale)
-        .attr("r", 1.4);
-      updateViewportRect();
-    }catch(e){ console.warn("تعذّر رسم الخريطة المصغّرة:", e); }
-  }
-
-  // النقر على الخريطة المصغّرة ينقل العرض الرئيسي لتلك النقطة تقريبًا
-  mmSvg.on("click", (event) => {
-    try{
-      const [mx, my] = d3.pointer(event);
-      const scale = currentScale();
-      const realX = mx / scale, realY = my / scale;
-      const curK = d3.zoomTransform(svg.node()).k || 1;
-      const t = d3.zoomIdentity
-        .translate(svg.node().clientWidth / 2 - realX * curK, svg.node().clientHeight / 2 - realY * curK)
-        .scale(curK);
-      svg.transition().duration(500).call(zoom.transform, t);
-    }catch(e){ /* تجاهل */ }
-  });
-
-  zoom.on("zoom.minimap", updateViewportRect); // مستمع إضافي بمساحة اسم منفصلة، لا يمس مستمع الزوم الأصلي إطلاقًا
-
-  window.redrawMinimapTree = redrawMinimapTree;
-  redrawMinimapTree();
-})();
-/* ===== MINIMAP END ===== */
 
 function chainNames(d){
   const out = [];
