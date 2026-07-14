@@ -230,7 +230,31 @@ function applyLayoutStyle(layoutStyle){
   });
   placeDeleteBadgeCellForAsmal(layoutStyle);
   applyAsmalAdminOnlyVisibility();
+  placeIconsRowForAsmal(layoutStyle);
 }
+
+// ===== ASMAL ICONS-ROW START (معزول — احذف هذه الدالة والسطر الذي يستدعيها بأمان لإلغاء الميزة) =====
+// تصميم "أسمل" فقط: ينقل المرفقات/بحث/تصدير فعليًا لحاوية فلكس واحدة (بدل تموضع يدوي منفصل لكل زر)،
+// فيضمن المتصفح تباعدًا متساويًا حقيقيًا و"بحث" بمنتصف حقيقي بين الآخرين، بغض النظر عن عرض الشاشة.
+function placeIconsRowForAsmal(layoutStyle){
+  const row = document.getElementById("asmalIconsRow");
+  const bottomBar = document.getElementById("bottomBar");
+  const attachments = document.getElementById("attachmentsToggle");
+  const search = document.getElementById("searchToggle");
+  const io = document.getElementById("ioToggle");
+  if (!row || !bottomBar || !attachments || !search || !io) return;
+  if (layoutStyle === "4"){
+    // ترتيب DOM: المرفقات ثم بحث ثم تصدير — يظهر بالـRTL: يمين=المرفقات، وسط=بحث، يسار=تصدير
+    row.appendChild(attachments);
+    row.appendChild(search);
+    row.appendChild(io);
+  } else {
+    bottomBar.appendChild(search);
+    bottomBar.appendChild(io);
+    bottomBar.appendChild(attachments);
+  }
+}
+// ===== ASMAL ICONS-ROW END =====
 
 // ===== ASMAL DELETE-CELL START (معزول — احذف هذه الدالة والسطر الذي يستدعيها بأمان لإلغاء الميزة) =====
 // تصميم "أسمل" فقط: ينقل زر علامات الحذف فعليًا ليصبح ابنًا رابعًا داخل صندوق التكبير (.zoom-fab)

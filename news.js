@@ -239,7 +239,6 @@ async function loadFeed(){
   const uid = window.authUser.uid;
   const moderator = canModerateNews();
   let posts = [];
-  let debugInfo = "";
 
   try{
     if (moderator){
@@ -251,10 +250,6 @@ async function loadFeed(){
         db.collection("posts").where("status","==","published").orderBy("createdAt","desc").get(),
         db.collection("posts").where("authorId","==", uid).get()
       ]);
-      // ===== DEBUG TEMP START (احذف هذا السطر بعد انتهاء التشخيص) =====
-      debugInfo = `[تشخيص مؤقت] pubSnap=${pubSnap.size} mineSnap=${mineSnap.size} uid=${uid}`;
-      console.log(debugInfo);
-      // ===== DEBUG TEMP END =====
       const map = new Map();
       pubSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
       mineSnap.forEach(d => map.set(d.id, { id:d.id, ...d.data() }));
@@ -272,7 +267,7 @@ async function loadFeed(){
 
   feed.innerHTML = "";
   if (posts.length === 0){
-    feed.innerHTML = `<div class="empty">لا توجد أخبار حاليًا${debugInfo ? "<br><small style='opacity:.6'>"+escapeHtml(debugInfo)+"</small>" : ""}</div>`;
+    feed.innerHTML = `<div class="empty">لا توجد أخبار حاليًا</div>`;
     return;
   }
   if (moderator){
@@ -282,7 +277,9 @@ async function loadFeed(){
   for (const p of posts){
     let updatesSnap;
     try{
-      updatesSnap = await db.collection("posts").doc(p.id).collection("updates").orderBy("createdAt","asc").get();
+      let updatesQuery = db.collection("posts").doc(p.id).collection("updates").orderBy("createdAt","asc");
+      if (!moderator) updatesQuery = updatesQuery.where("status","==","published");
+      updatesSnap = await updatesQuery.get();
     }catch(e){
       console.warn("تعذّر تحميل تحديثات الخبر", p.id, e);
       continue; // نتخطى هذا الخبر فقط بدل إيقاف عرض البقية بالكامل
