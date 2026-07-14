@@ -1,1 +1,8 @@
-
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.asmalfamily.tree",
+        "sha256_cert_fingerprints": ["89:AB:A2:97:CA:A7:23:EE:B9:B1:B2:A2:4E:0C:1C:C8:75:51:AF:36:C0:B0:E4:01:E8:27:FE:0A:0C:E7:BC:E5"]
+      }
+    }]
