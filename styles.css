@@ -1755,26 +1755,42 @@ body:not(.authed) #artBackground{
   filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
 }
 
-/* بحث + تصدير/استيراد + المرفقات: أقصى يسار الصفحة (بعيدًا عن A+/A-)، بنفس ارتفاع الصف السابق بلا تغيير رأسي،
+/* بحث + تصدير/استيراد + المرفقات: داخل الهدر الداكن، بين أيقونة الأخبار وشارة المستخدم.
+   الترتيب: المرفقات (بجانب أيقونة الأخبار يمينًا) ← بحث (وسط) ← تصدير (يسارًا، بجانب شارة المستخدم).
    بلا خلفية ولا إطار ولا تسميات نصية — فقط الأيقونة بتوهج يتبع حدودها الفعلية */
 :root[data-style="4"] #searchToggle,
 :root[data-style="4"] #ioToggle,
 :root[data-style="4"] #attachmentsToggle{
-  position:fixed !important; top:76px !important; z-index:40 !important;
-  left:14px !important; right:auto !important;
-  width:38px !important; height:38px !important; border-radius:0 !important; padding:0 !important;
+  position:fixed !important; top:14px !important; z-index:56 !important;
+  left:auto !important; bottom:auto !important;
+  width:36px !important; height:36px !important; border-radius:0 !important; padding:0 !important;
   background:transparent !important; border:none !important; box-shadow:none !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:19px !important; color:var(--ink) !important;
+  font-size:18px !important; color:var(--ink) !important;
   filter:drop-shadow(0 0 3px var(--gold));
 }
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
 :root[data-style="4"] #attachmentsToggle::after{ content:none !important; }
-/* ترتيب أفقي من أقصى اليسار: بحث، تصدير، المرفقات */
-:root[data-style="4"] #searchToggle{ left:14px !important; }
-:root[data-style="4"] #ioToggle{ left:58px !important; }
-:root[data-style="4"] #attachmentsToggle{ left:102px !important; }
+:root[data-style="4"] #attachmentsToggle{ right:64px !important; }
+:root[data-style="4"] #searchToggle{ right:112px !important; }
+:root[data-style="4"] #ioToggle{ right:160px !important; }
+
+/* لوحات هذه الثلاثة تحديدًا: تنبثق كقائمة صغيرة أسفل أيقونتها مباشرة (بدل الانزلاق من أسفل الشاشة)،
+   حصريًا بتصميم "أسمل" — بقية اللوحات بكل التصاميم (بما فيها أسمل) تبقى بنمطها الأصلي */
+:root[data-style="4"] #searchPanel,
+:root[data-style="4"] #ioPanel,
+:root[data-style="4"] #attachmentsPanel{
+  position:fixed !important; top:56px !important; bottom:auto !important;
+  left:auto !important; margin:0 !important;
+  max-width:260px !important; width:82vw !important;
+  border-radius:4px 16px 16px 16px !important;
+  background:var(--card-bg); box-shadow:var(--card-shadow-lg);
+  padding:12px !important;
+}
+:root[data-style="4"] #attachmentsPanel{ right:14px !important; }
+:root[data-style="4"] #searchPanel{ right:60px !important; }
+:root[data-style="4"] #ioPanel{ right:106px !important; }
 
 /* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */
 :root[data-style="4"] #uiScaleControls{ top:76px !important; }
@@ -1800,7 +1816,8 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #zoomReset::after{ content:"إعادة تعيين"; }
 :root[data-style="4"] .zoom-fab button::after{ font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
 
-/* علامات الحذف: خانة رابعة تلتصق مباشرة أسفل صندوق التكبير (نفس العرض بعد تصغيره، بلا فجوة ولا إطار مزدوج) */
+/* علامات الحذف: خانة رابعة تلتصق مباشرة أسفل صندوق التكبير — نفس الزر الحقيقي (deleteBadgeToggle)
+   لكن بأيقونة "شخص+X" بدل السلة (بصريًا فقط عبر CSS، الوظيفة الفعلية بـ app.js لم تتغيّر) */
 :root[data-style="4"] #deleteBadgeToggle{
   position:fixed !important; left:14px !important; z-index:40;
   top:calc(50% + 56px) !important; bottom:auto !important;
@@ -1808,9 +1825,20 @@ body:not(.authed) #artBackground{
   background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)); border-top:none;
   box-shadow:var(--card-shadow);
   display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  font-size:15px !important; color:var(--ink) !important;
+  font-size:0 !important; color:var(--ink) !important;
+  transition:background .15s ease;
 }
-:root[data-style="4"] #deleteBadgeToggle::after{ content:"حذف"; font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
+:root[data-style="4"] #deleteBadgeToggle::before{
+  content:""; display:block; width:22px; height:22px; margin-top:6px;
+  background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23241a10%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2%22/%3E%3Ccircle cx=%229%22 cy=%227%22 r=%224%22/%3E%3Cline x1=%2217%22 y1=%228%22 x2=%2222%22 y2=%2213%22/%3E%3Cline x1=%2222%22 y1=%228%22 x2=%2217%22 y2=%2213%22/%3E%3C/svg%3E');
+  background-size:contain; background-position:center; background-repeat:no-repeat;
+}
+:root[data-style="4"] #deleteBadgeToggle::after{ content:"تفعيل الحذف"; font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
+/* حالة التفعيل: نفس الكلاس "active" الذي يبدّله app.js أصلًا — نلوّن الخانة لتوضيح أنه مفعّل */
+:root[data-style="4"] #deleteBadgeToggle.active{
+  background:var(--gold) !important;
+}
+:root[data-style="4"] #deleteBadgeToggle.active::after{ color:#fff; }
 
 /* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
 :root[data-style="4"] #bottomBar{
