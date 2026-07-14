@@ -1867,9 +1867,9 @@ body:not(.authed) #artBackground{
    ============================================================ */
 #asmalAdminMenuItems{ display:none; }
 :root[data-style="4"] #asmalAdminMenuItems{
-  display:flex !important; position:fixed; top:12px; right:14px; z-index:56;
+  display:flex !important; position:fixed; top:12px; right:58px; z-index:55;
   align-items:center; gap:10px;
-  max-width:40px; overflow:hidden; transition:max-width .25s ease;
+  max-width:0; overflow:hidden; transition:max-width .25s ease;
 }
 :root[data-style="4"] #asmalAdminMenuItems.open{ max-width:280px; }
 /* زر التشغيل بموضع أيقونة الأخبار: دائرة خضراء بأيقونة ☰ (بدل صورة الأخبار)، أخبار حقيقية تظهر كعنصر أول داخل القائمة */
