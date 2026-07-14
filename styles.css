@@ -1842,6 +1842,7 @@ body:not(.authed) #artBackground{
 
 /* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
 :root[data-style="4"] #bottomBar{
+  z-index:58 !important;
   background:var(--ink) !important; border-radius:22px !important; margin:0 10px 10px !important;
   bottom:10px !important; box-shadow:0 6px 20px rgba(0,0,0,.25) !important;
 }
