@@ -1762,22 +1762,18 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #attachmentsToggle{
   position:fixed !important; top:14px !important; z-index:56 !important;
   left:auto !important; bottom:auto !important;
-  width:auto !important; height:18px !important; border-radius:10px !important;
-  padding:0 6px !important; gap:3px !important;
+  width:auto !important; height:36px !important; border-radius:20px !important;
+  padding:0 8px !important; gap:0 !important;
   background:var(--card-bg) !important; border:1px solid var(--line) !important; box-shadow:none !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:8px !important; color:var(--ink) !important;
+  font-size:15px !important; color:var(--ink) !important;
   filter:none;
 }
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
 :root[data-style="4"] #attachmentsToggle::after{
-  content:none; /* تُستبدل أدناه بنص فعلي لكل زر */
-  font-family:'Tajawal',sans-serif; font-size:6px; font-weight:700;
+  content:none !important; /* لا تسمية نصية — الصندوق يحيط بالأيقونة فقط */
 }
-:root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات" !important; }
-:root[data-style="4"] #searchToggle::after{ content:"بحث" !important; }
-:root[data-style="4"] #ioToggle::after{ content:"تصدير" !important; }
 :root[data-style="4"] #attachmentsToggle{ right:64px !important; left:auto !important; }
 :root[data-style="4"] #searchToggle{ left:50% !important; right:auto !important; transform:translateX(-50%); }
 :root[data-style="4"] #ioToggle{ left:170px !important; right:auto !important; }
