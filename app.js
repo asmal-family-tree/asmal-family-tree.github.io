@@ -265,9 +265,12 @@ async function afterSignIn(fbUser){
 
   // حساب بانتظار التفعيل أو محظور — لا يدخل الموقع
   if (window.authUser.status !== "active"){
-    const msg = window.authUser.status === "blocked"
-      ? "حسابك موقوف. تواصل مع المشرف."
-      : "حسابك بانتظار التفعيل من المشرف.";
+    const isSharedGuestAccount = fbUser.email === usernameToEmail(GUEST_USERNAME);
+    const msg = isSharedGuestAccount
+      ? "التصفح كضيف متوقف حاليًا. يجب التسجيل، ويُشترط أن تكون من أبناء العائلة."
+      : window.authUser.status === "blocked"
+        ? "حسابك موقوف. تواصل مع المشرف."
+        : "حسابك بانتظار التفعيل من المشرف.";
     showAuthError(msg);
     await auth.signOut();
     return;
@@ -281,19 +284,28 @@ async function afterSignIn(fbUser){
   applyRolePermissions();
 }
 
-// ---------- الدخول كضيف ----------
+// ---------- الدخول كضيف (حساب Firebase حقيقي مشترك، بدل آلية وهمية سابقة) ----------
+const GUEST_USERNAME = "guest";
+const GUEST_PASSWORD = "123321";
+
 async function enterAsGuest(){
-  signInAsGuest();
-  currentUser = window.authUser;
-  window.currentUser = currentUser;
-  document.body.classList.add("authed");
-  document.getElementById("authOverlay").classList.add("hidden");
-  document.getElementById("currentUserName").textContent = "👤 ضيف";
-  document.getElementById("currentUserBadge").classList.add("show");
-  loadAndApplySiteTheme();
-  applyRolePermissions();
+  showAuthError("");
+  setAuthLoading(true);
+  const email = usernameToEmail(GUEST_USERNAME);
+  try{
+    await auth.signInWithEmailAndPassword(email, GUEST_PASSWORD);
+    // afterSignIn سيتولى الباقي تلقائيًا (نفس تسلسل أي حساب حقيقي عادي)
+  }catch(err){
+    setAuthLoading(false);
+    showAuthError("تعذّر تفعيل الدخول كضيف حاليًا. تواصل مع المشرف.");
+  }
 }
 window.enterAsGuest = enterAsGuest;
+
+document.getElementById("guestEnterLink").onclick = (e) => {
+  e.preventDefault();
+  enterAsGuest();
+};
 
 // الاستايل له مستويان:
 //   • المشرف يحفظ في meta/siteSettings  => يصير الافتراضي للجميع
