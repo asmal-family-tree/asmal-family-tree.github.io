@@ -1742,50 +1742,55 @@ body:not(.authed) #artBackground{
   z-index:56 !important; background:rgba(255,255,255,.95) !important;
 }
 
-/* رابط الأخبار ينتقل للزاوية المقابلة (أعلى اليمين) ليوازي شارة المستخدم، بدل موضعه الافتراضي أسفلها */
+/* أيقونة الأخبار: استبدال بصري بالصورة المرفقة (بخلفية شفافة)، بلا تأطير ولا خلفية،
+   وتوهج يتبع حواف الأيقونة نفسها (drop-shadow بدل box-shadow) */
 :root[data-style="4"] #newsNavBtn{
   position:fixed !important; top:12px !important; left:auto !important; right:14px !important;
-  width:40px; height:40px; font-size:17px; z-index:56;
-  background:transparent !important; border:none !important;
-  box-shadow:0 0 9px 2px var(--gold) !important;
+  width:40px; height:40px; z-index:56;
+  font-size:0 !important; background:transparent !important; border:none !important; box-shadow:none !important;
+}
+:root[data-style="4"] #newsNavBtn::after{
+  content:""; display:block; width:100%; height:100%;
+  background-image:url('news-icon.png'); background-size:contain; background-position:center; background-repeat:no-repeat;
+  filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
 }
 
-/* صف أدوات حبة الدواء أسفل الشريط الداكن مباشرة: البحث + تصدير/استيراد + المرفقات */
+/* بحث + تصدير/استيراد + المرفقات: أقصى يسار الصفحة (بعيدًا عن A+/A-)، بنفس ارتفاع الصف السابق بلا تغيير رأسي،
+   بلا خلفية ولا إطار ولا تسميات نصية — فقط الأيقونة بتوهج يتبع حدودها الفعلية */
 :root[data-style="4"] #searchToggle,
 :root[data-style="4"] #ioToggle,
 :root[data-style="4"] #attachmentsToggle{
-  position:fixed !important; top:76px; z-index:40;
-  width:auto; height:38px; border-radius:20px; padding:0 16px;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
-  box-shadow:var(--card-shadow);
-  display:flex; align-items:center; justify-content:center; gap:6px;
-  font-size:16px; color:var(--ink);
+  position:fixed !important; top:76px !important; z-index:40 !important;
+  left:14px !important; right:auto !important;
+  width:38px !important; height:38px !important; border-radius:0 !important; padding:0 !important;
+  background:transparent !important; border:none !important; box-shadow:none !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  font-size:19px !important; color:var(--ink) !important;
+  filter:drop-shadow(0 0 3px var(--gold));
 }
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
-:root[data-style="4"] #attachmentsToggle::after{
-  font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700;
-}
-:root[data-style="4"] #searchToggle::after{ content:"بحث"; }
-:root[data-style="4"] #ioToggle::after{ content:"تصدير"; }
-:root[data-style="4"] #attachmentsToggle::after{ content:"المرفقات"; }
-:root[data-style="4"] #searchToggle{ right:14px; }
-:root[data-style="4"] #ioToggle{ right:96px; }
-:root[data-style="4"] #attachmentsToggle{ right:196px; }
+:root[data-style="4"] #attachmentsToggle::after{ content:none !important; }
+/* ترتيب أفقي من أقصى اليسار: بحث، تصدير، المرفقات */
+:root[data-style="4"] #searchToggle{ left:14px !important; }
+:root[data-style="4"] #ioToggle{ left:58px !important; }
+:root[data-style="4"] #attachmentsToggle{ left:102px !important; }
 
 /* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */
 :root[data-style="4"] #uiScaleControls{ top:76px !important; }
 
-/* صندوق أبيض مدوّر واحد للتكبير/التصغير/إعادة التعيين، بنفس شكل المرجع (أيقونة + تسمية) */
+/* الصندوق الموحّد الآن بأربع خانات متساوية: تكبير، تصغير، إعادة تعيين، حذف (بدل 3+صندوق منفصل).
+   العرض أُنقص بمقدار ربعه (74px → 56px). مرفوع لمنتصف الصفحة رأسيًا، بنفس عمود اليسار (14px) دون تحريك أفقي. */
 :root[data-style="4"] .zoom-fab{
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
-  border-radius:14px; box-shadow:var(--card-shadow); padding:4px 0; gap:0 !important;
+  position:fixed !important; left:14px !important; top:calc(50% - 112px) !important; bottom:auto !important;
+  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)); border-bottom:none;
+  border-radius:14px 14px 0 0; box-shadow:var(--card-shadow); padding:0; gap:0 !important;
 }
 :root[data-style="4"] .zoom-fab button{
-  width:74px !important; height:56px !important; border-radius:0 !important;
+  width:56px !important; height:56px !important; border-radius:0 !important;
   display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
   background:transparent !important; border:none !important; box-shadow:none !important;
-  font-size:17px; color:var(--ink);
+  font-size:15px; color:var(--ink);
 }
 :root[data-style="4"] .zoom-fab button:not(:last-child){
   border-bottom:1px solid color-mix(in srgb, var(--ink) 10%, var(--line)) !important;
@@ -1793,18 +1798,19 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #zoomIn::after{ content:"تكبير"; }
 :root[data-style="4"] #zoomOut::after{ content:"تصغير"; }
 :root[data-style="4"] #zoomReset::after{ content:"إعادة تعيين"; }
-:root[data-style="4"] .zoom-fab button::after{ font-family:'Tajawal',sans-serif; font-size:11px; font-weight:700; }
+:root[data-style="4"] .zoom-fab button::after{ font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
 
-/* علامات الحذف: صندوق مدوّر منفصل مباشرة أسفل صندوق التكبير (نفس عرضه)، بدل بقائها بالشريط السفلي */
+/* علامات الحذف: خانة رابعة تلتصق مباشرة أسفل صندوق التكبير (نفس العرض بعد تصغيره، بلا فجوة ولا إطار مزدوج) */
 :root[data-style="4"] #deleteBadgeToggle{
-  position:fixed !important; left:14px; z-index:40;
-  bottom:calc(var(--barh, 64px) + 20px);
-  width:74px; height:56px; border-radius:14px;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)); box-shadow:var(--card-shadow);
+  position:fixed !important; left:14px !important; z-index:40;
+  top:calc(50% + 56px) !important; bottom:auto !important;
+  width:56px !important; height:56px !important; border-radius:0 0 14px 14px !important;
+  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)); border-top:none;
+  box-shadow:var(--card-shadow);
   display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  font-size:17px; color:var(--ink);
+  font-size:15px !important; color:var(--ink) !important;
 }
-:root[data-style="4"] #deleteBadgeToggle::after{ content:"علامات الحذف"; font-family:'Tajawal',sans-serif; font-size:10.5px; font-weight:700; }
+:root[data-style="4"] #deleteBadgeToggle::after{ content:"حذف"; font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
 
 /* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
 :root[data-style="4"] #bottomBar{
