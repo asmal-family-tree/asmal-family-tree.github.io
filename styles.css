@@ -1772,68 +1772,64 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #searchToggle::after,
 :root[data-style="4"] #ioToggle::after,
 :root[data-style="4"] #attachmentsToggle::after{ content:none !important; }
-:root[data-style="4"] #attachmentsToggle{ right:64px !important; }
-:root[data-style="4"] #searchToggle{ right:112px !important; }
-:root[data-style="4"] #ioToggle{ right:160px !important; }
+:root[data-style="4"] #attachmentsToggle{ right:64px !important; left:auto !important; }
+:root[data-style="4"] #searchToggle{ left:50% !important; right:auto !important; transform:translateX(-50%); }
+:root[data-style="4"] #ioToggle{ left:170px !important; right:auto !important; }
 
 /* لوحات هذه الثلاثة تحديدًا: تنبثق كقائمة صغيرة أسفل أيقونتها مباشرة (بدل الانزلاق من أسفل الشاشة)،
-   حصريًا بتصميم "أسمل" — بقية اللوحات بكل التصاميم (بما فيها أسمل) تبقى بنمطها الأصلي */
+   حصريًا بتصميم "أسمل" — بقية اللوحات بكل التصاميم (بما فيها أسمل) تبقى بنمطها الأصلي.
+   العرض الآن يمتد من بداية منطقة A+ (يمينًا) تقريبًا حتى قرب نهاية الصفحة يسارًا */
 :root[data-style="4"] #searchPanel,
 :root[data-style="4"] #ioPanel,
 :root[data-style="4"] #attachmentsPanel{
   position:fixed !important; top:56px !important; bottom:auto !important;
-  left:auto !important; margin:0 !important;
-  max-width:260px !important; width:82vw !important;
+  right:10px !important; left:14px !important; margin:0 !important;
+  max-width:none !important; width:auto !important;
   border-radius:4px 16px 16px 16px !important;
   background:var(--card-bg); box-shadow:var(--card-shadow-lg);
   padding:12px !important;
 }
-:root[data-style="4"] #attachmentsPanel{ right:14px !important; }
-:root[data-style="4"] #searchPanel{ right:60px !important; }
-:root[data-style="4"] #ioPanel{ right:106px !important; }
 
 /* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */
 :root[data-style="4"] #uiScaleControls{ top:76px !important; }
 
-/* الصندوق الموحّد الآن بأربع خانات متساوية: تكبير، تصغير، إعادة تعيين، حذف (بدل 3+صندوق منفصل).
-   العرض أُنقص بمقدار ربعه (74px → 56px). مرفوع لمنتصف الصفحة رأسيًا، بنفس عمود اليسار (14px) دون تحريك أفقي. */
+/* الصندوق الموحّد: تكبير، تصغير، إعادة تعيين، حذف — أربع خانات حقيقية بنفس الحاوية
+   (deleteBadgeToggle يُنقَل فعليًا ليصبح ابنًا رابعًا داخل .zoom-fab عبر app.js، فيرث تلقائيًا
+   كل تنسيق .zoom-fab button المشترك أدناه بلا أي حساب موضع يدوي منفصل — هذا يحل مشكلة
+   عدم انضباط حدود الخانة الرابعة نهائيًا). العرض 56px (أُنقص بمقدار ربعه من 74px الأصلية).
+   مرفوع لمنتصف الصفحة رأسيًا، بنفس عمود اليسار (14px) دون تحريك أفقي. */
 :root[data-style="4"] .zoom-fab{
   position:fixed !important; left:14px !important; top:calc(50% - 112px) !important; bottom:auto !important;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)); border-bottom:none;
-  border-radius:14px 14px 0 0; box-shadow:var(--card-shadow); padding:0; gap:0 !important;
+  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
+  border-radius:14px; box-shadow:var(--card-shadow); padding:0; gap:0 !important;
 }
 :root[data-style="4"] .zoom-fab button{
   width:56px !important; height:56px !important; border-radius:0 !important;
   display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
   background:transparent !important; border:none !important; box-shadow:none !important;
   font-size:15px; color:var(--ink);
+  transition:background .15s ease;
 }
 :root[data-style="4"] .zoom-fab button:not(:last-child){
   border-bottom:1px solid color-mix(in srgb, var(--ink) 10%, var(--line)) !important;
 }
+:root[data-style="4"] .zoom-fab button:first-child{ border-radius:14px 14px 0 0 !important; }
+:root[data-style="4"] .zoom-fab button:last-child{ border-radius:0 0 14px 14px !important; }
 :root[data-style="4"] #zoomIn::after{ content:"تكبير"; }
 :root[data-style="4"] #zoomOut::after{ content:"تصغير"; }
 :root[data-style="4"] #zoomReset::after{ content:"إعادة تعيين"; }
 :root[data-style="4"] .zoom-fab button::after{ font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
 
-/* علامات الحذف: خانة رابعة تلتصق مباشرة أسفل صندوق التكبير — نفس الزر الحقيقي (deleteBadgeToggle)
-   لكن بأيقونة "شخص+X" بدل السلة (بصريًا فقط عبر CSS، الوظيفة الفعلية بـ app.js لم تتغيّر) */
+/* علامات الحذف: نفس الزر الحقيقي (deleteBadgeToggle)، بأيقونة "شخص+X" بدل السلة (بصريًا فقط عبر CSS) */
 :root[data-style="4"] #deleteBadgeToggle{
-  position:fixed !important; left:14px !important; z-index:40;
-  top:calc(50% + 56px) !important; bottom:auto !important;
-  width:56px !important; height:56px !important; border-radius:0 0 14px 14px !important;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line)); border-top:none;
-  box-shadow:var(--card-shadow);
-  display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  font-size:0 !important; color:var(--ink) !important;
-  transition:background .15s ease;
+  font-size:0 !important;
 }
 :root[data-style="4"] #deleteBadgeToggle::before{
-  content:""; display:block; width:22px; height:22px; margin-top:6px;
+  content:""; display:block; width:22px; height:22px;
   background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23241a10%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2%22/%3E%3Ccircle cx=%229%22 cy=%227%22 r=%224%22/%3E%3Cline x1=%2217%22 y1=%228%22 x2=%2222%22 y2=%2213%22/%3E%3Cline x1=%2222%22 y1=%228%22 x2=%2217%22 y2=%2213%22/%3E%3C/svg%3E');
   background-size:contain; background-position:center; background-repeat:no-repeat;
 }
-:root[data-style="4"] #deleteBadgeToggle::after{ content:"تفعيل الحذف"; font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
+:root[data-style="4"] #deleteBadgeToggle::after{ content:"تفعيل الحذف"; }
 /* حالة التفعيل: نفس الكلاس "active" الذي يبدّله app.js أصلًا — نلوّن الخانة لتوضيح أنه مفعّل */
 :root[data-style="4"] #deleteBadgeToggle.active{
   background:var(--gold) !important;

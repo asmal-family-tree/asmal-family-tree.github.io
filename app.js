@@ -228,7 +228,24 @@ function applyLayoutStyle(layoutStyle){
   document.querySelectorAll(".layout-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.style === layoutStyle);
   });
+  placeDeleteBadgeCellForAsmal(layoutStyle);
 }
+
+// ===== ASMAL DELETE-CELL START (معزول — احذف هذه الدالة والسطر الذي يستدعيها بأمان لإلغاء الميزة) =====
+// تصميم "أسمل" فقط: ينقل زر علامات الحذف فعليًا ليصبح ابنًا رابعًا داخل صندوق التكبير (.zoom-fab)
+// بدل تموضع مستقل بحسابات يدوية — هذا يضمن التحاق حدوده تلقائيًا مع باقي الخانات الثلاث.
+function placeDeleteBadgeCellForAsmal(layoutStyle){
+  const del = document.getElementById("deleteBadgeToggle");
+  const zoomFab = document.querySelector(".zoom-fab");
+  const bottomBar = document.getElementById("bottomBar");
+  if (!del || !zoomFab || !bottomBar) return;
+  if (layoutStyle === "4"){
+    if (del.parentElement !== zoomFab) zoomFab.appendChild(del);
+  } else {
+    if (del.parentElement !== bottomBar) bottomBar.appendChild(del);
+  }
+}
+// ===== ASMAL DELETE-CELL END =====
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
   btn.onclick = async () => {
