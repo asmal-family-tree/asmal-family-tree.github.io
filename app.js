@@ -520,6 +520,7 @@ function applyLayoutStyle(layoutStyle){
   placeDeleteBadgeCellForAsmal(layoutStyle);
   applyAsmalAdminOnlyVisibility();
   placeAsmalAdminMenuOrInlineSearch(layoutStyle);
+  if (typeof window.counterZoomTopControls === "function") window.counterZoomTopControls();
 }
 
 // ===== ASMAL ADMIN MENU / INLINE SEARCH START (معزول — احذف هذه الدالة واستدعاءها بأمان لإلغاء الميزة) =====
@@ -548,6 +549,7 @@ function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
       if (document.documentElement.getAttribute("data-style") === "4" && isAdminUser()){
         e.preventDefault();
         menuItems.classList.toggle("open");
+        if (typeof window.counterZoomTopControls === "function") window.counterZoomTopControls();
       }
     });
     // إغلاق القائمة تلقائيًا عند الضغط على أي أيقونة بداخلها، حتى تظهر لوحتها بوضوح بلا تراكب
@@ -8199,10 +8201,28 @@ window.addEventListener("touchend", bgEnd);
     });
   }
 
+  // عناصر التحكّم العلوية الثابتة (position:fixed) في تصميم أسمل: تتضرّر منطقة نقرها
+  // من zoom الـbody (المتصفح يفصل بين الرسم البصري وخريطة النقر مع fixed+zoom).
+  // الحل: نعكس الـzoom عليها (1/uiScale) فيُلغى أثر تكبير الـbody، وتبقى بحجم ثابت
+  // ومنطقة نقر دقيقة مطابقة لموضعها المرئي، مهما غُيّر التحجيم.
+  function counterZoomTopControls(){
+    const inv = uiScale ? (1 / uiScale) : 1;
+    const ids = ["newsNavBtn", "asmalAdminMenuItems", "asmalInlineSearch"];
+    const isAsmal = document.documentElement.getAttribute("data-style") === "4";
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      // نطبّق العكس في أسمل فقط (حيث هذه العناصر ثابتة أعلى الشاشة)؛ غير ذلك نُزيله.
+      el.style.zoom = isAsmal ? String(inv) : "";
+    });
+  }
+  window.counterZoomTopControls = counterZoomTopControls; // ليُستدعى عند تغيير التصميم
+
   function applyUiScale(){
     document.body.style.zoom = uiScale;
     localStorage.setItem("uiScale", String(uiScale));
     applyScaledPanelSizing();
+    counterZoomTopControls();
   }
 
   const upBtn = document.getElementById("uiScaleUp");
