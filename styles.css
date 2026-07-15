@@ -142,7 +142,7 @@
   .zoom-fab button:active{ background:var(--gold-soft); transform:scale(.94); }
 
   #bottomBar{
-    position:fixed; left:0; right:0; bottom:0; z-index:32; display:flex; align-items:center; justify-content:space-between;
+    position:fixed; left:0; right:0; bottom:0; z-index:32; display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between;
     background:linear-gradient(180deg, var(--emerald-2) 0%, var(--emerald) 100%); border-top:3px double var(--gold-bright);
     padding:9px 4px calc(9px + env(safe-area-inset-bottom)); box-shadow:0 -3px 14px rgba(11,61,46,.35);
     overflow-x:auto;
@@ -488,7 +488,7 @@
   cursor:pointer; display:none; border-inline-start:3px solid var(--gold-bright);
 }:root[data-style="2"] .exit-focus.show{ display:block; }:root[data-style="2"] #bottomBar{
   position:fixed; left:0; right:0; bottom:0; z-index:32;
-  display:flex; align-items:center; justify-content:space-between; gap:2px;
+  display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between; gap:2px;
   background:linear-gradient(180deg, var(--panel-dark) 0%, var(--panel-dark-2) 100%);
   border-top:3px solid var(--gold-bright); box-shadow:0 -8px 24px rgba(0,0,0,.18);
   padding:6px 4px calc(6px + env(safe-area-inset-bottom)); overflow-x:auto;
@@ -589,7 +589,7 @@
   box-shadow:var(--card-shadow), 0 0 14px rgba(47,227,166,.15); cursor:pointer; display:none;
 }:root[data-style="3"] .exit-focus.show{ display:block; animation:glowIn_s3 .3s ease; }:root[data-style="3"] #bottomBar{
   position:fixed; left:0; right:0; bottom:0; z-index:32;
-  display:flex; align-items:center; gap:3px; justify-content:space-between;
+  display:flex; flex-direction:row-reverse; align-items:center; gap:3px; justify-content:space-between;
   background:var(--card-bg); border-top:1px solid rgba(47,227,166,.18); border-radius:20px 20px 0 0;
   padding:6px 4px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -14px 40px rgba(0,0,0,.5);
   overflow-x:hidden; width:100%;
@@ -1740,6 +1740,8 @@ body:not(.authed) #artBackground{
 /* شارة المستخدم تبقى بموضعها الحالي (كما طلب)، فقط نتأكد من ظهورها فوق الشريط الداكن ونعدّل ألوانها لتناسبه */
 :root[data-style="4"] #currentUserBadge{
   z-index:56 !important; background:rgba(255,255,255,.95) !important;
+  top:12px !important; left:auto !important; right:60px !important;
+  height:40px !important; box-sizing:border-box !important; padding:0 12px !important;
 }
 
 /* أيقونة الأخبار الجديدة (news-icon.png) — تُطبَّق الآن على كل التصاميم، بخلفية شفافة وتوهج يتبع حوافها */
@@ -1823,13 +1825,14 @@ body:not(.authed) #artBackground{
 /* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
 :root[data-style="4"] #bottomBar{
   z-index:58 !important;
+  flex-direction:row-reverse !important;
   background:var(--ink) !important; border-radius:22px !important; margin:0 10px 10px !important;
   bottom:10px !important; box-shadow:0 6px 20px rgba(0,0,0,.25) !important;
 }
 :root[data-style="4"] #bottomBar button{ color:#fff !important; }
 /* تصحيح ارتفاع مرجع اللوحات (--barh) ليطابق الشكل الجديد للشريط (حبة + هامش سفلي 10px)،
    حتى تبدأ كل اللوحات مباشرة فوق الشريط بدل التداخل معه أو ترك فجوة */
-:root[data-style="4"]{ --barh:74px; }
+:root[data-style="4"]{ --barh:92px; }
 
 /* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
 #themeChooser, #layoutChooser{
@@ -1848,11 +1851,16 @@ body:not(.authed) #artBackground{
    ============================================================ */
 #asmalAdminMenuItems{ display:none; }
 :root[data-style="4"] #asmalAdminMenuItems{
-  display:flex !important; position:fixed; top:12px; right:58px; z-index:55;
-  align-items:center; gap:10px;
-  max-width:0; overflow:hidden; transition:max-width .25s ease;
+  display:flex !important; position:fixed; top:58px; right:14px; z-index:57;
+  flex-direction:column; align-items:center; gap:10px;
+  max-height:0; overflow:hidden; opacity:0; pointer-events:none;
+  transition:max-height .28s ease, opacity .2s ease, padding .28s ease;
+  background:var(--card-bg); border-radius:16px; padding:0 8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
 }
-:root[data-style="4"] #asmalAdminMenuItems.open{ max-width:280px; }
+:root[data-style="4"] #asmalAdminMenuItems.open{
+  max-height:280px; opacity:1; pointer-events:auto; padding:10px 8px;
+}
 /* زر التشغيل بموضع أيقونة الأخبار: دائرة خضراء بأيقونة ☰ (بدل صورة الأخبار)، أخبار حقيقية تظهر كعنصر أول داخل القائمة */
 :root[data-style="4"] #newsNavBtn.admin-toggle-mode{
   background:var(--emerald) !important; box-shadow:0 3px 8px rgba(0,0,0,.25) !important; border-radius:50%;
@@ -1882,13 +1890,13 @@ body:not(.authed) #artBackground{
 
 #asmalInlineSearch{ display:none; }
 :root[data-style="4"] #asmalInlineSearch{
-  display:flex !important; position:fixed; top:12px; right:64px; left:170px; height:40px; z-index:56;
+  display:flex !important; position:fixed; top:12px; right:220px; left:14px; height:40px; z-index:56;
   align-items:center;
 }
 :root[data-style="4"] #asmalInlineSearch .searchbar{
   position:relative !important; width:100% !important; max-width:none !important; margin:0 !important;
   display:flex !important; align-items:center;
-  background:var(--card-bg); border:1px solid var(--line); border-radius:20px; padding:0 12px; height:36px;
+  background:var(--card-bg); border:1px solid var(--line); border-radius:20px; padding:0 12px; height:40px;
 }
 :root[data-style="4"] #asmalInlineSearch .searchbar svg{ width:16px; height:16px; flex:none; color:var(--ink); }
 :root[data-style="4"] #asmalInlineSearch .searchbar input{

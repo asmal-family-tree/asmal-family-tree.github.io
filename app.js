@@ -1171,12 +1171,45 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   return { imgData, fiveName, W, H };
 }
 
+// ===== PDF MULTI-PAGE SLICING START (معزول — يقسّم الكتلة الطويلة على عدة صفحات بدل قصها) =====
+// يرسم صورة الكتلة (imgData بأبعاد W×H نقطة) موزّعةً على صفحات A4 متتالية إن تجاوزت ارتفاع الصفحة.
+// يقصّ الصورة أفقيًا لشرائح، كل شريحة بارتفاع صفحة، ويضعها بصفحات منفصلة — بلا فقد أي محتوى.
+async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margin, addPageIfNeeded){
+  const usableH = pageH - margin * 2;      // ارتفاع المساحة المتاحة بكل صفحة
+  if (H <= (pageH - margin - yStart)){
+    // الكتلة تسع بالمساحة المتبقية بالصفحة الحالية — أضفها مباشرة
+    pdf.addImage(imgData, "PNG", x, yStart, W, H);
+    return yStart + H;
+  }
+  // الكتلة أطول: نحمّلها كصورة مصدر، ونرسم شرائح منها بـcanvas مؤقت
+  const srcImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = imgData; });
+  const pxPerPt = srcImg.height / H;        // نسبة بكسل الصورة لكل نقطة PDF
+  let drawnPt = 0;                          // كم نقطة رُسمت من ارتفاع الكتلة
+  let first = true;
+  while (drawnPt < H - 0.5){
+    if (!first){ pdf.addPage(); }
+    first = false;
+    const sliceHpt = Math.min(usableH, H - drawnPt);         // ارتفاع الشريحة بالنقاط
+    const sy = Math.round(drawnPt * pxPerPt);                 // بداية القصّ بالبكسل
+    const sh = Math.round(sliceHpt * pxPerPt);               // ارتفاع القصّ بالبكسل
+    const c = document.createElement("canvas");
+    c.width = srcImg.width; c.height = sh;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(srcImg, 0, sy, srcImg.width, sh, 0, 0, srcImg.width, sh);
+    pdf.addImage(c.toDataURL("image/png"), "PNG", x, margin, W, sliceHpt);
+    drawnPt += sliceHpt;
+  }
+  return pageH - margin; // انتهينا بأسفل آخر صفحة
+}
+// ===== PDF MULTI-PAGE SLICING END =====
+
 async function exportPersonPdf(personNode, preloadedData){
   const PAGE_W = 595, PAGE_H = 842, margin = 40;
   const { imgData, fiveName, W, H } = await buildPersonBlockDataUrl(personNode, preloadedData, PAGE_W - margin*2);
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-  pdf.addImage(imgData, "PNG", margin, margin, W, H);
+  await addTallImagePaginated(pdf, imgData, margin, margin, W, H, PAGE_H, margin);
   pdf.save(`${fiveName}.pdf`);
 }
 
@@ -1203,14 +1236,22 @@ async function exportAllRecordsPdf(){
   for (let i = 0; i < filled.length; i++){
     btn.textContent = `جارِ التجهيز… (${i+1}/${filled.length})`;
     const { imgData, W, H } = await buildPersonBlockDataUrl(filled[i].node, filled[i].data, blockWidth);
-    if (y + H > PAGE_H - margin){
-      pdf.addPage();
-      y = margin;
-    } else if (!firstBlock){
-      y += gap;
+    const usableH = PAGE_H - margin * 2;
+    if (H > usableH){
+      // كتلة أطول من صفحة كاملة: ابدأها بصفحة جديدة (إن لزم) ثم قسّمها على عدة صفحات
+      if (!firstBlock){ pdf.addPage(); y = margin; }
+      await addTallImagePaginated(pdf, imgData, margin, y, W, H, PAGE_H, margin);
+      pdf.addPage(); y = margin;   // ابدأ الكتلة التالية بصفحة نظيفة
+    } else {
+      if (y + H > PAGE_H - margin){
+        pdf.addPage();
+        y = margin;
+      } else if (!firstBlock){
+        y += gap;
+      }
+      pdf.addImage(imgData, "PNG", margin, y, W, H);
+      y += H;
     }
-    pdf.addImage(imgData, "PNG", margin, y, W, H);
-    y += H;
     firstBlock = false;
   }
   pdf.save("كل_الملفات_المسجّلة.pdf");
