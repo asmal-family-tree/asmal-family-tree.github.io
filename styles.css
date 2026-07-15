@@ -1758,28 +1758,6 @@ body:not(.authed) #artBackground{
   width:40px; height:40px; z-index:56;
 }
 
-/* حاوية الأيقونات الثلاث (المرفقات/بحث/تصدير): فلكس حقيقي يضمن تباعدًا متساويًا،
-   وبحث بمنتصف حقيقي بين الآخرين (بدل حسابات يدوية منفصلة كانت تسبب تراكبًا). */
-#asmalIconsRow{ display:none; }
-:root[data-style="4"] #asmalIconsRow{
-  display:flex !important; position:fixed; top:14px; right:64px; left:170px; height:36px;
-  align-items:center; justify-content:space-between; z-index:56;
-}
-:root[data-style="4"] #asmalIconsRow #searchToggle,
-:root[data-style="4"] #asmalIconsRow #ioToggle,
-:root[data-style="4"] #asmalIconsRow #attachmentsToggle{
-  position:static !important;
-  width:36px !important; height:36px !important; border-radius:50% !important;
-  padding:0 !important; gap:0 !important;
-  background:var(--card-bg) !important; border:1px solid var(--line) !important; box-shadow:none !important;
-  display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:15px !important; color:var(--ink) !important;
-}
-:root[data-style="4"] #asmalIconsRow #searchToggle::after,
-:root[data-style="4"] #asmalIconsRow #ioToggle::after,
-:root[data-style="4"] #asmalIconsRow #attachmentsToggle::after{
-  content:none !important; /* لا تسمية نصية — الصندوق يحيط بالأيقونة فقط */
-}
 
 /* لوحات هذه الثلاثة تحديدًا: تنبثق كقائمة صغيرة أسفل أيقونتها مباشرة (بدل الانزلاق من أسفل الشاشة)،
    حصريًا بتصميم "أسمل" — بقية اللوحات بكل التصاميم (بما فيها أسمل) تبقى بنمطها الأصلي.
