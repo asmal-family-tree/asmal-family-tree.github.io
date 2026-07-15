@@ -239,10 +239,13 @@ async function loadFeed(){
 
   const uid = window.authUser.uid;
   const moderator = canModerateNews();
+  const trustedViewer = (typeof canViewPendingNews === "function") && canViewPendingNews();
   let posts = [];
 
   try{
-    if (moderator){
+    if (moderator || trustedViewer){
+      // الأدمن/المُشرف (trustedNews) والموثوق (trusted.view): يشاهدون كل الأخبار بما فيها المعلّقة.
+      // الفرق: أزرار الاعتماد/الإخفاء تظهر للمُشرف فقط (moderator) — يُضبط لاحقًا عند الرسم.
       const snap = await db.collection("posts").orderBy("createdAt","desc").get();
       posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       posts.sort((a,b)=> (a.status==="pending"?-1:0) - (b.status==="pending"?-1:0));

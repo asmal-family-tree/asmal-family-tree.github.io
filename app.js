@@ -738,9 +738,14 @@ function isDbBacked(){ return currentUser && !!treeData.id; }
 //   ١) يملك صلاحية tree.edit  (كانت مفقودة: من له نطاق كان يضيف ولو بلا صلاحية)
 //   ٢) الموضع داخل نطاقه      (عقدته نفسها أو أحد فروعها)
 // المشرف يتجاوز قيد النطاق، لا قيد الصلاحية (فهو يملكها أصلًا).
+// من يقدر يضيف ابنًا تحت عقدة معيّنة:
+//   • الأدمن: أي مكان
+//   • trustedAddSons.edit (موثوق): أي مكان بالمشجرة (باعتماد لاحق)
+//   • addSons.edit: عقدته نفسها أو فروعها فقط (باعتماد لاحق)
 function canAddUnder(parentDataNode){
-  if (!can("tree", "edit")) return false;
   if (isAdminUser()) return true;
+  if (can("trustedAddSons", "edit")) return true;   // الموثوق: أي مكان
+  if (!can("addSons", "edit")) return false;
   const scope = window.authUser && window.authUser.scopePersonId;
   if (!scope) return false;
   const ids = parentDataNode.ancestorIds || [];
@@ -785,7 +790,8 @@ const TAB_PERMS = [
   { id: "searchToggle",      page: "search",   mode: "hide" },
   { id: "relToggle",         page: "relation", mode: "hide" },
   { id: "myTreeToggle",      page: "myTree",   mode: "hide" },
-  { id: "recordsToggle",     page: "records",  mode: "notify" },
+  { id: "recordsToggle",     page: "records",  mode: "hide" },   // السجلات: أدمن فقط الآن
+  { id: "aiChatToggle",      page: "ai",       mode: "hide" },
   { id: "designToggle",      page: "design",   mode: "notify" },
   { id: "bgToggle",          page: "background", mode: "hide" },
   { id: "attachmentsToggle", page: "attachments", mode: "hide" },
@@ -799,8 +805,8 @@ function applyRolePermissions(){
   const admin = isAdminUser();
   document.body.classList.toggle("role-limited", !admin);
   document.body.classList.toggle("role-guest", isGuest());
-  // إخفاء أزرار ➕ الإضافة على العقد لمن لا يملك صلاحية تعديل الشجرة
-  document.body.classList.toggle("no-tree-edit", !can("tree", "edit"));
+  // إخفاء أزرار ➕ الإضافة على العقد لمن لا يملك صلاحية إضافة الأبناء (لعقدته أو الموثوق: بأي مكان)
+  document.body.classList.toggle("no-tree-edit", !(can("addSons", "edit") || can("trustedAddSons", "edit")));
 
   // صندوق إدارة الجولة التفاعلية (لوحة تصميم الموقع) — أدمن فقط
   const tourBox = document.getElementById("tourAdminBox");
@@ -837,6 +843,13 @@ function applyRolePermissions(){
   }
 
 
+  // زر المستخدمين: يظهر للأدمن أو للموثوق (trustedUsers.edit) — استثناء من قاعدة الأدمن فقط
+  const usersBtn = document.getElementById("usersToggle");
+  if (usersBtn){
+    const showUsers = admin || can("trustedUsers", "edit");
+    usersBtn.style.display = showUsers ? "" : "none";
+  }
+
   // لا صلاحية مشاهدة الشجرة إطلاقًا
   if (!can("tree", "view")){
     document.getElementById("tree-wrap").classList.add("tree-hidden");
@@ -868,7 +881,8 @@ async function loadTreeFromFirestore(){
   snap.forEach(doc => {
     const d = doc.data();
     if (!isAdminView && d.pendingApproval) return; // إخفاء الإضافات المعلّقة عن غير المشرف
-    if (!isAdminView && d.type === "female" && d.wifeId) return; // عقد "الأم" تظهر لمحمد رشاد (Admin) فقط دائمًا
+    // ملاحظة: عقد "الأم" (الإناث) تبقى في البيانات للجميع (لبناء صفوف العديل والعرض النصي وحسابات القرابة)،
+    // ويُكتفى بإخفائها بصريًا في الرسم فقط لغير الأدمن (انظر فلتر الرسم) — قاعدة: حجب الرسم لا البيانات.
     byId.set(doc.id, { id: doc.id, name: d.name, type: d.type, isJoinPoint: d.isJoinPoint, parentId: d.parentId, ancestorIds: d.ancestorIds || [], pendingApproval: !!d.pendingApproval, wifeId: d.wifeId || null, sourcePersonId: d.sourcePersonId || null, sourceName: d.sourceName || null, motherApproved: !!d.motherApproved, children: [] });
   });
   let rootNode = null;
@@ -1009,8 +1023,8 @@ async function refreshRecordsList(){
   const listEl = document.getElementById("recordsList");
   listEl.innerHTML = "جارِ البحث بكل الملفات…";
   const admin = isAdminUser();
-  const canEdit = admin || can("records", "edit");
-  // غير الأدمن: يشاهد ملفه الخاص فقط (حسب نطاقه المرتبط) — الأدمن يشاهد الكل كالمعتاد
+  const canEdit = admin;   // السجلات + التصدير: أدمن فقط
+  // الأدمن يشاهد كل الملفات المعبّأة
   const ownScopeId = (!admin && window.authUser) ? window.authUser.scopePersonId : null;
   const filled = [];
   for (const n of root.descendants()){
@@ -1311,10 +1325,13 @@ function openPermsEditor(uid, userData){
   for (const [page, cfg] of Object.entries(PERM_PAGES)){
     const row = document.createElement("div");
     row.className = "perms-row";
+    const isSub = cfg.label.trim().startsWith("↳");
+    if (isSub) row.classList.add("perms-row-sub");
 
     const label = document.createElement("span");
     label.className = "perms-row-label";
     label.textContent = cfg.label;
+    if (isSub){ label.style.paddingRight = "18px"; label.style.color = "#6a5636"; label.style.fontSize = "13px"; }
     row.appendChild(label);
 
     // ثلاثة أعمدة ثابتة: مشاهدة / تعديل / حذف — نضع خانة أو شرطة
@@ -1453,9 +1470,10 @@ async function refreshAdminNotificationBadges(){
 // ===== NOTIFICATION BADGES END =====
 
 async function refreshUsersAndPendingLists(){
-  // دفاع بالعمق: حتى لو فُتحت اللوحة بطريقة ما، لا تُحمّل بيانات المستخدمين لغير المشرف
-  if (!isAdminUser()) return;
-  refreshAdminNotificationBadges();
+  // يُسمح بالتحميل للأدمن أو للموثوق (trustedUsers.edit) — الموثوق يرى القائمة ويحظر/يفعّل فقط
+  const _canManageUsers = isAdminUser() || can("trustedUsers", "edit");
+  if (!_canManageUsers) return;
+  if (isAdminUser()) refreshAdminNotificationBadges();
   const usersListEl = document.getElementById("usersList");
   const pendingListEl = document.getElementById("pendingList");
   usersListEl.innerHTML = "جارِ التحميل…";
@@ -1552,24 +1570,28 @@ async function refreshUsersAndPendingLists(){
             actions.appendChild(b);
           }
 
-          // الصلاحيات
-          const pb = document.createElement("button");
-          pb.textContent = "🔑 الصلاحيات";
-          pb.style.cssText = "background:#FFF3D6; color:#A67C00; border-color:#C9A227;";
-          pb.onclick = () => openPermsEditor(uid, u);
-          actions.appendChild(pb);
+          // الصلاحيات — أدمن فقط (يُخفى عن الموثوق)
+          if (isAdminUser()){
+            const pb = document.createElement("button");
+            pb.textContent = "🔑 الصلاحيات";
+            pb.style.cssText = "background:#FFF3D6; color:#A67C00; border-color:#C9A227;";
+            pb.onclick = () => openPermsEditor(uid, u);
+            actions.appendChild(pb);
+          }
         }
 
-        // حذف
-        const db_ = document.createElement("button");
-        db_.textContent = "🗑️ حذف";
-        db_.style.cssText = "background:#FDE7E7; color:#B3261E; border-color:#B3261E;";
-        db_.onclick = async () => {
-          if (!confirm(`حذف المستخدم "${u.displayName}"؟\nهذا يمنعه من الدخول، ولا يحذف إضافاته السابقة.`)) return;
-          await db.collection("users").doc(uid).delete();
-          refreshUsersAndPendingLists();
-        };
-        actions.appendChild(db_);
+        // حذف — أدمن فقط (يُخفى عن الموثوق)
+        if (isAdminUser()){
+          const db_ = document.createElement("button");
+          db_.textContent = "🗑️ حذف";
+          db_.style.cssText = "background:#FDE7E7; color:#B3261E; border-color:#B3261E;";
+          db_.onclick = async () => {
+            if (!confirm(`حذف المستخدم "${u.displayName}"؟\nهذا يمنعه من الدخول، ولا يحذف إضافاته السابقة.`)) return;
+            await db.collection("users").doc(uid).delete();
+            refreshUsersAndPendingLists();
+          };
+          actions.appendChild(db_);
+        }
 
         usersListEl.appendChild(card);
       });
@@ -4545,16 +4567,23 @@ function buildAndRender(){
 
   g.selectAll("*").remove();
 
+  // فلتر بصري فقط: عقد "الأم" (female + wifeId) تبقى في البيانات (root) للجميع،
+  // لكنها لا تُرسم لغير الأدمن (حجب الرسم لا البيانات). الأدمن يرى كل شيء.
+  const _isAdminDraw = (typeof isAdminUser === "function") && isAdminUser();
+  const _isDrawable = (n) => _isAdminDraw || !(n.data.type === "female" && n.data.wifeId);
+  const drawNodes = root.descendants().filter(_isDrawable);
+  const drawLinks = root.links().filter(l => _isDrawable(l.target) && _isDrawable(l.source));
+
   // روابط بخطوط قائمة الزوايا (مثل مخططات النسب التقليدية) — كل رابط عنصر مستقل مربوط ببياناته
   busYByParent = new Map();
-  root.links().forEach(l => {
+  drawLinks.forEach(l => {
     if (!busYByParent.has(l.source)) {
       busYByParent.set(l.source, (sy(l.source) + sy(l.target)) / 2);
     }
   });
 
   g.selectAll("path.link")
-    .data(root.links())
+    .data(drawLinks)
     .join("path")
     .attr("class", l => "link" + (l.target.data.type === "female" ? " to-female" : ""))
     .attr("d", l => {
@@ -4565,7 +4594,7 @@ function buildAndRender(){
     });
 
   node = g.selectAll("g.node")
-    .data(root.descendants())
+    .data(drawNodes)
     .join("g")
     .attr("class", d => "node " + d.data.type)
     .attr("transform", d => `translate(${sx(d)},${sy(d)})`)
@@ -4990,43 +5019,56 @@ function showInfo(d){
     });
 
     const insideWives = (data.wives || []).filter(w => w.type === "inside" && w.fatherId);
+    const multipleWives = insideWives.length > 1; // الترقيم يظهر فقط عند تعدد الزوجات
+    const arNum = (n) => ["", "١","٢","٣","٤","٥","٦","٧","٨","٩","١٠"][n] || String(n);
+    // اسم صاحب الملف الكامل (سلسلة نسبه) — للمقارنة الصحيحة ضد زوج الأخت (منع "العديل لنفسه")
+    const ownFullChain = chainNames(d).join(" ");
+    const ownName = d.data.name;
+    // فحص موحّد لمنع تكرار العديل من أي مصدر (يقارن الاسم بعد التطبيع)
+    const norm = (s) => String(s || "").replace(/\s+/g, " ").trim();
+    const adeelSeen = new Set();
+    const isSelf = (name) => { const nm = norm(name); return nm === norm(ownFullChain) || nm === norm(ownName); };
+    const pushAdeel = (name, node) => {
+      const nm = norm(name);
+      if (!nm || isSelf(name) || adeelSeen.has(nm)) return; // لا العديل لنفسه، ولا تكرار
+      adeelSeen.add(nm);
+      sadahaList.push({ label: "نسيب (العديل)", name, node: node || null });
+    };
+    let wifeIdx = 0;
     for (const w of insideWives){
+      wifeIdx++;
+      const suffix = multipleWives ? " " + arNum(wifeIdx) : "";
       const wifeFatherNode = root.descendants().find(n => personId(n) === w.fatherId);
       if (!wifeFatherNode) continue;
-      if (w.fatherName) sadahaList.push({ label: "والد الزوجة", name: w.fatherChain || w.fatherName, node: wifeFatherNode });
+      if (w.fatherName) sadahaList.push({ label: "والد الزوجة" + suffix, name: w.fatherChain || w.fatherName, node: wifeFatherNode });
       (wifeFatherNode.children || []).filter(c => c.data.type !== "female").forEach(b => {
-        sadahaList.push({ label: "أخ زوجة", name: chainNames(b).slice(0, 3).join(" بن "), node: b });
+        sadahaList.push({ label: "أخ زوجة" + suffix, name: chainNames(b).slice(0, 3).join(" بن "), node: b });
       });
       const sisters = (wifeFatherNode.children || []).filter(c => c.data.type === "female");
       for (const sis of sisters){
         const sisData = await loadPersonData(personId(sis));
-        if (sisData.husband && !sisData.husbandDivorced && sisData.husband !== d.data.name){
-          sadahaList.push({ label: "نسيب (العديل)", name: sisData.husbandChain || sisData.husband, node: null });
+        if (sisData.husband && !sisData.husbandDivorced){
+          pushAdeel(sisData.husbandChain || sisData.husband, null);
         }
       }
     }
 
     // النوع الخامس: العديل من زوجة خارج القبيلة — يُشتق من العدلاء المعتمدين (w.inlaws).
-    // هؤلاء صهرٌ حقيقي كنظرائهم من داخل القبيلة، وكانوا يُنشأون بقاعدة البيانات دون أن يُعرضوا هنا.
     const outsideWives = (data.wives || []).filter(w => w.type === "outside");
     for (const w of outsideWives){
       for (const inlaw of (w.inlaws || [])){
         if (!inlaw.confirmed || inlaw.divorced) continue;
         const inlawNode = root.descendants().find(n => personId(n) === inlaw.notaryId) || null;
-        const nm = inlaw.notaryChain || inlaw.notaryName;
-        if (!nm || sadahaList.some(s => s.name === nm)) continue;
-        sadahaList.push({ label: "نسيب (العديل)", name: nm, node: inlawNode });
+        pushAdeel(inlaw.notaryChain || inlaw.notaryName, inlawNode);
       }
     }
 
-    // النوع السادس: العديل المعكوس — رجل من القبيلة أضافك أنت كعديل له،
-    // فأُنشئ بملفك سجل زوجة مرتبط (linkedOutsideWifeId + sisterOfPersonId)
+    // النوع السادس: العديل المعكوس — رجل من القبيلة أضافك أنت كعديل له.
     for (const w of (data.wives || [])){
       if (!w.linkedOutsideWifeId || !w.sisterOfPersonId || w.divorced) continue;
       const srcNode = root.descendants().find(n => personId(n) === w.sisterOfPersonId) || null;
       const nm = srcNode ? chainNames(srcNode).slice(0, 3).join(" بن ") : w.sisterOfPersonName;
-      if (!nm || sadahaList.some(s => s.name === nm)) continue;
-      sadahaList.push({ label: "نسيب (العديل)", name: nm, node: srcNode });
+      pushAdeel(nm, srcNode);
     }
 
     const sadahaHtml = sadahaList.length
@@ -5113,6 +5155,26 @@ if (window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)")
 
 // ---------- تبويبات الشريط السفلي: فتح واحد يغلق البقية ----------
 const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "designPanel", "bgPanel", "usersPanel", "recordsPanel", "aiChatPanel", "attachmentsPanel"].map(id => document.getElementById(id));
+
+// ===== UNIFIED PANEL CLOSE BUTTON START (معزول — احذف هذا البلوك بأمان لإلغاء الميزة) =====
+// يحقن زر ✕ إغلاق موحّد أعلى كل لوحة منبثقة، فبدل الاعتماد على الضغط على الأيقونة ثانيةً،
+// يقدر المستخدم يغلق أي لوحة مباشرة. الزر بموضع ثابت أعلى يسار اللوحة.
+bottomPanels.forEach(panel => {
+  if (!panel || panel.querySelector(".panel-close-x")) return;
+  const x = document.createElement("button");
+  x.className = "panel-close-x";
+  x.type = "button";
+  x.setAttribute("title", "إغلاق");
+  x.textContent = "✕";
+  x.onclick = (e) => {
+    e.stopPropagation();
+    panel.classList.remove("show");
+    if (typeof clearPanelInputs === "function") clearPanelInputs(panel);
+  };
+  panel.insertBefore(x, panel.firstChild);
+});
+// ===== UNIFIED PANEL CLOSE BUTTON END =====
+
 // تمسح مدخلات لوحة عند إغلاقها. تُستثنى الدردشة حتى لا تُفقد المحادثة الجارية.
 function clearPanelInputs(panel){
   if (!panel || panel.id === "aiChatPanel") return;
@@ -5171,7 +5233,25 @@ designToggle.onclick = () => { if (!guard("design")) return; openOnlyPanel(desig
 
 const usersToggle = document.getElementById("usersToggle");
 const usersPanel = document.getElementById("usersPanel");
-usersToggle.onclick = () => { if (!guard("users")) return; openOnlyPanel(usersPanel); refreshUsersAndPendingLists(); loadInviteCodeUI(); };
+usersToggle.onclick = () => {
+  // الأدمن: كامل الصلاحيات · الموثوق (trustedUsers.edit): يشاهد المستخدمين + حظر/تفعيل فقط
+  const isTrustedUsers = !isAdminUser() && can("trustedUsers", "edit");
+  if (!isAdminUser() && !isTrustedUsers){ guard("users"); return; }
+  openOnlyPanel(usersPanel);
+  document.body.classList.toggle("trusted-users-mode", isTrustedUsers); // يخفي أدوات الأدمن الحصرية عبر CSS
+  // إخفاء عناوين الأقسام الإدارية النصية (بلا id/for) في وضع الموثوق
+  try{
+    const panel = document.getElementById("usersPanel");
+    panel.querySelectorAll("label.f-label").forEach(lb => {
+      const t = (lb.textContent || "").trim();
+      const adminLabel = t.includes("بانتظار الاعتماد") || t.includes("فحص بيانات");
+      if (isTrustedUsers && adminLabel) lb.style.display = "none";
+      else if (!isTrustedUsers) lb.style.display = "";
+    });
+  }catch(e){}
+  refreshUsersAndPendingLists();
+  if (isAdminUser()) loadInviteCodeUI();
+};
 
 // ===== SELF-REGISTER START (المرحلة 5) — إدارة رمز الدعوة من لوحة الأدمن =====
 async function loadInviteCodeUI(){
@@ -5248,6 +5328,13 @@ const aiChatStatus = document.getElementById("aiChatStatus");
 aiChatToggle.onclick = () => {
   if (!guard("ai")) return;
   openOnlyPanel(aiChatPanel);
+  // ai.edit = يكتب ويدردش · بلا edit (مشاهدة فقط) = يرى المحادثة والحقل معطّل
+  const canChat = isAdminUser() || can("ai", "edit");
+  aiChatInput.disabled = !canChat;
+  aiChatSend.disabled = !canChat;
+  aiChatInput.placeholder = canChat
+    ? "اسأل عن أي شخص أو علاقة في الشجرة..."
+    : "المشاهدة فقط — لا تملك صلاحية الكتابة والدردشة";
   if (!aiChatMessages.childElementCount){
     appendAiChatMessage("bot", "أهلًا! اسألني عن أي شخص، علاقة قرابة، أو معلومة مضافة في شجرة بني أسمل الحكمي.");
   }
@@ -7541,7 +7628,7 @@ function renderCurrentSons(){
     const chip = document.createElement("div");
     chip.className = "chip";
     const hasKids = k.children && k.children.length;
-    const canDeleteThis = k.data.manuallyAdded && can("tree", "delete");
+    const canDeleteThis = k.data.manuallyAdded && isAdminUser();
     chip.innerHTML = canDeleteThis
       ? `<span>${k.data.name}</span><span class="chip-x" title="حذف">✕</span>`
       : `<span>${k.data.name}</span>`;

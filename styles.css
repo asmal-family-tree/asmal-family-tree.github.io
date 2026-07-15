@@ -142,7 +142,7 @@
   .zoom-fab button:active{ background:var(--gold-soft); transform:scale(.94); }
 
   #bottomBar{
-    position:fixed; left:0; right:0; bottom:0; z-index:32; display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between;
+    position:fixed; left:0; right:0; bottom:0; z-index:32; display:flex; align-items:center; justify-content:space-between;
     background:linear-gradient(180deg, var(--emerald-2) 0%, var(--emerald) 100%); border-top:3px double var(--gold-bright);
     padding:9px 4px calc(9px + env(safe-area-inset-bottom)); box-shadow:0 -3px 14px rgba(11,61,46,.35);
     overflow-x:auto;
@@ -488,7 +488,7 @@
   cursor:pointer; display:none; border-inline-start:3px solid var(--gold-bright);
 }:root[data-style="2"] .exit-focus.show{ display:block; }:root[data-style="2"] #bottomBar{
   position:fixed; left:0; right:0; bottom:0; z-index:32;
-  display:flex; flex-direction:row-reverse; align-items:center; justify-content:space-between; gap:2px;
+  display:flex; align-items:center; justify-content:space-between; gap:2px;
   background:linear-gradient(180deg, var(--panel-dark) 0%, var(--panel-dark-2) 100%);
   border-top:3px solid var(--gold-bright); box-shadow:0 -8px 24px rgba(0,0,0,.18);
   padding:6px 4px calc(6px + env(safe-area-inset-bottom)); overflow-x:auto;
@@ -589,7 +589,7 @@
   box-shadow:var(--card-shadow), 0 0 14px rgba(47,227,166,.15); cursor:pointer; display:none;
 }:root[data-style="3"] .exit-focus.show{ display:block; animation:glowIn_s3 .3s ease; }:root[data-style="3"] #bottomBar{
   position:fixed; left:0; right:0; bottom:0; z-index:32;
-  display:flex; flex-direction:row-reverse; align-items:center; gap:3px; justify-content:space-between;
+  display:flex; align-items:center; gap:3px; justify-content:space-between;
   background:var(--card-bg); border-top:1px solid rgba(47,227,166,.18); border-radius:20px 20px 0 0;
   padding:6px 4px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -14px 40px rgba(0,0,0,.5);
   overflow-x:hidden; width:100%;
@@ -1776,6 +1776,18 @@ body:not(.authed) #artBackground{
   z-index:57 !important;
 }
 
+/* بقية لوحات أسمل (المستخدمون/السجلات/التصميم/المظهر/المساعد الذكي): تنزلق من الأسفل،
+   لكن يجب أن ترتفع فوق الشريط العائم (حبة الدواء) بدل الاختفاء خلفه — لذا نثبّت bottom
+   بقيمة تراعي: هامش الشريط السفلي 10px + ارتفاعه ~56px + مسافة أمان. z-index أعلى من الشريط (58). */
+:root[data-style="4"] #usersPanel,
+:root[data-style="4"] #recordsPanel,
+:root[data-style="4"] #designPanel,
+:root[data-style="4"] #bgPanel,
+:root[data-style="4"] #aiChatPanel{
+  bottom:78px !important; top:auto !important; z-index:59 !important;
+  max-height:calc(100dvh - 160px) !important; overflow-y:auto !important;
+}
+
 /* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */
 :root[data-style="4"] #uiScaleControls{ top:76px !important; }
 
@@ -1832,7 +1844,7 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #bottomBar button{ color:#fff !important; }
 /* تصحيح ارتفاع مرجع اللوحات (--barh) ليطابق الشكل الجديد للشريط (حبة + هامش سفلي 10px)،
    حتى تبدأ كل اللوحات مباشرة فوق الشريط بدل التداخل معه أو ترك فجوة */
-:root[data-style="4"]{ --barh:92px; }
+:root[data-style="4"]{ --barh:78px; }
 
 /* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
 #themeChooser, #layoutChooser{
@@ -1851,16 +1863,11 @@ body:not(.authed) #artBackground{
    ============================================================ */
 #asmalAdminMenuItems{ display:none; }
 :root[data-style="4"] #asmalAdminMenuItems{
-  display:flex !important; position:fixed; top:58px; right:14px; z-index:57;
-  flex-direction:column; align-items:center; gap:10px;
-  max-height:0; overflow:hidden; opacity:0; pointer-events:none;
-  transition:max-height .28s ease, opacity .2s ease, padding .28s ease;
-  background:var(--card-bg); border-radius:16px; padding:0 8px;
-  box-shadow:0 8px 24px rgba(0,0,0,.28);
+  display:flex !important; position:fixed; top:12px; right:58px; z-index:55;
+  align-items:center; gap:10px;
+  max-width:0; overflow:hidden; transition:max-width .25s ease;
 }
-:root[data-style="4"] #asmalAdminMenuItems.open{
-  max-height:280px; opacity:1; pointer-events:auto; padding:10px 8px;
-}
+:root[data-style="4"] #asmalAdminMenuItems.open{ max-width:280px; }
 /* زر التشغيل بموضع أيقونة الأخبار: دائرة خضراء بأيقونة ☰ (بدل صورة الأخبار)، أخبار حقيقية تظهر كعنصر أول داخل القائمة */
 :root[data-style="4"] #newsNavBtn.admin-toggle-mode{
   background:var(--emerald) !important; box-shadow:0 3px 8px rgba(0,0,0,.25) !important; border-radius:50%;
@@ -2059,3 +2066,40 @@ body:not(.authed) #artBackground{
   box-shadow:0 1px 4px rgba(0,0,0,.4); line-height:1;
 }
 /* ===== NOTIFICATION BADGES END ===== */
+
+/* ============================================================
+   ===== UNIFIED PANEL CLOSE BUTTON START (معزول تمامًا) =====
+   زر ✕ إغلاق موحّد أعلى يسار كل لوحة منبثقة.
+   ============================================================ */
+.panel-close-x{
+  position:absolute; top:8px; left:8px; z-index:5;
+  width:30px; height:30px; border-radius:50%;
+  border:none; background:rgba(0,0,0,.06); color:#8B1E1E;
+  font-size:16px; font-weight:900; cursor:pointer; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Tajawal',sans-serif; padding:0;
+}
+.panel-close-x:active{ background:rgba(0,0,0,.14); }
+/* اللوحات تحتاج تموضع نسبي حتى يلتصق زر الإغلاق بها؛ معظمها أصلًا كذلك، ونؤكدها هنا */
+.bottom-panel{ position:relative; }
+:root[data-style="4"] #searchPanel, :root[data-style="4"] #ioPanel, :root[data-style="4"] #attachmentsPanel{ position:fixed !important; }
+/* ===== UNIFIED PANEL CLOSE BUTTON END ===== */
+
+/* ============================================================
+   ===== TRUSTED USERS MODE START (معزول — احذف بأمان لإلغاء الميزة) =====
+   عند فتح "الموثوق" (trustedUsers.edit) لوحة المستخدمين، تُخفى كل الأدوات
+   الإدارية الحصرية، ويبقى فقط: قائمة المستخدمين + أزرار حظر/تفعيل بكل بطاقة.
+   الأقسام المخفية: رمز الدعوة، إضافات خاصة، بانتظار الاعتماد، فحص بيانات شخص.
+   ============================================================ */
+body.trusted-users-mode #usersPanel .admin-box,
+body.trusted-users-mode #usersPanel #pendingList,
+body.trusted-users-mode #usersPanel #inspectSearchBox,
+body.trusted-users-mode #usersPanel #permsEditor{
+  display:none !important;
+}
+/* إخفاء عناوين الأقسام المخفية (بانتظار الاعتماد + فحص بيانات شخص) —
+   نستهدف الـlabel التي تسبق العناصر المخفية مباشرةً */
+body.trusted-users-mode #usersPanel label.f-label[for],
+body.trusted-users-mode #usersPanel #pendingList,
+body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; }
+/* ===== TRUSTED USERS MODE END ===== */

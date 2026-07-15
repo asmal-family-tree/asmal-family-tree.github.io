@@ -13,54 +13,72 @@
    }
    ============================================================ */
 
-// ---------- التبويبات المعروفة ----------
+// ---------- التبويبات المعروفة (المصفوفة النهائية) ----------
+// ملاحظات على المعاني الخاصة:
+//   tree.view      = ظهور المشجرة
+//   addSons.edit   = يضيف أبناء لعقدته فقط (باعتماد الأدمن)
+//   info.view      = عند الضغط على الاسم تظهر كل البيانات
+//   news.view      = يشاهد/يقرأ الأخبار · news.edit = يكتب أخبارًا (باعتماد)
+//   ai.view        = يشاهد المساعد بلا كتابة · ai.edit = يكتب ويدردش
+//   design.view    = يظهر تبويب اختيار التصميم واللون
+//   trusted.view   = موثوق: يشاهد الأخبار غير المنشورة (المعلّقة)
+//   trustedNews.edit   = ينشر بلا اعتماد + يعتمد غيره + يخفي
+//   trustedAddSons.edit= يضيف أبناء بأي مكان بالمشجرة (باعتماد)
+//   trustedUsers.edit  = يشاهد المستخدمين + يحظر/يعيد التفعيل فقط
 const PERM_PAGES = {
-  tree:     { label: "الشجرة",          actions: ["view", "edit", "delete"] },
-  info:     { label: "المعلومات",        actions: ["view", "edit", "delete"] },
-  news:     { label: "الأخبار",          actions: ["view", "edit", "delete"] },
-  search:   { label: "البحث",            actions: ["view"] },
-  relation: { label: "حاسبة القرابة",    actions: ["view"] },
-  myTree:   { label: "شجرتي",            actions: ["view"] },
-  records:  { label: "السجلات",          actions: ["view", "edit", "exportOne", "exportAll"] },
-  ai:       { label: "المساعد الذكي",    actions: ["view"] },
-  design:   { label: "تصميم الموقع",     actions: ["view"] }
+  tree:           { label: "المشجرة",         actions: ["view"] },
+  addSons:        { label: "إضافة أبناء",     actions: ["edit"] },
+  info:           { label: "بطاقة المعلومات", actions: ["view"] },
+  news:           { label: "الأخبار",          actions: ["view", "edit"] },
+  search:         { label: "البحث",            actions: ["view"] },
+  relation:       { label: "حاسبة القرابة",    actions: ["view"] },
+  myTree:         { label: "شجرتي",            actions: ["view"] },
+  ai:             { label: "المساعد الذكي",    actions: ["view", "edit"] },
+  design:         { label: "تصميم الموقع",     actions: ["view"] },
+  trusted:        { label: "موثوق",            actions: ["view"] },
+  trustedNews:    { label: "↳ الأخبار",        actions: ["edit"] },
+  trustedAddSons: { label: "↳ إضافة الأبناء",  actions: ["edit"] },
+  trustedUsers:   { label: "↳ حظر مستخدمين",   actions: ["edit"] }
 };
 
-// التبويبات المقصورة على الأدمن — خارج المصفوفة تمامًا
-// خارج المصفوفة تمامًا — لا تظهر بمحرر الصلاحيات، ولا تُمنح لأحد:
-// 📚 المرفقات · 📁 استيراد/تصدير · 🗑️ وضع الحذف · 👥 المستخدمون · 🖼️ المظهر (رفع الخلفية)
-const ADMIN_ONLY_PAGES = ["attachments", "io", "deleteMode", "users", "background"];
+// التبويبات المقصورة على الأدمن — خارج المصفوفة تمامًا (لا تظهر بمحرر الصلاحيات ولا تُمنح لأحد):
+// 📋 السجلات + تصدير فرد + تصدير الكل · 📚 المرفقات · 📁 استيراد/تصدير · 🗑️ وضع الحذف · 👥 المستخدمون · 🖼️ المظهر
+const ADMIN_ONLY_PAGES = ["records", "attachments", "io", "deleteMode", "users", "background"];
 
 // ---------- المصفوفة الافتراضية لكل مستخدم جديد ----------
-// الفلسفة: يقرأ كل شيء، ولا يعدّل شيئًا. الأدمن يرقّيه لاحقًا.
-// استثناء: تبويب "الأخبار" — الأيقونتان ✏️/🗑️ لهما معنى خاص هنا (المرحلة 3):
-//   news.edit   = "كتابة خبر جديد" — متاحة افتراضيًا للجميع (خلاف بقية التبويبات)
-//   news.delete = "مفوَّض بالاعتماد" — يعتمد/يخفي/يحذف أخبار الآخرين — false افتراضيًا، يُمنح يدويًا
-//   النشر المباشر (تجاوز الاعتماد) حقل منفصل خارج المصفوفة: doc.newsAutoPublish (انظر buildAuthUser)
+// الفلسفة: يقرأ الأساسيات، ولا يعدّل شيئًا. الأدمن يرقّيه لاحقًا.
 const DEFAULT_PERMS = {
-  tree:     { view: true, edit: false, delete: false },
-  info:     { view: true, edit: false, delete: false },
-  news:     { view: true, edit: false, delete: false },
-  search:   { view: true },
-  relation: { view: true },
-  myTree:   { view: true },
-  records:  { view: false, edit: false, exportOne: false, exportAll: false },
-  ai:       { view: true },
-  design:   { view: true }
+  tree:           { view: true },
+  addSons:        { edit: false },
+  info:           { view: true },
+  news:           { view: true, edit: false },
+  search:         { view: true },
+  relation:       { view: true },
+  myTree:         { view: true },
+  ai:             { view: true, edit: false },
+  design:         { view: true },
+  trusted:        { view: false },
+  trustedNews:    { edit: false },
+  trustedAddSons: { edit: false },
+  trustedUsers:   { edit: false }
 };
 
 // ---------- صلاحيات الضيف (تُحدّد لاحقًا بعد اكتمال التبويبات) ----------
 // مبدئيًا: الضيف يرى الشجرة والبحث فقط. مكانها محجوز للتوسعة.
 const GUEST_PERMS = {
-  tree:     { view: true, edit: false, delete: false },
-  info:     { view: true, edit: false, delete: false },
-  news:     { view: true, edit: false, delete: false },
-  search:   { view: true },
-  relation: { view: true },
-  myTree:   { view: true },
-  records:  { view: true, exportOne: false, exportAll: false },
-  ai:       { view: false },   // المساعد الذكي: للمسجّلين فقط (تكلفة)
-  design:   { view: false }    // تصميم الموقع: للمسجّلين فقط
+  tree:           { view: true },
+  addSons:        { edit: false },
+  info:           { view: true },
+  news:           { view: true, edit: false },
+  search:         { view: true },
+  relation:       { view: true },
+  myTree:         { view: true },
+  ai:             { view: false },   // المساعد الذكي: للمسجّلين فقط (تكلفة)
+  design:         { view: false },   // تصميم الموقع: للمسجّلين فقط
+  trusted:        { view: false },
+  trustedNews:    { edit: false },
+  trustedAddSons: { edit: false },
+  trustedUsers:   { edit: false }
 };
 
 // ---------- الحالة ----------
@@ -130,14 +148,20 @@ function buildAuthUser(uid, doc){
 function canWriteNews(){ return can("news", "edit"); }
 window.canWriteNews = canWriteNews;
 
-function canModerateNews(){ return isAdminUser() || can("news", "delete"); }
+// الإشراف على الأخبار (اعتماد/إخفاء أخبار الآخرين): الأدمن أو الموثوق (trustedNews.edit)
+function canModerateNews(){ return isAdminUser() || can("trustedNews", "edit"); }
 window.canModerateNews = canModerateNews;
 
+// النشر المباشر بلا اعتماد: الأدمن، أو الموثوق (trustedNews.edit), أو حقل newsAutoPublish المستقل (توافق قديم)
 function hasNewsAutoPublish(){
   const u = window.authUser;
-  return !!(u && (isAdminUser() || u.newsAutoPublish === true));
+  return !!(u && (isAdminUser() || can("trustedNews", "edit") || u.newsAutoPublish === true));
 }
 window.hasNewsAutoPublish = hasNewsAutoPublish;
+
+// موثوق: يشاهد الأخبار غير المنشورة (المعلّقة)
+function canViewPendingNews(){ return isAdminUser() || can("trusted", "view"); }
+window.canViewPendingNews = canViewPendingNews;
 
 /** الدخول كضيف — بلا حساب */
 function signInAsGuest(){
