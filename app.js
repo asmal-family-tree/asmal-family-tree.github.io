@@ -355,6 +355,10 @@ function startTour(versionToMark){
   _tourActiveSteps = getFilteredTourSteps();
   _tourIndex = 0;
   if (!_tourActiveSteps.length) return;
+  // تعطيل مؤقت لـ zoom (تكبير الخط A+/A-) أثناء الجولة فقط — zoom يكسر حسابات مواضع
+  // العناصر position:fixed، فتنزاح دائرة الإضاءة عن مكانها الصحيح. يُعاد الوضع الأصلي بنهاية الجولة.
+  window._tourSavedZoom = document.body.style.zoom || "";
+  document.body.style.zoom = "1";
   // فتح القائمة الإدارية المنسدلة مسبقًا (أسمل+أدمن) حتى تظهر أيقوناتها بمواضعها الفعلية أثناء الجولة
   const adminMenu = document.getElementById("asmalAdminMenuItems");
   if (adminMenu && !adminMenu.classList.contains("open")){
@@ -362,7 +366,7 @@ function startTour(versionToMark){
     _tourMenuWasOpened = true;
   }
   document.getElementById("tourOverlay").style.display = "block";
-  showTourStep(0, versionToMark);
+  requestAnimationFrame(() => requestAnimationFrame(() => showTourStep(0, versionToMark)));
 }
 
 function showTourStep(i, versionToMark){
@@ -403,6 +407,7 @@ function nextTourStep(i, versionToMark){
 
 async function endTour(versionToMark){
   document.getElementById("tourOverlay").style.display = "none";
+  document.body.style.zoom = window._tourSavedZoom || "";
   if (_tourMenuWasOpened){
     const adminMenu = document.getElementById("asmalAdminMenuItems");
     if (adminMenu) adminMenu.classList.remove("open");
