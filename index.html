@@ -24,7 +24,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=66">
+<link rel="stylesheet" href="styles.css?v=68">
 </head>
 <body>
 
@@ -179,8 +179,25 @@
 <!-- ===== SELF-REGISTER END ===== -->
 <div id="currentUserBadge">
   <span id="currentUserName"></span>
+  <button id="changePasswordBtn" title="تغيير كلمة المرور">🔑</button>
   <button id="logoutBtn">خروج</button>
 </div>
+
+<!-- ===== CHANGE PASSWORD START (معزول تمامًا — احذف بأمان لإلغاء الميزة) ===== -->
+<div id="changePasswordOverlay" style="display:none;">
+  <div id="changePasswordCard">
+    <h3>🔑 تغيير كلمة المرور</h3>
+    <input id="cpOldPassword" type="password" placeholder="كلمة المرور الحالية">
+    <input id="cpNewPassword" type="password" placeholder="كلمة المرور الجديدة (٦ أحرف فأكثر)">
+    <input id="cpNewPassword2" type="password" placeholder="تأكيد كلمة المرور الجديدة">
+    <div id="cpError"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button id="cpCancelBtn">إلغاء</button>
+      <button id="cpSaveBtn">حفظ</button>
+    </div>
+  </div>
+</div>
+<!-- ===== CHANGE PASSWORD END ===== -->
 <div id="uiScaleControls">
   <button id="uiScaleDown" title="تصغير">A-</button>
   <button id="uiScaleUp" title="تكبير">A+</button>
@@ -204,7 +221,7 @@
 <a id="newsNavBtn" href="news.html" data-perm="news" data-perm-action="view" title="الأخبار"
    style="position:fixed; top:70px; left:14px; z-index:50; width:46px; height:46px; border-radius:50%;
           background:var(--gold); color:#fff; display:flex; align-items:center; justify-content:center;
-          font-size:20px; text-decoration:none; box-shadow:0 3px 10px rgba(0,0,0,.25);">🗞️</a>
+          font-size:20px; text-decoration:none; box-shadow:0 3px 10px rgba(0,0,0,.25);">🗞️<span id="newsPendingBadge" class="notif-badge" style="display:none;"></span></a>
 <!-- ===== ASMAL ADMIN MENU START (أدمن + أسمل فقط) — احذف هذا العنصر وربطه بأمان لإلغاء الميزة ===== -->
 <div id="asmalAdminMenuItems">
   <a id="asmalAdminNewsLink" href="news.html" title="الأخبار">
@@ -326,6 +343,7 @@
     <input type="text" id="inviteCodeInput" class="f-input" placeholder="رمز الدعوة الحالي" style="margin-bottom:8px;">
     <button id="inviteCodeSaveBtn" class="f-btn-sm" style="width:100%">💾 حفظ الرمز</button>
     <div id="inviteCodeStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+    <button id="inviteWhatsappBtn" class="f-btn-sm" style="width:100%; margin-top:8px; background:#25D366; color:#fff; border-color:#1ea952;">📲 مشاركة دعوة عبر واتساب</button>
   </fieldset>
   <!-- ===== SELF-REGISTER END ===== -->
 
@@ -411,7 +429,7 @@
   <button id="relToggle" title="حاسبة العلاقة">🧮</button>
   <button id="bgToggle" title="خلفية الشجرة" style="display:none">🖼️</button>
   <button id="designToggle" title="تصميم الموقع">🎨</button>
-  <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
+  <button id="usersToggle" title="المستخدمون" style="display:none; position:relative;">👥<span id="usersPendingBadge" class="notif-badge" style="display:none;"></span></button>
   <button id="aiChatToggle" title="مساعد الذكاء الاصطناعي">🤖</button>
   <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
   <button id="ioToggle" title="استيراد وتصدير">📁</button>
@@ -541,8 +559,8 @@
   </div>
 </div>
 
-<script src="auth.js?v=5"></script>
-<script src="app.js?v=26"></script>
+<script src="auth.js?v=6"></script>
+<script src="app.js?v=29"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {

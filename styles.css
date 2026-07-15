@@ -1827,6 +1827,9 @@ body:not(.authed) #artBackground{
   bottom:10px !important; box-shadow:0 6px 20px rgba(0,0,0,.25) !important;
 }
 :root[data-style="4"] #bottomBar button{ color:#fff !important; }
+/* تصحيح ارتفاع مرجع اللوحات (--barh) ليطابق الشكل الجديد للشريط (حبة + هامش سفلي 10px)،
+   حتى تبدأ كل اللوحات مباشرة فوق الشريط بدل التداخل معه أو ترك فجوة */
+:root[data-style="4"]{ --barh:74px; }
 
 /* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
 #themeChooser, #layoutChooser{
@@ -2009,3 +2012,42 @@ body:not(.authed) #artBackground{
 #tourSkipBtn{ background:transparent; border:none; color:#999; font-size:12.5px; cursor:pointer; text-decoration:underline; }
 #tourNextBtn{ background:#0B3D2E; color:#fff; border:none; border-radius:10px; padding:8px 16px; font-weight:800; font-size:13px; cursor:pointer; font-family:'Tajawal',sans-serif; }
 /* ===== ONBOARDING TOUR END ===== */
+
+/* ============================================================
+   ===== CHANGE PASSWORD START (معزول تمامًا) =====
+   ============================================================ */
+#changePasswordBtn{
+  background:transparent; border:none; font-size:15px; cursor:pointer; padding:0 4px; opacity:.75;
+}
+#changePasswordOverlay{
+  position:fixed; inset:0; z-index:400; background:rgba(0,0,0,.55);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+#changePasswordCard{
+  background:var(--card-bg, #fff); border-radius:16px; padding:22px 20px; width:100%; max-width:320px;
+  font-family:'Tajawal',sans-serif; box-shadow:0 10px 30px rgba(0,0,0,.3);
+}
+#changePasswordCard h3{ margin:0 0 14px; text-align:center; color:#0B3D2E; }
+#changePasswordCard input{
+  width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:10px; border-radius:10px;
+  border:1.5px solid #ddd; font-family:'Tajawal',sans-serif; font-size:14px; text-align:right;
+}
+#cpError{ color:#8B1E1E; font-size:12.5px; min-height:16px; text-align:center; }
+#changePasswordCard button{
+  flex:1; padding:11px; border:none; border-radius:10px; font-weight:700; cursor:pointer;
+  font-family:'Tajawal',sans-serif; font-size:14px;
+}
+#cpCancelBtn{ background:#eee; color:#555; }
+#cpSaveBtn{ background:#0B3D2E; color:#fff; }
+/* ===== CHANGE PASSWORD END ===== */
+
+/* ============================================================
+   ===== NOTIFICATION BADGES START (معزول تمامًا) =====
+   ============================================================ */
+.notif-badge{
+  position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; border-radius:50%;
+  background:#D32F2F; color:#fff; font-size:11px; font-weight:900; font-family:'Tajawal',sans-serif;
+  display:flex; align-items:center; justify-content:center; padding:0 4px;
+  box-shadow:0 1px 4px rgba(0,0,0,.4); line-height:1;
+}
+/* ===== NOTIFICATION BADGES END ===== */

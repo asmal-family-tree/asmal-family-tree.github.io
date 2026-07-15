@@ -305,6 +305,7 @@ async function afterSignIn(fbUser){
   document.getElementById("currentUserBadge").classList.add("show");
   loadAndApplySiteTheme();
   applyRolePermissions();
+  refreshAdminNotificationBadges();
   setTimeout(checkAndMaybeStartTour, 1200); // مهلة بسيطة لضمان استقرار الصفحة (الشجرة/الثيم) قبل الجولة
 }
 
@@ -559,24 +560,26 @@ function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
   if (style4Admin){
     newsBtn.classList.add("admin-toggle-mode");
     // بحث ثم المرفقات ثم تصدير — بهذا الترتيب داخل القائمة (تظهر يمين لليسار: أخبار،بحث،مرفقات،تصدير)
-    menuItems.appendChild(searchToggle);
-    menuItems.appendChild(attachmentsToggle);
-    menuItems.appendChild(ioToggle);
+    if (searchToggle.parentElement !== menuItems) menuItems.appendChild(searchToggle);
+    if (attachmentsToggle.parentElement !== menuItems) menuItems.appendChild(attachmentsToggle);
+    if (ioToggle.parentElement !== menuItems) menuItems.appendChild(ioToggle);
     if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
   } else if (style4NonAdmin){
     newsBtn.classList.remove("admin-toggle-mode");
     menuItems.classList.remove("open");
-    bottomBar.appendChild(searchToggle);
-    bottomBar.appendChild(attachmentsToggle);
-    bottomBar.appendChild(ioToggle);
+    if (searchToggle.parentElement !== bottomBar) bottomBar.appendChild(searchToggle);
+    if (attachmentsToggle.parentElement !== bottomBar) bottomBar.appendChild(attachmentsToggle);
+    if (ioToggle.parentElement !== bottomBar) bottomBar.appendChild(ioToggle);
     searchToggle.style.setProperty("display", "none", "important");
     if (searchbar.parentElement !== inlineSearchBox) inlineSearchBox.appendChild(searchbar);
   } else {
     newsBtn.classList.remove("admin-toggle-mode");
     menuItems.classList.remove("open");
-    bottomBar.appendChild(searchToggle);
-    bottomBar.appendChild(attachmentsToggle);
-    bottomBar.appendChild(ioToggle);
+    // ملاحظة: لا ننقل هذه الأزرار إطلاقًا هنا إن كانت أصلًا داخل الشريط السفلي —
+    // النقل غير المشروط كان يعيد ترتيبها لآخر الشريط في كل تحميل، فيكسر أي ترتيب مخصّص بالـHTML.
+    if (searchToggle.parentElement !== bottomBar) bottomBar.appendChild(searchToggle);
+    if (attachmentsToggle.parentElement !== bottomBar) bottomBar.appendChild(attachmentsToggle);
+    if (ioToggle.parentElement !== bottomBar) bottomBar.appendChild(ioToggle);
     searchToggle.style.removeProperty("display");
     if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
   }
@@ -611,9 +614,11 @@ function applyAsmalAdminOnlyVisibility(){
     if (!el) return;
     if (style4Active && !admin){
       el.style.setProperty("display", "none", "important");
-    } else {
+    } else if (style4Active && admin){
       el.style.removeProperty("display");
     }
+    // غير تصميم أسمل: لا نلمس display إطلاقًا — القرار بالكامل لـ applyRolePermissions/TAB_PERMS
+    // (كان اللمس هنا سابقًا يُعيد إظهار هذي الأزرار لغير الأدمن بالخطأ بالتصاميم الأخرى)
   });
 }
 window.applyAsmalAdminOnlyVisibility = applyAsmalAdminOnlyVisibility;
@@ -675,6 +680,46 @@ document.getElementById("logoutBtn").onclick = () => {
   auth.signOut();
   document.getElementById("currentUserBadge").classList.remove("show");
 };
+
+// ===== CHANGE PASSWORD START (معزول تمامًا — احذف بأمان لإلغاء الميزة) =====
+document.getElementById("changePasswordBtn").onclick = () => {
+  if (!window.authUser || window.authUser.isGuest){ return; }
+  document.getElementById("cpOldPassword").value = "";
+  document.getElementById("cpNewPassword").value = "";
+  document.getElementById("cpNewPassword2").value = "";
+  document.getElementById("cpError").textContent = "";
+  document.getElementById("changePasswordOverlay").style.display = "flex";
+};
+document.getElementById("cpCancelBtn").onclick = () => {
+  document.getElementById("changePasswordOverlay").style.display = "none";
+};
+document.getElementById("cpSaveBtn").onclick = async () => {
+  const errEl = document.getElementById("cpError");
+  errEl.textContent = "";
+  const oldPass = document.getElementById("cpOldPassword").value;
+  const newPass = document.getElementById("cpNewPassword").value;
+  const newPass2 = document.getElementById("cpNewPassword2").value;
+  if (!oldPass || !newPass){ errEl.textContent = "عبّي كل الحقول"; return; }
+  if (newPass.length < 6){ errEl.textContent = "كلمة المرور الجديدة يجب أن تكون ٦ أحرف على الأقل"; return; }
+  if (newPass !== newPass2){ errEl.textContent = "كلمتا المرور الجديدتان غير متطابقتين"; return; }
+  const user = auth.currentUser;
+  if (!user || !user.email){ errEl.textContent = "تعذّر التحقق من الحساب الحالي"; return; }
+  try{
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+    await user.reauthenticateWithCredential(cred);
+    await user.updatePassword(newPass);
+    document.getElementById("changePasswordOverlay").style.display = "none";
+    if (typeof customAlert === "function") customAlert("تم تغيير كلمة المرور بنجاح ✓");
+    else alert("تم تغيير كلمة المرور بنجاح ✓");
+  }catch(e){
+    if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential"){
+      errEl.textContent = "كلمة المرور الحالية غير صحيحة";
+    } else {
+      errEl.textContent = "خطأ: " + (e.message || e.code);
+    }
+  }
+};
+// ===== CHANGE PASSWORD END =====
 
 auth.onAuthStateChanged((fbUser) => {
   if (fbUser){
@@ -963,8 +1008,13 @@ function isPersonDataFilled(data){
 async function refreshRecordsList(){
   const listEl = document.getElementById("recordsList");
   listEl.innerHTML = "جارِ البحث بكل الملفات…";
+  const admin = isAdminUser();
+  const canEdit = admin || can("records", "edit");
+  // غير الأدمن: يشاهد ملفه الخاص فقط (حسب نطاقه المرتبط) — الأدمن يشاهد الكل كالمعتاد
+  const ownScopeId = (!admin && window.authUser) ? window.authUser.scopePersonId : null;
   const filled = [];
   for (const n of root.descendants()){
+    if (!admin && personId(n) !== ownScopeId) continue;
     const data = await loadPersonData(personId(n));
     if (isPersonDataFilled(data)) filled.push({ node: n, data });
   }
@@ -976,10 +1026,14 @@ async function refreshRecordsList(){
   filled.forEach(({ node, data }) => {
     const row = document.createElement("div");
     row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:8px; background:#F7F2E7; border-radius:8px;";
-    row.innerHTML = `<span style="cursor:pointer; color:#241a10;">${chainNames(node).slice(0,3).map(escapeHtml).join(" ")}</span>
-      <span><button class="f-btn-sm records-open-btn" style="margin-left:6px;">فتح</button><button class="f-btn-sm records-pdf-btn">⬇️ PDF</button></span>`;
-    row.querySelector(".records-open-btn").onclick = () => { recordsPanel.classList.remove("show"); showInfo(node); };
-    row.querySelector(".records-pdf-btn").onclick = () => exportPersonPdf(node, data);
+    const actionsHtml = canEdit
+      ? `<span><button class="f-btn-sm records-open-btn" style="margin-left:6px;">فتح</button><button class="f-btn-sm records-pdf-btn">⬇️ PDF</button></span>`
+      : "";
+    row.innerHTML = `<span style="cursor:pointer; color:#241a10;">${chainNames(node).slice(0,3).map(escapeHtml).join(" ")}</span>${actionsHtml}`;
+    if (canEdit){
+      row.querySelector(".records-open-btn").onclick = () => { recordsPanel.classList.remove("show"); showInfo(node); };
+      row.querySelector(".records-pdf-btn").onclick = () => exportPersonPdf(node, data);
+    }
     listEl.appendChild(row);
   });
 }
@@ -1333,9 +1387,34 @@ document.getElementById("permsSaveBtn").onclick = async () => {
   }
 };
 
+// ===== NOTIFICATION BADGES START (معزول تمامًا — احذف بأمان لإلغاء الميزة) =====
+async function refreshAdminNotificationBadges(){
+  if (!isAdminUser()) return;
+  const usersBadge = document.getElementById("usersPendingBadge");
+  const newsBadge = document.getElementById("newsPendingBadge");
+  try{
+    const usersSnap = await db.collection("users").where("status", "==", "pending").get();
+    const count = usersSnap.size;
+    if (usersBadge){
+      usersBadge.textContent = count > 99 ? "99+" : String(count);
+      usersBadge.style.display = count > 0 ? "flex" : "none";
+    }
+  }catch(e){ console.warn("تعذّر تحديث شارة المستخدمين المعلّقين:", e); }
+  try{
+    const newsSnap = await db.collection("posts").where("status", "==", "pending").get();
+    const count = newsSnap.size;
+    if (newsBadge){
+      newsBadge.textContent = count > 99 ? "99+" : String(count);
+      newsBadge.style.display = count > 0 ? "flex" : "none";
+    }
+  }catch(e){ console.warn("تعذّر تحديث شارة الأخبار المعلّقة:", e); }
+}
+// ===== NOTIFICATION BADGES END =====
+
 async function refreshUsersAndPendingLists(){
   // دفاع بالعمق: حتى لو فُتحت اللوحة بطريقة ما، لا تُحمّل بيانات المستخدمين لغير المشرف
   if (!isAdminUser()) return;
+  refreshAdminNotificationBadges();
   const usersListEl = document.getElementById("usersList");
   const pendingListEl = document.getElementById("pendingList");
   usersListEl.innerHTML = "جارِ التحميل…";
@@ -5081,6 +5160,27 @@ if (inviteCodeSaveBtn){
     }
   };
 }
+
+// ===== WHATSAPP INVITE START (معزول تمامًا — احذف بأمان لإلغاء الميزة) =====
+const inviteWhatsappBtn = document.getElementById("inviteWhatsappBtn");
+if (inviteWhatsappBtn){
+  inviteWhatsappBtn.onclick = async function(){
+    const statusEl = document.getElementById("inviteCodeStatus");
+    try{
+      const snap = await db.collection("meta").doc("registrationSettings").get();
+      const code = snap.exists ? (snap.data().inviteCode || "") : "";
+      if (!code){ statusEl.textContent = "لا يوجد رمز دعوة محفوظ حاليًا"; return; }
+      const siteUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, "");
+      const msg = `🌳 دعوة للانضمام لشجرة بني أسمل الحكمي\n\n`
+                + `سجّل حسابك من الرابط:\n${siteUrl}\n\n`
+                + `رمز الدعوة: ${code}`;
+      window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+    }catch(e){
+      statusEl.textContent = "تعذّر تجهيز الدعوة: " + (e.message || e.code);
+    }
+  };
+}
+// ===== WHATSAPP INVITE END =====
 // ===== SELF-REGISTER END =====
 
 const recordsToggle = document.getElementById("recordsToggle");

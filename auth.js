@@ -21,7 +21,7 @@ const PERM_PAGES = {
   search:   { label: "البحث",            actions: ["view"] },
   relation: { label: "حاسبة القرابة",    actions: ["view"] },
   myTree:   { label: "شجرتي",            actions: ["view"] },
-  records:  { label: "السجلات",          actions: ["view", "exportOne", "exportAll"] },
+  records:  { label: "السجلات",          actions: ["view", "edit", "exportOne", "exportAll"] },
   ai:       { label: "المساعد الذكي",    actions: ["view"] },
   design:   { label: "تصميم الموقع",     actions: ["view"] }
 };
@@ -40,11 +40,11 @@ const ADMIN_ONLY_PAGES = ["attachments", "io", "deleteMode", "users", "backgroun
 const DEFAULT_PERMS = {
   tree:     { view: true, edit: false, delete: false },
   info:     { view: true, edit: false, delete: false },
-  news:     { view: true, edit: true, delete: false },
+  news:     { view: true, edit: false, delete: false },
   search:   { view: true },
   relation: { view: true },
   myTree:   { view: true },
-  records:  { view: true, exportOne: true, exportAll: false },   // يصدّر ملفه هو
+  records:  { view: false, edit: false, exportOne: false, exportAll: false },
   ai:       { view: true },
   design:   { view: true }
 };
