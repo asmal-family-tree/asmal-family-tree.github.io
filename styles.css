@@ -1776,17 +1776,7 @@ body:not(.authed) #artBackground{
   z-index:57 !important;
 }
 
-/* بقية لوحات أسمل (المستخدمون/السجلات/التصميم/المظهر/المساعد الذكي): تنزلق من الأسفل،
-   لكن يجب أن ترتفع فوق الشريط العائم (حبة الدواء) بدل الاختفاء خلفه — لذا نثبّت bottom
-   بقيمة تراعي: هامش الشريط السفلي 10px + ارتفاعه ~56px + مسافة أمان. z-index أعلى من الشريط (58). */
-:root[data-style="4"] #usersPanel,
-:root[data-style="4"] #recordsPanel,
-:root[data-style="4"] #designPanel,
-:root[data-style="4"] #bgPanel,
-:root[data-style="4"] #aiChatPanel{
-  bottom:78px !important; top:auto !important; z-index:59 !important;
-  max-height:calc(100dvh - 160px) !important; overflow-y:auto !important;
-}
+/* بقية لوحات أسمل: يحكمها الآن الأسلوب الموحّد (UNIFIED BOTTOM-SHEET) في نهاية الملف */
 
 /* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */
 :root[data-style="4"] #uiScaleControls{ top:76px !important; }
@@ -1844,7 +1834,7 @@ body:not(.authed) #artBackground{
 :root[data-style="4"] #bottomBar button{ color:#fff !important; }
 /* تصحيح ارتفاع مرجع اللوحات (--barh) ليطابق الشكل الجديد للشريط (حبة + هامش سفلي 10px)،
    حتى تبدأ كل اللوحات مباشرة فوق الشريط بدل التداخل معه أو ترك فجوة */
-:root[data-style="4"]{ --barh:78px; }
+:root[data-style="4"]{ --barh:66px; }
 
 /* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
 #themeChooser, #layoutChooser{
@@ -2103,3 +2093,55 @@ body.trusted-users-mode #usersPanel label.f-label[for],
 body.trusted-users-mode #usersPanel #pendingList,
 body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; }
 /* ===== TRUSTED USERS MODE END ===== */
+
+/* ============================================================
+   ===== UNIFIED BOTTOM-SHEET POPUP START (معزول — احذف لإلغاء التوحيد) =====
+   أسلوب موحّد لكل التصاميم (1/2/3/أسمل): اللوحة تنبثق من فوق الشريط السفلي
+   مباشرةً وتمتد للأعلى حتى قرب الهدر — موسّطة أفقيًا، بعرض مؤطّر، ولا تتراكب
+   مع الشريط إطلاقًا. مبنية على نفس معادلة ملف popup-demo.html الموزون.
+
+   المتغيّرات:
+     --barh : ارتفاع منطقة الشريط لكل تصميم (مضبوط مسبقًا: 1=64 · 2=64 · 3=58 · 4=78)
+     نضيف 8px فراغ أمان فوق الشريط عبر calc، وارتفاع الهدر التقديري 64px + 12 أمان.
+   ============================================================ */
+.bottom-panel.unified-sheet,
+#usersPanel, #recordsPanel, #designPanel, #bgPanel, #relPanel, #myTreePanel{
+  position:fixed !important;
+  left:50% !important; right:auto !important;
+  transform:translateX(-50%) !important;
+  width:min(94vw, 460px) !important;
+  max-width:none !important;
+  bottom:calc(var(--barh, 64px) + 8px) !important;
+  top:auto !important;
+  margin:0 !important;
+  max-height:calc(100dvh - 64px - 12px - var(--barh, 64px) - 8px) !important;
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+  border-radius:16px !important;
+  z-index:59 !important;
+}
+
+/* المساعد الذكي: نفس الأسلوب لكنه قد يحتاج ارتفاعًا أعلى قليلًا لحقل الكتابة */
+#aiChatPanel{
+  position:fixed !important;
+  left:50% !important; right:auto !important;
+  transform:translateX(-50%) !important;
+  width:min(94vw, 460px) !important;
+  max-width:none !important;
+  bottom:calc(var(--barh, 64px) + 8px) !important;
+  top:auto !important; margin:0 !important;
+  max-height:calc(100dvh - 64px - 12px - var(--barh, 64px) - 8px) !important;
+  overflow-y:auto !important; z-index:59 !important;
+  border-radius:16px !important;
+}
+
+/* استثناء أسمل: searchPanel/ioPanel/attachmentsPanel تبقى منبثقة من الأعلى (top:56px)
+   كما ضُبطت سابقًا — لا نطبّق عليها أسلوب القاع. نعيد تأكيد ذلك حتى لا تُطغى عليها القاعدة أعلاه. */
+:root[data-style="4"] #searchPanel,
+:root[data-style="4"] #ioPanel,
+:root[data-style="4"] #attachmentsPanel{
+  top:56px !important; bottom:auto !important;
+  left:14px !important; right:10px !important; transform:none !important;
+  width:auto !important;
+}
+/* ===== UNIFIED BOTTOM-SHEET POPUP END ===== */
