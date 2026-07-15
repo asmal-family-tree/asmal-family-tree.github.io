@@ -5021,13 +5021,24 @@ function showInfo(d){
     const insideWives = (data.wives || []).filter(w => w.type === "inside" && w.fatherId);
     const multipleWives = insideWives.length > 1; // الترقيم يظهر فقط عند تعدد الزوجات
     const arNum = (n) => ["", "١","٢","٣","٤","٥","٦","٧","٨","٩","١٠"][n] || String(n);
-    // اسم صاحب الملف الكامل (سلسلة نسبه) — للمقارنة الصحيحة ضد زوج الأخت (منع "العديل لنفسه")
+    // اسم صاحب الملف — نبني سلسلتيه بالمقياسين (الكامل للجذر + المقصور عند join point)
+    // حتى تُطابق أيًّا كان مقياس الطرف الآخر (زوج الأخت يُخزَّن بمقياس modalTitleChain المقصور).
     const ownFullChain = chainNames(d).join(" ");
+    const ownShortChain = modalTitleChain(d).join(" ");
     const ownName = d.data.name;
     // فحص موحّد لمنع تكرار العديل من أي مصدر (يقارن الاسم بعد التطبيع)
     const norm = (s) => String(s || "").replace(/\s+/g, " ").trim();
     const adeelSeen = new Set();
-    const isSelf = (name) => { const nm = norm(name); return nm === norm(ownFullChain) || nm === norm(ownName); };
+    // "العديل لنفسه": يُطابق إذا ساوى الاسمَ المفرد، أو إحدى سلسلتيه، أو كان إحداهما بادئةً للآخر
+    // (يغطي اختلاف طول السلسلة بين المقياس الكامل والمقصور).
+    const isSelf = (name) => {
+      const nm = norm(name);
+      if (!nm) return false;
+      const cands = [norm(ownName), norm(ownFullChain), norm(ownShortChain)];
+      if (cands.includes(nm)) return true;
+      // مقارنة بادئة: إن بدأت إحدى السلسلتين بالأخرى (بحدود كلمة) فهما لنفس الشخص
+      return cands.some(c => c && (nm.startsWith(c + " ") || c.startsWith(nm + " ")));
+    };
     const pushAdeel = (name, node) => {
       const nm = norm(name);
       if (!nm || isSelf(name) || adeelSeen.has(nm)) return; // لا العديل لنفسه، ولا تكرار
