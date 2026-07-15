@@ -24,7 +24,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=64">
+<link rel="stylesheet" href="styles.css?v=65">
 </head>
 <body>
 
@@ -188,6 +188,19 @@
 <div id="noViewMsg">🚫 لا تملك حاليًا صلاحية عرض المشجرة. تواصل مع محمد رشاد.</div>
 <div id="asmalHeaderBar"></div>
 <div id="asmalIconsRow"></div>
+<!-- ===== ONBOARDING TOUR START (معزول تمامًا) — احذف هذا القسم بأمان لإلغاء الميزة ===== -->
+<div id="tourOverlay" style="display:none;">
+  <div id="tourSpotlight"></div>
+  <div id="tourCard">
+    <div id="tourCardTitle"></div>
+    <div id="tourCardDesc"></div>
+    <div id="tourCardFooter">
+      <button id="tourSkipBtn">تخطَّ الجولة</button>
+      <button id="tourNextBtn">التالي ←</button>
+    </div>
+  </div>
+</div>
+<!-- ===== ONBOARDING TOUR END ===== -->
 <div id="nameTooltip"></div>
 <a id="newsNavBtn" href="news.html" data-perm="news" data-perm-action="view" title="الأخبار"
    style="position:fixed; top:70px; left:14px; z-index:50; width:46px; height:46px; border-radius:50%;
@@ -261,6 +274,16 @@
 
 <!-- تصميم الموقع: تبويب مستقل. المستخدم يغيّره لنفسه (localStorage)، والمشرف يغيّره للجميع (Firestore). -->
 <div id="designPanel" class="bottom-panel">
+  <!-- ===== ONBOARDING TOUR START (معزول تمامًا — احذف هذا القسم بأمان لإلغاء الميزة) ===== -->
+  <fieldset class="admin-box" id="tourAdminBox">
+    <legend>🔦 الجولة التفاعلية</legend>
+    <div class="admin-box-note">تشرح الجولة الأيقونات حسب صلاحية كل مستخدم، تلقائيًا أول دخول له.</div>
+    <button id="tourReplayAllBtn" class="f-btn-sm" style="width:100%; margin-bottom:8px;">🔔 أعد عرض الجولة للجميع</button>
+    <button id="tourPreviewBtn" class="f-btn-sm" style="width:100%;">▶️ معاينة الجولة الآن</button>
+    <div id="tourAdminStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
+  </fieldset>
+  <!-- ===== ONBOARDING TOUR END ===== -->
+
   <label class="f-label">🎨 استايل الموقع</label>
   <div class="chip-list" id="themeChooser">
     <button class="f-btn-sm theme-btn" data-theme="royal-green">الأخضر الملكي</button>
@@ -385,16 +408,16 @@
 
 <div id="bottomBar">
   <button id="searchToggle" title="بحث">🔍</button>
-  <button id="relToggle" title="حاسبة العلاقة">🧮</button>
   <button id="myTreeToggle" title="شجرتي الخاصة">🌳</button>
-  <button id="ioToggle" title="استيراد وتصدير">📁</button>
-  <button id="designToggle" title="تصميم الموقع">🎨</button>
+  <button id="relToggle" title="حاسبة العلاقة">🧮</button>
   <button id="bgToggle" title="خلفية الشجرة" style="display:none">🖼️</button>
+  <button id="designToggle" title="تصميم الموقع">🎨</button>
   <button id="usersToggle" title="المستخدمون" style="display:none">👥</button>
-  <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
-  <button id="deleteBadgeToggle" title="إظهار/إخفاء علامات الحذف" style="display:none">🗑️</button>
   <button id="aiChatToggle" title="مساعد الذكاء الاصطناعي">🤖</button>
+  <button id="recordsToggle" title="سجل الملفات المعبّأة" style="display:none">📋</button>
+  <button id="ioToggle" title="استيراد وتصدير">📁</button>
   <button id="attachmentsToggle" title="مرفقات ومصادر إضافية" style="display:none">📚</button>
+  <button id="deleteBadgeToggle" title="إظهار/إخفاء علامات الحذف" style="display:none">🗑️</button>
 </div>
 
 <div id="aiChatPanel" class="bottom-panel" style="max-height:65vh;">
@@ -520,7 +543,7 @@
 </div>
 
 <script src="auth.js?v=5"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=24"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {

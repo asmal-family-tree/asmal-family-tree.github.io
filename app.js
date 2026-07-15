@@ -305,7 +305,139 @@ async function afterSignIn(fbUser){
   document.getElementById("currentUserBadge").classList.add("show");
   loadAndApplySiteTheme();
   applyRolePermissions();
+  setTimeout(checkAndMaybeStartTour, 1200); // مهلة بسيطة لضمان استقرار الصفحة (الشجرة/الثيم) قبل الجولة
 }
+
+// ===== ONBOARDING TOUR START (معزول تمامًا — احذف هذا القسم بأمان لإلغاء الميزة) =====
+const TOUR_STEPS = [
+  { id: "currentUserBadge", title: "حسابك", desc: "اسمك وزر الخروج من حسابك.", always: true },
+  { id: "newsNavBtn", title: "الأخبار", desc: "آخر أخبار وتحديثات العائلة.", page: "news", action: "view" },
+  { id: "uiScaleControls", title: "حجم الخط", desc: "تكبير أو تصغير حجم النص بكل الصفحة.", always: true },
+  { id: "searchToggle", title: "البحث", desc: "ابحث عن أي شخص بالشجرة بالاسم.", page: "search", action: "view" },
+  { id: "myTreeToggle", title: "شجرتي", desc: "تعرض فرعك الخاص من الشجرة فقط.", page: "myTree", action: "view" },
+  { id: "relToggle", title: "حاسبة القرابة", desc: "احسب صلة القرابة بينك وبين أي شخص.", page: "relation", action: "view" },
+  { id: "bgToggle", title: "المظهر", desc: "تغيير خلفية عرض الشجرة (أدمن فقط).", adminOnly: true },
+  { id: "designToggle", title: "تصميم الموقع", desc: "اختر الثيم وشكل الواجهة اللي يناسبك.", page: "design", action: "view" },
+  { id: "usersToggle", title: "المستخدمون", desc: "إدارة الحسابات والصلاحيات (أدمن فقط).", adminOnly: true },
+  { id: "aiChatToggle", title: "المساعد الذكي", desc: "اسأل المساعد عن أي شخص أو معلومة بالشجرة.", page: "ai", action: "view" },
+  { id: "recordsToggle", title: "السجلات", desc: "استعرض وصدّر السجلات المعبّأة.", page: "records", action: "view" },
+  { id: "ioToggle", title: "استيراد وتصدير", desc: "تصدير أو استيراد بيانات الشجرة (أدمن فقط).", adminOnly: true },
+  { id: "attachmentsToggle", title: "المرفقات", desc: "مرفقات ومصادر إضافية (أدمن فقط).", adminOnly: true },
+  { id: "deleteBadgeToggle", title: "علامات الحذف", desc: "إظهار/إخفاء علامات الحذف بالشجرة (أدمن فقط).", adminOnly: true }
+];
+
+let _tourActiveSteps = [];
+let _tourIndex = 0;
+let _tourMenuWasOpened = false;
+
+function getFilteredTourSteps(){
+  return TOUR_STEPS.filter(s => {
+    const el = document.getElementById(s.id);
+    if (!el) return false;
+    if (s.always) return true;
+    if (s.adminOnly) return isAdminUser();
+    return can(s.page, s.action);
+  });
+}
+
+async function checkAndMaybeStartTour(){
+  if (!window.authUser || window.authUser.isGuest) return;
+  try{
+    const metaSnap = await db.collection("meta").doc("tourSettings").get();
+    const currentVersion = metaSnap.exists ? (metaSnap.data().tourVersion || 1) : 1;
+    const seenVersion = parseInt(localStorage.getItem("tourLastSeenVersion") || "0", 10);
+    if (seenVersion >= currentVersion) return; // شافها بنفس الإصدار أو أحدث (بهذا المتصفح)
+    startTour(currentVersion);
+  }catch(e){ console.warn("تعذّر فحص إصدار الجولة:", e); }
+}
+
+function startTour(versionToMark){
+  _tourActiveSteps = getFilteredTourSteps();
+  _tourIndex = 0;
+  if (!_tourActiveSteps.length) return;
+  // فتح القائمة الإدارية المنسدلة مسبقًا (أسمل+أدمن) حتى تظهر أيقوناتها بمواضعها الفعلية أثناء الجولة
+  const adminMenu = document.getElementById("asmalAdminMenuItems");
+  if (adminMenu && !adminMenu.classList.contains("open")){
+    adminMenu.classList.add("open");
+    _tourMenuWasOpened = true;
+  }
+  document.getElementById("tourOverlay").style.display = "block";
+  showTourStep(0, versionToMark);
+}
+
+function showTourStep(i, versionToMark){
+  const step = _tourActiveSteps[i];
+  const el = document.getElementById(step.id);
+  if (!el){ nextTourStep(i, versionToMark); return; }
+  const rect = el.getBoundingClientRect();
+  const pad = 8;
+  const spot = document.getElementById("tourSpotlight");
+  spot.style.top = (rect.top - pad) + "px";
+  spot.style.left = (rect.left - pad) + "px";
+  spot.style.width = (rect.width + pad * 2) + "px";
+  spot.style.height = (rect.height + pad * 2) + "px";
+
+  document.getElementById("tourCardTitle").textContent = step.title;
+  document.getElementById("tourCardDesc").textContent = step.desc;
+  document.getElementById("tourNextBtn").textContent = (i === _tourActiveSteps.length - 1) ? "إنهاء ✓" : "التالي ←";
+
+  const card = document.getElementById("tourCard");
+  // وضع البطاقة أسفل العنصر إن وُجدت مساحة، وإلا أعلاه
+  const cardH = 150;
+  let cardTop = rect.bottom + 16;
+  if (cardTop + cardH > window.innerHeight) cardTop = Math.max(10, rect.top - cardH - 16);
+  let cardLeft = Math.min(Math.max(10, rect.left), window.innerWidth - 296);
+  card.style.top = cardTop + "px";
+  card.style.left = cardLeft + "px";
+
+  document.getElementById("tourNextBtn").onclick = () => nextTourStep(i, versionToMark);
+  document.getElementById("tourSkipBtn").onclick = () => endTour(versionToMark);
+}
+
+function nextTourStep(i, versionToMark){
+  const next = i + 1;
+  if (next >= _tourActiveSteps.length){ endTour(versionToMark); return; }
+  _tourIndex = next;
+  showTourStep(next, versionToMark);
+}
+
+async function endTour(versionToMark){
+  document.getElementById("tourOverlay").style.display = "none";
+  if (_tourMenuWasOpened){
+    const adminMenu = document.getElementById("asmalAdminMenuItems");
+    if (adminMenu) adminMenu.classList.remove("open");
+    _tourMenuWasOpened = false;
+  }
+  if (versionToMark){
+    localStorage.setItem("tourLastSeenVersion", String(versionToMark));
+  }
+}
+
+// أزرار الأدمن بلوحة تصميم الموقع
+document.addEventListener("DOMContentLoaded", () => {
+  const replayBtn = document.getElementById("tourReplayAllBtn");
+  const previewBtn = document.getElementById("tourPreviewBtn");
+  const statusEl = document.getElementById("tourAdminStatus");
+  if (replayBtn){
+    replayBtn.onclick = async () => {
+      statusEl.textContent = "جارِ التحديث…";
+      try{
+        const ref = db.collection("meta").doc("tourSettings");
+        const snap = await ref.get();
+        const currentVersion = snap.exists ? (snap.data().tourVersion || 1) : 1;
+        await ref.set({ tourVersion: currentVersion + 1 }, { merge: true });
+        statusEl.textContent = "✓ ستظهر الجولة للجميع بدخولهم القادم";
+      }catch(e){ statusEl.textContent = "تعذّر التحديث: " + (e.message || e.code); }
+    };
+  }
+  if (previewBtn){
+    previewBtn.onclick = () => {
+      document.getElementById("designPanel").classList.remove("show");
+      startTour(null); // معاينة فقط — بلا تسجيل أي إصدار
+    };
+  }
+});
+// ===== ONBOARDING TOUR END =====
 
 // ---------- الدخول كضيف (حساب Firebase حقيقي مشترك، بدل آلية وهمية سابقة) ----------
 const GUEST_USERNAME = "guest";
@@ -411,6 +543,10 @@ function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
         e.preventDefault();
         menuItems.classList.toggle("open");
       }
+    });
+    // إغلاق القائمة تلقائيًا عند الضغط على أي أيقونة بداخلها، حتى تظهر لوحتها بوضوح بلا تراكب
+    [searchToggle, attachmentsToggle, ioToggle].forEach(btn => {
+      btn.addEventListener("click", () => { menuItems.classList.remove("open"); });
     });
     _asmalNewsClickBound = true;
   }
@@ -638,6 +774,10 @@ function applyRolePermissions(){
   document.body.classList.toggle("role-guest", isGuest());
   // إخفاء أزرار ➕ الإضافة على العقد لمن لا يملك صلاحية تعديل الشجرة
   document.body.classList.toggle("no-tree-edit", !can("tree", "edit"));
+
+  // صندوق إدارة الجولة التفاعلية (لوحة تصميم الموقع) — أدمن فقط
+  const tourBox = document.getElementById("tourAdminBox");
+  if (tourBox) tourBox.style.display = admin ? "" : "none";
 
   for (const t of TAB_PERMS){
     const allowed = can(t.page, "view");
@@ -1273,6 +1413,22 @@ async function refreshUsersAndPendingLists(){
             b.style.cssText = "background:#E3F5EA; color:#1E7A4C; border-color:#1E7A4C;";
             b.onclick = async () => {
               await db.collection("users").doc(uid).update({ status: "active" });
+              // ===== نقل سنة الميلاد من التسجيل الذاتي لملف العقدة عند التفعيل (معزول، آمن) =====
+              // فقط لو: يوجد نطاق مرتبط + يوجد تاريخ ميلاد بالتسجيل + العقدة ما عندها سنة محفوظة مسبقًا
+              try{
+                if (u.scopePersonId && u.birthDate){
+                  const yearMatch = String(u.birthDate).match(/(\d{3,4})\s*هـ/);
+                  if (yearMatch){
+                    const hijriYear = yearMatch[1];
+                    const infoRef = db.collection("personInfo").doc(firestorePersonInfoId(u.scopePersonId));
+                    const infoSnap = await infoRef.get();
+                    const existingYear = infoSnap.exists ? infoSnap.data().birthYear : "";
+                    if (!existingYear){
+                      await infoRef.set({ birthYear: hijriYear }, { merge: true });
+                    }
+                  }
+                }
+              }catch(e){ console.warn("تعذّر نقل سنة الميلاد لملف العقدة:", e); }
               refreshUsersAndPendingLists();
             };
             actions.appendChild(b);

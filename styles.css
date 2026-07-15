@@ -2003,3 +2003,31 @@ body:not(.authed) #artBackground{
   background:transparent; border:none; color:#fff; font-size:16px; cursor:pointer; opacity:.8; padding:0 4px;
 }
 /* ===== APP INSTALL BANNER END ===== */
+
+/* ============================================================
+   ===== ONBOARDING TOUR START (معزول تمامًا) =====
+   جولة تفاعلية بإضاءة تسليط تحيط بكل أيقونة بمكانها الفعلي.
+   لحذف الميزة: احذف هذا القسم + عناصر HTML (#tourOverlay وما بداخله)
+   + كل دوال/متغيرات JS الخاصة بالجولة بـ app.js.
+   ============================================================ */
+#tourOverlay{
+  position:fixed; inset:0; z-index:500;
+}
+#tourSpotlight{
+  position:fixed; border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.72);
+  transition:top .3s ease, left .3s ease, width .3s ease, height .3s ease;
+  pointer-events:none;
+  border:2px solid var(--gold, #C08A2E);
+}
+#tourCard{
+  position:fixed; z-index:501; background:#fff; border-radius:16px; padding:16px 18px;
+  max-width:280px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+  font-family:'Tajawal',sans-serif; transition:top .3s ease, left .3s ease;
+}
+#tourCardTitle{ font-weight:900; font-size:15px; color:#0B3D2E; margin-bottom:6px; }
+#tourCardDesc{ font-size:13px; color:#555; line-height:1.7; margin-bottom:14px; }
+#tourCardFooter{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+#tourSkipBtn{ background:transparent; border:none; color:#999; font-size:12.5px; cursor:pointer; text-decoration:underline; }
+#tourNextBtn{ background:#0B3D2E; color:#fff; border:none; border-radius:10px; padding:8px 16px; font-weight:800; font-size:13px; cursor:pointer; font-family:'Tajawal',sans-serif; }
+/* ===== ONBOARDING TOUR END ===== */
