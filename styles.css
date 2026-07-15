@@ -1740,7 +1740,7 @@ body:not(.authed) #artBackground{
 /* شارة المستخدم تبقى بموضعها الحالي (كما طلب)، فقط نتأكد من ظهورها فوق الشريط الداكن ونعدّل ألوانها لتناسبه */
 :root[data-style="4"] #currentUserBadge{
   z-index:56 !important; background:rgba(255,255,255,.95) !important;
-  top:12px !important; left:auto !important; right:60px !important;
+  top:12px !important; right:auto !important; left:14px !important;
   height:40px !important; box-sizing:border-box !important; padding:0 12px !important;
 }
 
@@ -1897,7 +1897,7 @@ body:not(.authed) #artBackground{
 
 #asmalInlineSearch{ display:none; }
 :root[data-style="4"] #asmalInlineSearch{
-  display:flex !important; position:fixed; top:12px; right:220px; left:14px; height:40px; z-index:56;
+  display:flex !important; position:fixed; top:12px; right:60px; left:220px; height:40px; z-index:56;
   align-items:center;
 }
 :root[data-style="4"] #asmalInlineSearch .searchbar{
