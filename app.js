@@ -540,12 +540,15 @@ function applyLayoutStyle(layoutStyle){
   if (chipPrompt) chipPrompt.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
   if (chipAssistant) chipAssistant.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
 
-  // ربط الأزرار الثلاثة بعناصرها الحقيقية (كل زر يُشغّل .click() على العنصر
-  // الحقيقي مباشرة، بلا أي تكرار للمنطق أو الصلاحيات)
+  // ربط الأزرار بعناصرها الحقيقية (كل زر يُشغّل .click() على العنصر
+  // الحقيقي مباشرة، بلا أي تكرار للمنطق أو الصلاحيات). وعند فتح أي لوحة
+  // من القائمة العائمة، تنكمش القائمة نفسها تلقائيًا (تعود مطوية).
   const ASMAL_REAL_LINKS = {
     "الأخبار": "newsNavBtn",
     "خيوط النسب": "relToggle",
-    "شجرتي": "myTreeToggle"
+    "شجرتي": "myTreeToggle",
+    "السجل": "recordsToggle",
+    "المستخدمون": "usersToggle"
   };
   document.querySelectorAll(".asmal-fab-item").forEach(item => {
     const realId = ASMAL_REAL_LINKS[item.dataset.label];
@@ -553,7 +556,21 @@ function applyLayoutStyle(layoutStyle){
     item.onclick = () => {
       const realEl = document.getElementById(realId);
       if (realEl) realEl.click();
+      // انكماش القائمة العائمة بعد فتح اللوحة
+      fabWrapper.classList.remove("open");
+      menuToggle.classList.remove("active");
     };
+  });
+
+  // الضغط داخل شريط البحث السفلي (وليس داخل لوحة مفتوحة) يُغلق أي لوحة
+  // منبثقة مفتوحة حاليًا من قائمة الأدوات.
+  mainSearch.addEventListener("focus", () => {
+    document.querySelectorAll(".bottom-panel.show").forEach(p => {
+      if (typeof clearPanelInputs === "function") clearPanelInputs(p);
+      p.classList.remove("show");
+    });
+    const pb = document.getElementById("panelsBackdrop");
+    if (pb) pb.classList.remove("show");
   });
 
   // نافذة إعدادات النمط

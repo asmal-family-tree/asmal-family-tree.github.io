@@ -185,13 +185,15 @@
 }
 
 /* ============================================================
-   لوحتا "خيوط النسب" و"شجرتي" — بنفس "جلد" نافذة إعدادات النمط
-   تمامًا (خلفية/حدود/زوايا/ظل)، لكن تنبثقان من أسفل الشاشة بدل
-   المنتصف، بعرض ثابت 90%/380px (نفس عرض نافذة النمط بالضبط —
-   هذا العرض يصبح موحّدًا لكل لوحة نبنيها بأسمل مستقبلًا).
+   لوحات أسمل المنبثقة من الأسفل — بنفس "جلد" نافذة إعدادات النمط
+   تمامًا (خلفية/حدود/زوايا/ظل)، تنبثق من أسفل الشاشة بدل المنتصف،
+   بعرض ثابت موحّد 90%/380px. الارتفاع من الأسفل: 90px لكل اللوحات،
+   عدا المستخدمون (قائمة طويلة) فمن 60px لتقترب أكثر من شريط البحث.
    ============================================================ */
 :root[data-style="5"] #relPanel,
-:root[data-style="5"] #myTreePanel{
+:root[data-style="5"] #myTreePanel,
+:root[data-style="5"] #recordsPanel,
+:root[data-style="5"] #usersPanel{
   position:fixed !important;
   left:50% !important; right:auto !important; top:auto !important;
   transform:translateX(-50%) !important;
@@ -203,13 +205,21 @@
   box-shadow:0 22px 50px rgba(0,0,0,.35) !important;
   padding:0 !important;
 }
+/* المستخدمون: قائمة طويلة، أقرب لشريط البحث */
+:root[data-style="5"] #usersPanel{
+  bottom:60px !important;
+}
 :root[data-style="5"] #relPanel .panel-scroll-inner,
-:root[data-style="5"] #myTreePanel .panel-scroll-inner{
+:root[data-style="5"] #myTreePanel .panel-scroll-inner,
+:root[data-style="5"] #recordsPanel .panel-scroll-inner,
+:root[data-style="5"] #usersPanel .panel-scroll-inner{
   padding:12px 14px !important;
 }
 /* زر الإغلاق: بأعلى اليمين (كما بنافذة إعدادات النمط)، بدل أعلى اليسار المعتاد */
 :root[data-style="5"] #relPanel .panel-close-x,
-:root[data-style="5"] #myTreePanel .panel-close-x{
+:root[data-style="5"] #myTreePanel .panel-close-x,
+:root[data-style="5"] #recordsPanel .panel-close-x,
+:root[data-style="5"] #usersPanel .panel-close-x{
   left:auto !important; right:8px !important;
 }
 
