@@ -521,11 +521,35 @@ function applyAsmalSearchRelocation(layoutStyle){
   const host = document.getElementById("asmalSearchHost");
   const originalHome = document.getElementById("searchPanel");
   const searchbar = document.querySelector(".searchbar");
-  if (!host || !originalHome || !searchbar) return;
-  if (layoutStyle === "5"){
-    if (searchbar.parentElement !== host) host.appendChild(searchbar);
-  } else if (searchbar.parentElement !== originalHome){
-    originalHome.appendChild(searchbar);
+  if (host && originalHome && searchbar){
+    if (layoutStyle === "5"){
+      if (searchbar.parentElement !== host) host.appendChild(searchbar);
+    } else if (searchbar.parentElement !== originalHome){
+      originalHome.appendChild(searchbar);
+    }
+  }
+
+  // زر الأخبار: بتصميم أسمل يصبح عنصرًا عاشرًا داخل القائمة العائمة نفسها
+  // (بدل أيقونة مستقلة عائمة أعلى الشاشة كبقية التصاميم) — تحقيقًا لاستقلالية
+  // أسمل الكاملة عن أي تموضع موروث من styles.css. تنسيقه الأصلي (inline)
+  // يُحفظ ويُستعاد بدقة عند العودة لأي تصميم آخر.
+  const newsBtn = document.getElementById("newsNavBtn");
+  const bar = document.getElementById("bottomBar");
+  const artBg = document.getElementById("artBackground");
+  if (newsBtn && bar && artBg){
+    if (layoutStyle === "5"){
+      if (newsBtn.parentElement !== bar){
+        if (!newsBtn.dataset.originalStyle) newsBtn.dataset.originalStyle = newsBtn.getAttribute("style") || "";
+        newsBtn.removeAttribute("style");
+        bar.appendChild(newsBtn);
+      }
+    } else if (newsBtn.parentElement !== artBg.parentElement){
+      artBg.parentElement.insertBefore(newsBtn, artBg);
+      if (newsBtn.dataset.originalStyle !== undefined){
+        newsBtn.setAttribute("style", newsBtn.dataset.originalStyle);
+        delete newsBtn.dataset.originalStyle;
+      }
+    }
   }
 }
 
