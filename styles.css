@@ -1805,8 +1805,7 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
    السلكتور مُعزَّز بـ:root لضمان أولوية قطعية على أي قاعدة أقدم تخص نفس المعرّف (كقواعد الأجهزة اللمسية القديمة). */
 :root .bottom-panel.unified-sheet,
 :root #searchPanel, :root #ioPanel, :root #attachmentsPanel,
-:root #usersPanel, :root #recordsPanel, :root #designPanel, :root #bgPanel, :root #relPanel, :root #myTreePanel,
-:root #aiChatPanel{
+:root #usersPanel, :root #recordsPanel, :root #designPanel, :root #bgPanel, :root #relPanel, :root #myTreePanel{
   position:fixed !important;
   left:50% !important; right:auto !important;
   transform:translateX(-50%) !important;
@@ -1826,11 +1825,38 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
 :root .bottom-panel.unified-sheet > .panel-scroll-inner,
 :root #searchPanel > .panel-scroll-inner, :root #ioPanel > .panel-scroll-inner, :root #attachmentsPanel > .panel-scroll-inner,
 :root #usersPanel > .panel-scroll-inner, :root #recordsPanel > .panel-scroll-inner, :root #designPanel > .panel-scroll-inner,
-:root #bgPanel > .panel-scroll-inner, :root #relPanel > .panel-scroll-inner, :root #myTreePanel > .panel-scroll-inner,
-:root #aiChatPanel > .panel-scroll-inner{
+:root #bgPanel > .panel-scroll-inner, :root #relPanel > .panel-scroll-inner, :root #myTreePanel > .panel-scroll-inner{
   display:block; overflow-y:auto; -webkit-overflow-scrolling:touch;
   max-height:86vh; max-height:86dvh;
   padding:16px 14px;
+}
+
+/* المساعد الذكي: نفس الموضع/العرض تمامًا، لكن بارتفاع ثابت (لا يتمدد حسب المحتوى) —
+   الرسائل تتمرّر داخليًا وحقل الكتابة يبقى مثبّتًا أسفل اللوحة دائمًا. */
+:root #aiChatPanel{
+  position:fixed !important;
+  left:50% !important; right:auto !important;
+  transform:translateX(-50%) !important;
+  width:94% !important;
+  max-width:560px !important;
+  bottom:calc(var(--barh, 64px) + 8px) !important;
+  top:auto !important;
+  margin:0 !important;
+  height:86vh !important;
+  height:86dvh !important;
+  overflow:hidden !important;
+  border-radius:28px !important;
+  z-index:59 !important;
+  padding:0 !important;
+}
+:root #aiChatPanel > .panel-scroll-inner{
+  display:flex !important; flex-direction:column !important;
+  height:100%; overflow:hidden;
+  padding:16px 14px;
+}
+:root #aiChatPanel #aiChatMessages{
+  flex:1 1 auto !important; min-height:0 !important; overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
 }
 
 /* ===== UNIFIED BOTTOM-SHEET POPUP END ===== */
