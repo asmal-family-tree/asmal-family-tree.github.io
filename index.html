@@ -24,7 +24,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=75">
+<link rel="stylesheet" href="styles.css?v=76">
 </head>
 <body>
 
@@ -98,6 +98,8 @@
         if (typeof clearPanelInputs === "function") clearPanelInputs(p);
         p.classList.remove("show");
       });
+      const panelsBackdrop = document.getElementById("panelsBackdrop");
+      if (panelsBackdrop) panelsBackdrop.classList.remove("show");
       document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
         dd.classList.remove("show");
         dd.innerHTML = "";
@@ -198,6 +200,11 @@
   </div>
 </div>
 <!-- ===== CHANGE PASSWORD END ===== -->
+
+<!-- ===== APP SCALE WRAPPER START (معزول — يحتوي كل واجهة التطبيق ما عدا شاشات الدخول/التسجيل،
+     ليطبَّق عليه تكبير/تصغير A+/A- عبر transform:scale بدل body.style.zoom القديمة التي كانت
+     تكسر position:fixed. لإلغاء الميزة: احذف السطرين START/END فقط، يبقى كل شيء يعمل بحجمه الطبيعي) ===== -->
+<div id="appScaleWrapper">
 <div id="uiScaleControls">
   <button id="uiScaleDown" title="تصغير">A-</button>
   <button id="uiScaleUp" title="تكبير">A+</button>
@@ -395,7 +402,7 @@
   <nav class="dt-tabs">
     <button class="dt-tab" data-target="myTreeToggle"><span class="dt-ic">🌳</span><span>شجرتي</span></button>
     <button class="dt-tab" data-target="searchToggle"><span class="dt-ic">🔍</span><span>البحث</span></button>
-    <button class="dt-tab" data-target="relToggle"><span class="dt-ic">🧮</span><span>حاسبة العلاقة</span></button>
+    <button class="dt-tab" data-target="relToggle"><span class="dt-ic">🧮</span><span>خيوط النسب</span></button>
     <button class="dt-tab" data-target="attachmentsToggle"><span class="dt-ic">📚</span><span>المرفقات</span></button>
     <button class="dt-tab" data-target="designToggle"><span class="dt-ic">🎨</span><span>تصميم الموقع</span></button>
     <button class="dt-tab" data-target="bgToggle"><span class="dt-ic">🖼️</span><span>المظهر</span></button>
@@ -413,7 +420,7 @@
 <div id="bottomBar">
   <button id="searchToggle" title="بحث">🔍</button>
   <button id="myTreeToggle" title="شجرتي الخاصة">🌳</button>
-  <button id="relToggle" title="حاسبة العلاقة">🧮</button>
+  <button id="relToggle" title="خيوط النسب">🧮</button>
   <button id="bgToggle" title="خلفية الشجرة" style="display:none">🖼️</button>
   <button id="designToggle" title="تصميم الموقع">🎨</button>
   <button id="usersToggle" title="المستخدمون" style="display:none; position:relative;">👥<span id="usersPendingBadge" class="notif-badge" style="display:none;"></span></button>
@@ -424,7 +431,7 @@
   <button id="deleteBadgeToggle" title="إظهار/إخفاء علامات الحذف" style="display:none">🗑️</button>
 </div>
 
-<div id="aiChatPanel" class="bottom-panel" style="max-height:65vh;">
+<div id="aiChatPanel" class="bottom-panel">
   <div id="aiChatMessages" style="flex:1; overflow-y:auto; padding:6px 2px; display:flex; flex-direction:column; gap:10px;"></div>
   <div style="display:flex; gap:8px; align-items:center;">
     <input id="aiChatInput" type="text" class="f-input" placeholder="اسأل عن أي شخص أو علاقة في الشجرة..." style="flex:1; margin:0;">
@@ -445,6 +452,7 @@
   <div id="attachmentsList" style="max-height:40vh; overflow-y:auto;"></div>
 </div>
 
+<div id="panelsBackdrop"></div>
 <div id="backdrop"></div>
 <div id="sheet">
   <div class="handle"></div>
@@ -545,9 +553,11 @@
     <div id="f-saveMsg"></div>
   </div>
 </div>
+</div>
+<!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=35"></script>
+<script src="app.js?v=36"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {

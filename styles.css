@@ -1,4 +1,27 @@
 /* ============ الاستايل الافتراضي (الأصلي) ============ */
+
+/* ===== APP SCALE WRAPPER START (معزول) =====
+   يحيط بكل واجهة التطبيق (عدا شاشات الدخول/التسجيل/تغيير كلمة المرور).
+   A+/A- تُطبَّق عليه عبر transform:scale بدل body.style.zoom القديمة،
+   حتى لا تنكسر حسابات position:fixed و vh/vw لأي لوحة أو عنصر ثابت. */
+#appScaleWrapper{
+  width:100%;
+  transform-origin:top center;
+}
+/* ===== APP SCALE WRAPPER END ===== */
+
+/* ===== PANELS BACKDROP START (معزول) =====
+   تعتيم خلفية مشترك لسبع لوحات محددة (التصدير/المرفقات/المستخدمون/السجلات/
+   التصميم/الخلفية/المساعد الذكي) — يُستثنى: البحث، شجرتي، خيوط النسب.
+   يُظهر/يُخفى عبر class="show" من app.js (دالة openOnlyPanel). */
+#panelsBackdrop{
+  position:fixed; inset:0; background:rgba(20,14,8,.45); z-index:58;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+}
+#panelsBackdrop.show{ opacity:1; pointer-events:auto; }
+/* ===== PANELS BACKDROP END ===== */
+
+
   :root{
     --bg:#FFFFFF; --line:#8a7a55; --ink:#241a10; --barh:64px;
     --root:#0B3D2E; --root-ring:#C9A227;
@@ -110,7 +133,7 @@
     background:#FBFAF6; transition:border-color .15s, box-shadow .15s;
   }
   .rel-panel input:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,151,31,.14); background:#fff; }
-  .rel-panel button{
+  .rel-panel button:not(.panel-close-x){
     width:100%; padding:11px; border:none; border-radius:11px; background:linear-gradient(135deg,var(--trunk-ring),#6a2e0a);
     color:#fff; font-family:'Tajawal',sans-serif; font-weight:700; font-size:14px; cursor:pointer;
     box-shadow:0 4px 14px rgba(139,62,16,.25); transition:transform .1s;
@@ -523,7 +546,7 @@
   width:100%; box-sizing:border-box; margin-bottom:10px; padding:12px 15px; border-radius:16px;
   border:1px solid rgba(255,255,255,.06); font-size:14px; text-align:right; outline:none;
   background:#181c24; color:var(--ink); box-shadow:inset 2px 2px 6px var(--neu-d), inset -2px -2px 6px var(--neu-l);
-}:root[data-style="3"] .rel-panel input:focus{ box-shadow:inset 2px 2px 6px var(--neu-d), inset -2px -2px 6px var(--neu-l), 0 0 0 2px rgba(47,227,166,.35); }:root[data-style="3"] .rel-panel button{
+}:root[data-style="3"] .rel-panel input:focus{ box-shadow:inset 2px 2px 6px var(--neu-d), inset -2px -2px 6px var(--neu-l), 0 0 0 2px rgba(47,227,166,.35); }:root[data-style="3"] .rel-panel button:not(.panel-close-x){
   width:100%; padding:13px; border:none; border-radius:16px; color:#0d1410; font-weight:700; font-size:14px; cursor:pointer;
   background:linear-gradient(135deg,var(--glow-2),var(--glow)); box-shadow:0 0 20px rgba(47,227,166,.35);
 }:root[data-style="3"] #relResult{ margin-top:14px; font-size:13.5px; color:#cfd8d2; line-height:1.9; }:root[data-style="3"] #relResult .rel-title{ font-weight:700; color:#0d1410; font-size:15px; background:var(--glow); padding:8px 14px; border-radius:14px; display:inline-block; }:root[data-style="3"] #relResult .rel-note{ color:#7a8a80; font-size:12px; }:root[data-style="3"] .chain-grid{ direction:rtl; overflow-x:auto; margin-top:12px; padding-bottom:6px; }:root[data-style="3"] .chain-row{ display:flex; }:root[data-style="3"] .chain-cell{ flex:0 0 auto; min-width:56px; text-align:center; font-size:12px; padding:6px 3px; color:#cfd8d2; white-space:nowrap; }:root[data-style="3"] .chain-cell.dot{ color:#4a5850; }:root[data-style="3"] .chain-cell.lca{ font-weight:800; color:#0d1410; background:var(--glow); border-radius:10px; }:root[data-style="3"] .chain-row.top .lca{ border-radius:10px 10px 0 0; }:root[data-style="3"] .chain-row.bottom .lca{ border-radius:0 0 10px 10px; margin-top:-1px; }:root[data-style="3"] .rel-steps{ margin-top:16px; font-size:13.5px; line-height:2.1; color:#cfd8d2; }:root[data-style="3"] .rel-steps .final{ font-weight:700; color:#0d1410; margin-top:6px; background:var(--glow); padding:8px 14px; border-radius:14px; }:root[data-style="3"] #ioPanel .io-row, :root[data-style="3"] #bgPanel .io-row{ background:#181c24; border:1px solid rgba(47,227,166,.12); border-radius:22px; padding:16px; display:flex; flex-direction:column; gap:10px; }:root[data-style="3"] #ioPanel button, :root[data-style="3"] #ioPanel label, :root[data-style="3"] #bgPanel button, :root[data-style="3"] #bgPanel label{
@@ -557,7 +580,7 @@
 }:root[data-style="3"] #authCard button{
   width:100%; padding:13px; border:none; border-radius:16px; background:linear-gradient(135deg,var(--glow-2),var(--glow)); color:#0d1410;
   font-weight:700; font-size:15px; cursor:pointer; margin-top:4px; box-shadow:0 0 20px rgba(47,227,166,.35);
-}:root[data-style="3"] #authCard button.secondary{ background:transparent; color:var(--glow); text-decoration:underline; margin-top:10px; padding:6px; box-shadow:none; }:root[data-style="3"] #authError{ color:var(--maroon); font-size:13px; margin-top:10px; min-height:18px; }:root[data-style="3"] #authLoading{ color:#6a7a70; font-size:13px; margin-top:10px; }:root[data-style="3"] #infoBackdrop{ position:fixed; inset:0; background:rgba(5,8,10,.6); z-index:45; opacity:0; pointer-events:none; transition:opacity .25s; backdrop-filter:blur(5px); }:root[data-style="3"] #infoBackdrop.show{ opacity:1; pointer-events:auto; }:root[data-style="3"] #infoModal{
+}:root[data-style="3"] #authCard button.secondary{ background:transparent; color:var(--glow); text-decoration:underline; margin-top:10px; padding:6px; box-shadow:none; }:root[data-style="3"] #authError{ color:var(--maroon); font-size:13px; margin-top:10px; min-height:18px; }:root[data-style="3"] #authLoading{ color:#6a7a70; font-size:13px; margin-top:10px; }:root[data-style="3"] #panelsBackdrop{ background:rgba(5,8,10,.6); backdrop-filter:blur(5px); }:root[data-style="3"] #infoBackdrop{ position:fixed; inset:0; background:rgba(5,8,10,.6); z-index:45; opacity:0; pointer-events:none; transition:opacity .25s; backdrop-filter:blur(5px); }:root[data-style="3"] #infoBackdrop.show{ opacity:1; pointer-events:auto; }:root[data-style="3"] #infoModal{
   position:fixed; left:0; right:0; top:0; bottom:0; margin:auto; z-index:50; background:var(--card-bg);
   border:1px solid rgba(47,227,166,.18); border-radius:28px; box-shadow:var(--card-shadow-lg);
   width:94%; max-width:560px; max-height:86vh; max-height:86dvh; height:fit-content; display:flex; flex-direction:column;
@@ -1366,17 +1389,11 @@
 .perms-actions{ display:flex; gap:8px; margin-top:12px; }
 
 /* ================================================================
-   [إصلاح] لوحة المستخدمين كانت fixed أسفل الشاشة بلا ارتفاع محدد،
-   فتُقصّ المصفوفة ولا يمكن تمريرها. نجعلها لوحة مركزية بارتفاع
-   محدود وتمرير داخلي — نفس نموذج #relPanel.
+   لوحة المستخدمين: خلفية وحواف داخلية (الموضع/الحجم موحّد الآن مع بقية اللوحات أعلى الملف)
    ================================================================ */
 @media (max-width:1023px){
   #usersPanel.bottom-panel{
-    left:0; right:0; bottom:0; top:0; margin:auto; height:fit-content;
-    max-width:520px; width:94%;
-    max-height:86vh; max-height:86dvh; overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    background:var(--card-bg); border-radius:16px;
+    background:var(--card-bg);
     box-shadow:var(--card-shadow-lg); padding:16px 14px;
   }
 }
@@ -1771,40 +1788,46 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
    أسلوب موحّد لكل التصاميم: اللوحة تنبثق من فوق الشريط السفلي
    مباشرةً وتمتد للأعلى حتى قرب الهدر — موسّطة أفقيًا، بعرض مؤطّر، ولا تتراكب
    مع الشريط إطلاقًا. مبنية على نفس معادلة ملف popup-demo.html الموزون.
+   العرض/الارتفاع الأقصى/الزوايا موحّدة الآن مع لوحة الإضافة (#infoModal) تمامًا،
+   والارتفاع يتمدد حسب المحتوى حتى السقف ثم يظهر تمرير داخلي.
 
    المتغيّرات:
      --barh : ارتفاع منطقة الشريط لكل تصميم (مضبوط مسبقًا لكل تصميم قائم)
-     نضيف 8px فراغ أمان فوق الشريط عبر calc، وارتفاع الهدر التقديري 64px + 12 أمان.
    ============================================================ */
 .bottom-panel.unified-sheet,
+#searchPanel, #ioPanel, #attachmentsPanel,
 #usersPanel, #recordsPanel, #designPanel, #bgPanel, #relPanel, #myTreePanel{
   position:fixed !important;
   left:50% !important; right:auto !important;
   transform:translateX(-50%) !important;
-  width:min(94vw, 460px) !important;
-  max-width:none !important;
+  width:94% !important;
+  max-width:560px !important;
   bottom:calc(var(--barh, 64px) + 8px) !important;
   top:auto !important;
   margin:0 !important;
-  max-height:calc(100dvh - 64px - 12px - var(--barh, 64px) - 8px) !important;
+  height:fit-content !important;
+  max-height:86vh !important;
+  max-height:86dvh !important;
   overflow-y:auto !important;
   -webkit-overflow-scrolling:touch;
-  border-radius:16px !important;
+  border-radius:28px !important;
   z-index:59 !important;
 }
 
-/* المساعد الذكي: نفس الأسلوب لكنه قد يحتاج ارتفاعًا أعلى قليلًا لحقل الكتابة */
+/* المساعد الذكي: نفس الأسلوب الموحّد تمامًا */
 #aiChatPanel{
   position:fixed !important;
   left:50% !important; right:auto !important;
   transform:translateX(-50%) !important;
-  width:min(94vw, 460px) !important;
-  max-width:none !important;
+  width:94% !important;
+  max-width:560px !important;
   bottom:calc(var(--barh, 64px) + 8px) !important;
   top:auto !important; margin:0 !important;
-  max-height:calc(100dvh - 64px - 12px - var(--barh, 64px) - 8px) !important;
+  height:fit-content !important;
+  max-height:86vh !important;
+  max-height:86dvh !important;
   overflow-y:auto !important; z-index:59 !important;
-  border-radius:16px !important;
+  border-radius:28px !important;
 }
 
 /* ===== UNIFIED BOTTOM-SHEET POPUP END ===== */

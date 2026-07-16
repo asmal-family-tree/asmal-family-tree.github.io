@@ -316,7 +316,7 @@ const TOUR_STEPS = [
   { id: "uiScaleControls", title: "حجم الخط", desc: "تكبير أو تصغير حجم النص بكل الصفحة.", always: true },
   { id: "searchToggle", title: "البحث", desc: "ابحث عن أي شخص بالشجرة بالاسم.", page: "search", action: "view" },
   { id: "myTreeToggle", title: "شجرتي", desc: "تعرض فرعك الخاص من الشجرة فقط.", page: "myTree", action: "view" },
-  { id: "relToggle", title: "حاسبة القرابة", desc: "احسب صلة القرابة بينك وبين أي شخص.", page: "relation", action: "view" },
+  { id: "relToggle", title: "خيوط النسب", desc: "احسب صلة القرابة بينك وبين أي شخص.", page: "relation", action: "view" },
   { id: "bgToggle", title: "المظهر", desc: "تغيير خلفية عرض الشجرة (أدمن فقط).", adminOnly: true },
   { id: "designToggle", title: "تصميم الموقع", desc: "اختر الثيم وشكل الواجهة اللي يناسبك.", page: "design", action: "view" },
   { id: "usersToggle", title: "المستخدمون", desc: "إدارة الحسابات والصلاحيات (أدمن فقط).", adminOnly: true },
@@ -355,10 +355,10 @@ function startTour(versionToMark){
   _tourActiveSteps = getFilteredTourSteps();
   _tourIndex = 0;
   if (!_tourActiveSteps.length) return;
-  // تعطيل مؤقت لـ zoom (تكبير الخط A+/A-) أثناء الجولة فقط — zoom يكسر حسابات مواضع
-  // العناصر position:fixed، فتنزاح دائرة الإضاءة عن مكانها الصحيح. يُعاد الوضع الأصلي بنهاية الجولة.
-  window._tourSavedZoom = document.body.style.zoom || "";
-  document.body.style.zoom = "1";
+  // تعطيل مؤقت لتحجيم الواجهة (A+/A-) أثناء الجولة فقط، حتى تُحسب مواضع العناصر بدقة. يُعاد الوضع الأصلي بنهاية الجولة.
+  const _tourWrapper = document.getElementById("appScaleWrapper");
+  window._tourSavedScale = _tourWrapper ? _tourWrapper.style.transform : "";
+  if (_tourWrapper) _tourWrapper.style.transform = "";
   document.getElementById("tourOverlay").style.display = "block";
   requestAnimationFrame(() => requestAnimationFrame(() => showTourStep(0, versionToMark)));
 }
@@ -401,7 +401,8 @@ function nextTourStep(i, versionToMark){
 
 async function endTour(versionToMark){
   document.getElementById("tourOverlay").style.display = "none";
-  document.body.style.zoom = window._tourSavedZoom || "";
+  const _tourWrapper = document.getElementById("appScaleWrapper");
+  if (_tourWrapper) _tourWrapper.style.transform = window._tourSavedScale || "";
   if (versionToMark){
     localStorage.setItem("tourLastSeenVersion", String(versionToMark));
   }
@@ -4646,7 +4647,7 @@ function portalShowDropdown(inputEl, dropdownEl){
   if (dropdownEl.parentElement !== document.body) document.body.appendChild(dropdownEl);
   // حماية جذرية: نوقف انتشار ضغطات القائمة قبل أن تصل لمستمع "الضغط بمساحة فاضية".
   // بدون هذا، يُحذف عنصر الاقتراح من الصفحة فور اختياره، فيفشل فحص closest() في المستمع العام
-  // ويُعامل الاختيار كضغطة بمساحة فاضية => تُغلق اللوحة وتُمسح بياناتها (يمنع إكمال حاسبة العلاقة).
+  // ويُعامل الاختيار كضغطة بمساحة فاضية => تُغلق اللوحة وتُمسح بياناتها (يمنع إكمال خيوط النسب).
   if (!dropdownEl._clickGuardAttached){
     dropdownEl.addEventListener("mousedown", e => e.stopPropagation());
     dropdownEl.addEventListener("click", e => e.stopPropagation());
@@ -4837,6 +4838,7 @@ async function findSameMotherSiblings(personNode){
 
 function showInfo(d){
   if (typeof bottomPanels !== "undefined") bottomPanels.forEach(p => p.classList.remove("show"));
+  document.getElementById("panelsBackdrop")?.classList.remove("show");
   document.getElementById("ip-name").textContent = d.data.name;
   let chain = []; let a = d;
   while(a){ chain.push(a.data.name); a = a.parent; }
@@ -5064,6 +5066,8 @@ bottomPanels.forEach(panel => {
     e.stopPropagation();
     panel.classList.remove("show");
     if (typeof clearPanelInputs === "function") clearPanelInputs(panel);
+    const panelsBackdrop = document.getElementById("panelsBackdrop");
+    if (panelsBackdrop) panelsBackdrop.classList.remove("show");
   };
   panel.insertBefore(x, panel.firstChild);
 });
@@ -5089,6 +5093,12 @@ function openOnlyPanel(panel){
   bottomPanels.forEach(p => p.classList.remove("show"));
   if (willOpen) panel.classList.add("show");
   else clearPanelInputs(panel); // اللوحة نفسها أُغلقت بالضغط على زرها
+  // تعتيم الخلفية عند فتح أي من هذه اللوحات تحديدًا (يُستثنى: البحث، شجرتي، خيوط النسب)
+  const panelsBackdrop = document.getElementById("panelsBackdrop");
+  if (panelsBackdrop){
+    const DIM_PANELS = ["ioPanel", "attachmentsPanel", "usersPanel", "recordsPanel", "designPanel", "bgPanel", "aiChatPanel"];
+    panelsBackdrop.classList.toggle("show", willOpen && DIM_PANELS.includes(panel.id));
+  }
   // أي قائمة اقتراحات مفتوحة تُغلق فورًا مع إغلاق/تبديل اللوحات حتى لا تبقى معلّقة بالصفحة
   document.querySelectorAll(".autocomplete-dropdown.show").forEach(dd => {
     dd.classList.remove("show");
@@ -5104,7 +5114,7 @@ function openOnlyPanel(panel){
   return willOpen;
 }
 
-// ---------- حاسبة العلاقة ----------
+// ---------- خيوط النسب ----------
 const relToggle = document.getElementById("relToggle");
 const relPanel = document.getElementById("relPanel");
 relToggle.onclick = () => { if (!guard("relation")) return; openOnlyPanel(relPanel); };
@@ -7439,6 +7449,7 @@ document.getElementById("mtiExportBtn").onclick = async function(){
 
 async function openInfoModal(d){
   if (typeof bottomPanels !== "undefined") bottomPanels.forEach(p => p.classList.remove("show"));
+  document.getElementById("panelsBackdrop")?.classList.remove("show");
   modalNode = d;
   pendingHalfSiblings = [];
   pendingWifeAndSiblingJobs = [];
@@ -8058,34 +8069,20 @@ window.addEventListener("touchend", bgEnd);
    وجميع تصاميم الموقع القائمة (الافتراضي والمستقبلي) بشكل متناسب.
    يُحفظ الاختيار بمتصفح كل مستخدم (localStorage).
 
-   ملاحظة مهمة: خاصية zoom تكبّر كل شيء بصريًا، لكن وحدات الشاشة (vh/dvh)
-   المستخدمة لحدود ارتفاع النوافذ المنبثقة (كالمعلومات وحاسبة العلاقة) تبقى
-   محسوبة على الحجم الفعلي للشاشة بدون اعتبار التكبير — فتطلع النافذة أكبر
-   من الشاشة الحقيقية. لذلك نحسب هنا حدًا أقصى بالبكسل يعوّض هذا الفرق،
-   ونطبّقه مباشرة على كل نافذة، فتبقى دائمًا ضمن حدود الموقع مهما كان التكبير.
+   الآلية: transform:scale() على #appScaleWrapper (بدل body.style.zoom القديمة).
+   هذا لا يُغيّر صناديق التخطيط ولا حسابات vh/dvh/position:fixed إطلاقًا —
+   فقط "يرسم" الواجهة بحجم مختلف بصريًا، فتبقى كل اللوحات والشجرة بمكانها
+   الصحيح تمامًا مهما تغيّر مستوى التكبير.
    ===================================================================== */
 (function(){
-  const MIN_SCALE = 0.8, MAX_SCALE = 1.6, STEP = 0.1;
+  const MIN_SCALE = 0.8, MAX_SCALE = 1.6, STEP = 0.2;
   let uiScale = parseFloat(localStorage.getItem("uiScale") || "1");
   if (isNaN(uiScale)) uiScale = 1;
 
-  function applyScaledPanelSizing(){
-    const effectiveVh = window.innerHeight / uiScale;
-    const targets = [
-      { id: "relPanel", pct: 0.8 },
-      { id: "infoModal", pct: 0.86 },
-      { id: "sheet", pct: 0.78 }
-    ];
-    targets.forEach(({ id, pct }) => {
-      const el = document.getElementById(id);
-      if (el) el.style.maxHeight = Math.round(effectiveVh * pct) + "px";
-    });
-  }
-
   function applyUiScale(){
-    document.body.style.zoom = uiScale;
+    const wrapper = document.getElementById("appScaleWrapper");
+    if (wrapper) wrapper.style.transform = (uiScale === 1) ? "" : `scale(${uiScale})`;
     localStorage.setItem("uiScale", String(uiScale));
-    applyScaledPanelSizing();
   }
 
   const upBtn = document.getElementById("uiScaleUp");
@@ -8099,7 +8096,6 @@ window.addEventListener("touchend", bgEnd);
     applyUiScale();
   };
 
-  window.addEventListener("resize", applyScaledPanelSizing);
   applyUiScale();
 })();
 
