@@ -548,7 +548,10 @@ function applyLayoutStyle(layoutStyle){
     "خيوط النسب": "relToggle",
     "شجرتي": "myTreeToggle",
     "السجل": "recordsToggle",
-    "المستخدمون": "usersToggle"
+    "المستخدمون": "usersToggle",
+    "التصدير": "ioToggle",
+    "المرفقات": "attachmentsToggle",
+    "المظهر": "bgToggle"
   };
   document.querySelectorAll(".asmal-fab-item").forEach(item => {
     const realId = ASMAL_REAL_LINKS[item.dataset.label];
@@ -658,6 +661,19 @@ function applyLayoutStyle(layoutStyle){
       if (realBtn) realBtn.click();
     });
   }
+})();
+
+// الضغط على الخلفية المعتمة يُغلق أي لوحة منبثقة مفتوحة (يعمل لكل التصاميم)
+(function initPanelsBackdropClose(){
+  const pb = document.getElementById("panelsBackdrop");
+  if (!pb) return;
+  pb.addEventListener("click", () => {
+    document.querySelectorAll(".bottom-panel.show").forEach(p => {
+      if (typeof clearPanelInputs === "function") clearPanelInputs(p);
+      p.classList.remove("show");
+    });
+    pb.classList.remove("show");
+  });
 })();
 // ===== ASMAL DEMO UI END =====
 

@@ -224,6 +224,41 @@
 }
 
 /* ============================================================
+   لوحات أسمل العائمة من المنتصف (تصدير/مرفقات/مظهر) — بنفس "جلد"
+   نافذة إعدادات النمط تمامًا، لكنها تنبثق من منتصف الشاشة (أفقيًا
+   وعموديًا) بخلفية معتمة خلفها، بدل الانبثاق من الأسفل. العرض
+   الثابت الموحّد 90%/380px، وزر الإغلاق ✕ أعلى اليمين.
+   ============================================================ */
+:root[data-style="5"] #ioPanel,
+:root[data-style="5"] #attachmentsPanel,
+:root[data-style="5"] #bgPanel{
+  position:fixed !important;
+  left:0 !important; right:0 !important; top:0 !important; bottom:0 !important;
+  margin:auto !important; transform:none !important;
+  width:90% !important; max-width:380px !important;
+  height:fit-content !important; max-height:80vh !important;
+  border-radius:18px !important;
+  border:1px solid var(--line) !important;
+  background:var(--card-bg) !important;
+  box-shadow:0 22px 50px rgba(0,0,0,.35) !important;
+  padding:0 !important; overflow:hidden !important;
+  z-index:59 !important;
+}
+:root[data-style="5"] #ioPanel .panel-scroll-inner,
+:root[data-style="5"] #attachmentsPanel .panel-scroll-inner,
+:root[data-style="5"] #bgPanel .panel-scroll-inner{
+  padding:12px 14px !important; max-height:80vh !important; overflow-y:auto !important;
+}
+:root[data-style="5"] #ioPanel .panel-close-x,
+:root[data-style="5"] #attachmentsPanel .panel-close-x,
+:root[data-style="5"] #bgPanel .panel-close-x{
+  left:auto !important; right:8px !important;
+}
+
+/* بأسمل: الشريط السفلي مخفي، فالخلفية المعتمة تغطي كامل الشاشة */
+:root[data-style="5"] #panelsBackdrop{ bottom:0 !important; }
+
+/* ============================================================
    نافذة إعدادات النمط
    ============================================================ */
 :root[data-style="5"] .asmal-style-modal{
