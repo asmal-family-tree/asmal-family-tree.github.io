@@ -561,29 +561,47 @@ function applyLayoutStyle(layoutStyle){
     });
   }
 
+  // حركة فتح القائمة وشكل أزرارها: تُحفظ فعليًا بـlocalStorage وتُستعاد
+  // تلقائيًا عند إعادة تحميل الصفحة (لا يوجد زر حقيقي سابق لهذه الميزة
+  // الجديدة، فـ"الحقيقي" هنا يعني: تُحفظ وتستمر، لا مجرد تبديل شكل مؤقت).
+  const savedTransition = localStorage.getItem("asmalTransition") || "transition-slide";
+  const savedMode = localStorage.getItem("asmalMode") || "mode-icons";
+  transitionClasses.forEach(c => fabWrapper.classList.remove(c));
+  modeClasses.forEach(c => fabWrapper.classList.remove(c));
+  fabWrapper.classList.add(savedTransition);
+  fabWrapper.classList.add(savedMode);
+
   if (transitionPicker){
+    transitionPicker.querySelectorAll(".asmal-style-option").forEach(o => {
+      o.classList.toggle("active", o.dataset.value === savedTransition);
+    });
     transitionPicker.addEventListener("click", (e) => {
       const btn = e.target.closest(".asmal-style-option");
       if (!btn || !btn.dataset.value) return;
       transitionClasses.forEach(c => fabWrapper.classList.remove(c));
       fabWrapper.classList.add(btn.dataset.value);
+      localStorage.setItem("asmalTransition", btn.dataset.value);
       transitionPicker.querySelectorAll(".asmal-style-option").forEach(o => o.classList.remove("active"));
       btn.classList.add("active");
     });
   }
 
   if (modePicker){
+    modePicker.querySelectorAll(".asmal-style-option").forEach(o => {
+      o.classList.toggle("active", o.dataset.value === savedMode);
+    });
     modePicker.addEventListener("click", (e) => {
       const btn = e.target.closest(".asmal-style-option");
       if (!btn || !btn.dataset.value) return;
       modeClasses.forEach(c => fabWrapper.classList.remove(c));
       fabWrapper.classList.add(btn.dataset.value);
+      localStorage.setItem("asmalMode", btn.dataset.value);
       modePicker.querySelectorAll(".asmal-style-option").forEach(o => o.classList.remove("active"));
       btn.classList.add("active");
     });
   }
 
-  // قسم "شكل الواجهة" الجديد — حقيقي بالكامل: يُشغّل نفس زر layoutChooser
+  // قسم "شكل الواجهة" — حقيقي بالكامل: يُشغّل نفس زر layoutChooser
   // الحقيقي (بكل صلاحياته وحفظه)، بلا أي تكرار للمنطق.
   const layoutPicker = document.getElementById("asmalLayoutPickerDemo");
   if (layoutPicker){
@@ -596,14 +614,15 @@ function applyLayoutStyle(layoutStyle){
     });
   }
 
-  // ملاحظة: اختيار الثيم هنا بصري فقط بهذه الخطوة (تبديل "active" فقط) — بلا
-  // تفعيل حقيقي على الموقع، اتساقًا مع "بلا أي ربط وظيفي بعد" المتفق عليه.
+  // قسم "التصميم (الألوان)" — حقيقي بالكامل الآن: يُشغّل نفس زر themeChooser
+  // الحقيقي (بكل صلاحياته وحفظه)، بلا أي تكرار للمنطق.
   if (themePicker){
     themePicker.addEventListener("click", (e) => {
       const btn = e.target.closest(".asmal-style-option");
       if (!btn) return;
-      themePicker.querySelectorAll(".asmal-style-option").forEach(o => o.classList.remove("active"));
-      btn.classList.add("active");
+      const realTheme = btn.dataset.theme;
+      const realBtn = document.querySelector(`#themeChooser .theme-btn[data-theme="${realTheme}"]`);
+      if (realBtn) realBtn.click();
     });
   }
 })();
