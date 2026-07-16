@@ -34,10 +34,10 @@
    القائمة العائمة (fab) — نسخة طبق الأصل من المرجع
    ============================================================ */
 :root[data-style="5"] .asmal-fab-wrapper{
-  position:fixed; right:18px; bottom:78px; z-index:999;
+  position:fixed; left:18px; right:auto; bottom:60px; z-index:999;
 }
 :root[data-style="5"] .asmal-fab-menu{
-  position:absolute; right:0; bottom:76px;
+  position:absolute; left:0; right:auto; bottom:76px;
   display:flex; flex-direction:column; gap:12px;
   pointer-events:none;
 }
@@ -49,7 +49,7 @@
 }
 :root[data-style="5"] .asmal-fab-item::before{
   content:attr(data-label);
-  position:absolute; right:calc(100% + 10px); top:50%;
+  position:absolute; left:calc(100% + 10px); right:auto; top:50%;
   transform:translateY(-50%) scale(.96);
   background:#020617; color:#e5e7eb; padding:6px 12px; border-radius:999px;
   font-size:14px; white-space:nowrap; opacity:0;
