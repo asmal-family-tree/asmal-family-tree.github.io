@@ -24,7 +24,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=74">
+<link rel="stylesheet" href="styles.css?v=75">
 </head>
 <body>
 
@@ -203,7 +203,6 @@
   <button id="uiScaleUp" title="تكبير">A+</button>
 </div>
 <div id="noViewMsg">🚫 لا تملك حاليًا صلاحية عرض المشجرة. تواصل مع محمد رشاد.</div>
-<div id="asmalHeaderBar"></div>
 <!-- ===== ONBOARDING TOUR START (معزول تمامًا) — احذف هذا القسم بأمان لإلغاء الميزة ===== -->
 <div id="tourOverlay" style="display:none;">
   <div id="tourSpotlight"></div>
@@ -222,16 +221,6 @@
    style="position:fixed; top:70px; left:14px; z-index:50; width:46px; height:46px; border-radius:50%;
           background:var(--gold); color:#fff; display:flex; align-items:center; justify-content:center;
           font-size:20px; text-decoration:none; box-shadow:0 3px 10px rgba(0,0,0,.25);">🗞️<span id="newsPendingBadge" class="notif-badge" style="display:none;"></span></a>
-<!-- ===== ASMAL ADMIN MENU START (أدمن + أسمل فقط) — احذف هذا العنصر وربطه بأمان لإلغاء الميزة ===== -->
-<div id="asmalAdminMenuItems">
-  <a id="asmalAdminNewsLink" href="news.html" title="الأخبار">
-    <span style="display:block; width:100%; height:100%; background-image:url('news-icon.png'); background-size:contain; background-position:center; background-repeat:no-repeat;"></span>
-  </a>
-</div>
-<!-- ===== ASMAL ADMIN MENU END ===== -->
-<!-- ===== ASMAL INLINE SEARCH START (غير الأدمن + أسمل فقط) — احذف هذا العنصر وربطه بأمان لإلغاء الميزة ===== -->
-<div id="asmalInlineSearch"></div>
-<!-- ===== ASMAL INLINE SEARCH END ===== -->
 <div id="artBackground"><img id="bgImg" alt=""></div>
 <div id="ornateFrame"></div>
 
@@ -311,8 +300,6 @@
 
   <label class="f-label" style="margin-top:16px; display:block;">🖥️ شكل الواجهة</label>
   <div class="chip-list" id="layoutChooser">
-    <button class="f-btn-sm layout-btn" data-style="4">أسمل</button>
-    <button class="f-btn-sm layout-btn" data-style="2">لوحة التحكم</button>
     <button class="f-btn-sm layout-btn" data-style="3">المستقبلي</button>
     <button class="f-btn-sm layout-btn" data-style="">الافتراضي</button>
   </div>
@@ -560,7 +547,7 @@
 </div>
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=35"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {

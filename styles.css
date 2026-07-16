@@ -437,98 +437,7 @@
   .f-save-btn:active{ transform:scale(.98); }
   #f-saveMsg{ text-align:center; margin-top:8px; font-size:13px; color:#1E7A4C; min-height:1px; font-weight:600; }
 
-/* ============ الاستايل ٢: لوحة التحكم الاحترافية (data-style=2) ============ */
-:root[data-style="2"]{
-  --bg:#F4F1EA; --ink:#20242B; --line:#9c8a5e; --barh:64px;
-  --panel-dark:#1B2430; --panel-dark-2:#232C3A;
-  --root:#20242B; --root-ring:#C08A2E;
-  --trunk:#2E3644; --trunk-ring:#1B2430;
-  --leaf:#3A4454; --leaf-ring:#232C3A;
-  --tagbg:#FFFFFF; --tagborder:#C9B98B;
-  --gold:#C08A2E; --gold-soft:#EAD9B0; --gold-bright:#DBA53E;
-  --emerald:#1B2430; --emerald-2:#232C3A; --maroon:#7A2E1F;
-  --card-bg:#FFFFFF;
-  --card-shadow:0 2px 0 rgba(0,0,0,.05), 0 10px 24px rgba(20,20,20,.08);
-  --card-shadow-lg:0 30px 60px rgba(10,10,10,.22);
-}:root[data-style="2"][data-theme="royal-green"]{
-  --bg:#EFEBDD; --ink:#182018; --root:#0F2A1C; --root-ring:#C9A227;
-  --trunk:#173826; --trunk-ring:#0F2A1C; --leaf:#1E4A31; --leaf-ring:#0F2A1C;
-  --gold:#C9A227; --gold-soft:#E8DDB0; --gold-bright:#E4C441;
-  --emerald:#0F2A1C; --emerald-2:#173826; --panel-dark:#10261a; --panel-dark-2:#173826; --card-bg:#FBFAF3;
-}:root[data-style="2"][data-theme="desert-gold"]{
-  --bg:#F1E6CC; --ink:#2c2015; --root:#3A2814; --root-ring:#C08A2E;
-  --trunk:#4A3218; --trunk-ring:#3A2814; --leaf:#5A3E1E; --leaf-ring:#3A2814;
-  --gold:#C08A2E; --gold-soft:#EAD9B0; --gold-bright:#E0A836;
-  --emerald:#3A2814; --emerald-2:#4A3218; --panel-dark:#2c2015; --panel-dark-2:#3A2814; --card-bg:#FFFCF3;
-}:root[data-style="2"][data-theme="pearl-white"]{
-  --bg:#EEF1F5; --ink:#1F2933; --root:#2E3A45; --root-ring:#8FA3B8;
-  --trunk:#485A6B; --trunk-ring:#2E3A45; --leaf:#5A6B7B; --leaf-ring:#2E3A45;
-  --gold:#8FA3B8; --gold-soft:#DFE5EC; --gold-bright:#A9BDD1;
-  --emerald:#2E3A45; --emerald-2:#3E4E5C; --panel-dark:#2A343E; --panel-dark-2:#3E4E5C; --card-bg:#FFFFFF;
-}:root[data-style="2"] *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}:root[data-style="2"] html, :root[data-style="2"] body{ margin:0; overscroll-behavior:none; }:root[data-style="2"] body{
-  background:
-    repeating-linear-gradient(135deg, rgba(192,138,46,.035) 0 2px, transparent 2px 26px),
-    var(--bg);
-  font-family:'Tajawal',sans-serif; color:var(--ink); min-height:100vh; min-height:100dvh;
-}:root[data-style="2"] #ornateFrame{ display:none; }:root[data-style="2"] #artBackground{
-  position:fixed; left:0; right:0; top:0; bottom:calc(var(--barh) + 3px); z-index:0; pointer-events:none; overflow:hidden; background:none;
-}:root[data-style="2"] #bgImg{
-  position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover;
-  transform:translate(-50%,-50%) scale(1); transform-origin:center center; display:none; touch-action:none;
-  -webkit-user-drag:none; user-select:none; pointer-events:none;
-}:root[data-style="2"] #bgImg.movable{ pointer-events:auto; cursor:grab; }:root[data-style="2"] #bgImg.movable:active{ cursor:grabbing; }:root[data-style="2"] header, :root[data-style="2"] #tree-wrap, :root[data-style="2"] #backdrop, :root[data-style="2"] #sheet, :root[data-style="2"] #infoBackdrop, :root[data-style="2"] #infoModal{ position:relative; z-index:1; }:root[data-style="2"] #currentUserBadge{
-  position:fixed; top:14px; left:14px; z-index:55; background:#fff; border:1px solid #e2ddce;
-  border-radius:4px; padding:6px 14px; font-size:12px; color:#333; box-shadow:var(--card-shadow); display:none; align-items:center; gap:8px;
-}:root[data-style="2"] #currentUserBadge.show{ display:flex; }:root[data-style="2"] #currentUserBadge button{ border:none; background:#f1ede1; border-radius:3px; padding:4px 10px; font-size:11px; cursor:pointer; color:#555; font-weight:700; }:root[data-style="2"] #noViewMsg{ position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:var(--bg); font-size:16px; color:var(--maroon); text-align:center; padding:30px; }:root[data-style="2"] #noViewMsg.show{ display:flex; }:root[data-style="2"] #tree-wrap{ position:relative; width:100%; height:100vh; height:100dvh; min-height:420px; overflow:hidden; touch-action:none; cursor:grab; }:root[data-style="2"] #tree-wrap:active{ cursor:grabbing; }:root[data-style="2"] svg{ width:100%; height:100%; display:block; }:root[data-style="2"] .zoom-fab{ position:absolute; left:16px; bottom:calc(var(--barh) + 16px); display:flex; flex-direction:column; gap:2px; z-index:15; border-radius:6px; overflow:hidden; box-shadow:var(--card-shadow); }:root[data-style="2"] .zoom-fab button{
-  width:44px; height:40px; border-radius:0; border:none; border-bottom:1px solid #eee2c8;
-  background:#fff; color:var(--emerald); font-size:17px; cursor:pointer;
-}:root[data-style="2"] .zoom-fab button:last-child{ border-bottom:none; }:root[data-style="2"] .zoom-fab button:active{ background:var(--gold-soft); }:root[data-style="2"] .exit-focus{
-  position:absolute; top:16px; right:16px; z-index:16; background:var(--panel-dark); color:var(--gold-bright);
-  border:none; border-radius:4px; padding:9px 18px; font-size:13px; font-weight:700; box-shadow:var(--card-shadow);
-  cursor:pointer; display:none; border-inline-start:3px solid var(--gold-bright);
-}:root[data-style="2"] .exit-focus.show{ display:block; }:root[data-style="2"] #bottomBar{
-  position:fixed; left:0; right:0; bottom:0; z-index:32;
-  display:flex; align-items:center; justify-content:space-between; gap:2px;
-  background:linear-gradient(180deg, var(--panel-dark) 0%, var(--panel-dark-2) 100%);
-  border-top:3px solid var(--gold-bright); box-shadow:0 -8px 24px rgba(0,0,0,.18);
-  padding:6px 4px calc(6px + env(safe-area-inset-bottom)); overflow-x:auto;
-}:root[data-style="2"] #bottomBar button{
-  position:relative; background:transparent; border:none; color:#cfd6e0; font-size:18px; line-height:1;
-  padding:12px 8px; cursor:pointer; flex:1 0 auto; border-radius:0;
-  border-top:3px solid transparent; margin-top:-3px; transition:background .15s, color .15s;
-}:root[data-style="2"] #bottomBar button:active{ background:rgba(219,165,62,.12); }:root[data-style="2"] #bottomBar button.active{ color:var(--gold-bright); border-top-color:var(--gold-bright); background:rgba(219,165,62,.08); }:root[data-style="2"] .bottom-panel{
-  position:fixed; left:0; right:0; bottom:var(--barh, 64px); top:auto; z-index:31;
-  display:none; margin:0 auto; max-width:420px; padding:0 14px;
-}:root[data-style="2"] .bottom-panel.show{ display:block; }:root[data-style="2"] .rel-panel.bottom-panel, :root[data-style="2"] .bottom-panel .searchbar{ margin:0; max-width:none; }:root[data-style="2"] #relPanel.bottom-panel{
-  left:0; right:0; bottom:0; top:0; margin:auto; height:fit-content; transform:none;
-  max-width:400px; width:92%; max-height:80vh; max-height:80dvh; overflow-y:auto;
-  background:#fff; border-radius:6px; box-shadow:var(--card-shadow-lg); padding:18px 16px; border:1px solid #e6e1d3;
-}:root[data-style="2"] .searchbar{
-  display:flex; align-items:center; gap:8px; background:#faf8f1; border:1px solid #e2ddce;
-  border-radius:4px; padding:11px 16px; max-width:none; margin:0; box-shadow:none;
-}:root[data-style="2"] .searchbar svg{ width:16px; height:16px; flex:none; opacity:.5; }:root[data-style="2"] #search{ flex:1; border:none; outline:none; background:transparent; font-size:15px; text-align:right; color:var(--ink); }:root[data-style="2"] .rel-panel input, :root[data-style="2"] #relPanel input{
-  width:100%; box-sizing:border-box; margin-bottom:9px; padding:11px 13px; border-radius:4px;
-  border:1px solid #e2ddce; font-size:14px; text-align:right; outline:none; background:#faf8f1;
-}:root[data-style="2"] .rel-panel input:focus{ border-color:var(--gold); background:#fff; }:root[data-style="2"] .rel-panel button{
-  width:100%; padding:12px; border:none; border-radius:4px; background:var(--panel-dark);
-  color:var(--gold-bright); font-weight:700; font-size:14px; cursor:pointer; border-inline-start:3px solid var(--gold-bright);
-}:root[data-style="2"] #relResult{ margin-top:14px; font-size:13.5px; color:#333; line-height:1.9; }:root[data-style="2"] #relResult .rel-title{ font-weight:700; color:var(--emerald); font-size:15px; background:var(--gold-soft); padding:7px 12px; border-radius:3px; display:inline-block; }:root[data-style="2"] #relResult .rel-note{ color:#999; font-size:12px; }:root[data-style="2"] .chain-grid{ direction:rtl; overflow-x:auto; margin-top:10px; padding-bottom:6px; }:root[data-style="2"] .chain-row{ display:flex; }:root[data-style="2"] .chain-cell{ flex:0 0 auto; min-width:56px; text-align:center; font-size:12px; padding:6px 3px; color:#333; white-space:nowrap; }:root[data-style="2"] .chain-cell.dot{ color:#d8d0c0; }:root[data-style="2"] .chain-cell.lca{ font-weight:800; color:var(--gold-bright); background:var(--panel-dark); border-radius:2px; }:root[data-style="2"] .chain-row.top .lca{ border-radius:2px 2px 0 0; }:root[data-style="2"] .chain-row.bottom .lca{ border-radius:0 0 2px 2px; margin-top:-1px; }:root[data-style="2"] .rel-steps{ margin-top:14px; font-size:13.5px; line-height:2.1; }:root[data-style="2"] .rel-steps .final{ font-weight:700; color:var(--emerald); margin-top:6px; background:var(--gold-soft); padding:7px 12px; border-radius:3px; }:root[data-style="2"] #ioPanel .io-row, :root[data-style="2"] #bgPanel .io-row{ background:#faf8f1; border:1px solid #e2ddce; border-radius:4px; padding:14px; display:flex; flex-direction:column; gap:9px; }:root[data-style="2"] #ioPanel button, :root[data-style="2"] #ioPanel label, :root[data-style="2"] #bgPanel button, :root[data-style="2"] #bgPanel label{
-  background:var(--panel-dark); color:var(--gold-bright); border:none; border-radius:4px; padding:11px;
-  font-weight:700; font-size:14px; cursor:pointer; text-align:center; border-inline-start:3px solid var(--gold-bright);
-}:root[data-style="2"] #bgPanel .bg-zoom-row{ display:flex; gap:8px; }:root[data-style="2"] #bgPanel .bg-zoom-row button{ flex:1; padding:9px; font-size:16px; }:root[data-style="2"] #bgMoveToggle.active{ background:var(--maroon); border-inline-start-color:#e0a; }:root[data-style="2"] #bgPanel .bg-hint{ font-size:12px; color:#9c8a5e; text-align:center; }:root[data-style="2"] #migrateStatus{ font-size:12px; color:#666; text-align:center; margin-top:6px; }:root[data-style="2"] .link{ fill:none; stroke:var(--line); stroke-width:1.4px; }:root[data-style="2"] .node{ cursor:pointer; }:root[data-style="2"] .node .hit{ fill:transparent; }:root[data-style="2"] .avatar-root{ fill:var(--root); stroke:var(--root-ring); stroke-width:3px; }:root[data-style="2"] .avatar-joinpoint{ fill:#12161c; stroke:var(--gold-bright); stroke-width:3.4px; }:root[data-style="2"] .avatar-trunk{ fill:var(--trunk); stroke:var(--trunk-ring); stroke-width:2.4px; }:root[data-style="2"] .avatar-leaf{ fill:var(--leaf); stroke:var(--leaf-ring); stroke-width:2.2px; }:root[data-style="2"] .avatar-trunk-red{ fill:#7A2E1F; stroke:#4A1B12; stroke-width:2.4px; }:root[data-style="2"] .avatar-trunk-green{ fill:#215C3E; stroke:#123522; stroke-width:2.4px; }:root[data-style="2"] .avatar-trunk-blue{ fill:#1F4F63; stroke:#123040; stroke-width:2.4px; }:root[data-style="2"] .avatar-trunk-gold{ fill:#C08A2E; stroke:#7A5A08; stroke-width:2.4px; }:root[data-style="2"] .avatar-female{ fill:#A45C77; stroke:#6E3A4C; stroke-width:2px; }:root[data-style="2"] .tree-hidden #tree-svg, :root[data-style="2"] .tree-hidden .zoom-fab, :root[data-style="2"] .tree-hidden #exitFocus{ display:none !important; }:root[data-style="2"] .glyph{ fill:#fff; opacity:.92; pointer-events:none; }:root[data-style="2"] .tag{ fill:var(--tagbg); stroke:var(--tagborder); stroke-width:1px; }:root[data-style="2"] .tag-text{ font-weight:700; font-size:17px; text-anchor:middle; dominant-baseline:middle; fill:#1a1a1a; pointer-events:none; }:root[data-style="2"] .node.dim{ opacity:.2; }:root[data-style="2"] .ring{ fill:none; stroke:var(--maroon); stroke-width:2.6px; opacity:0; }:root[data-style="2"] .ring.show{ opacity:1; }:root[data-style="2"] .link.dim{ opacity:.1; }:root[data-style="2"] .link.path-highlight{ stroke:var(--gold-bright); stroke-width:4px; }:root[data-style="2"] .node.path-highlight .avatar-root, :root[data-style="2"] .node.path-highlight .avatar-trunk, :root[data-style="2"] .node.path-highlight .avatar-leaf, :root[data-style="2"] .node.path-highlight .avatar-trunk-red, :root[data-style="2"] .node.path-highlight .avatar-trunk-green, :root[data-style="2"] .node.path-highlight .avatar-trunk-blue{ stroke:var(--gold-bright); stroke-width:4px; }:root[data-style="2"] .node.path-highlight .tag{ stroke:var(--gold-bright); stroke-width:2px; }:root[data-style="2"] #sheet{
-  position:fixed; left:0; right:0; bottom:var(--barh, 64px); z-index:30; background:#fff; border-top:3px solid var(--gold-bright);
-  border-radius:0; box-shadow:0 -10px 30px rgba(0,0,0,.12); padding:14px 26px 24px;
-  transform:translateY(110%); transition:transform .3s cubic-bezier(.22,.9,.34,1); max-height:70vh; max-height:70dvh; overflow-y:auto;
-}:root[data-style="2"] #sheet.show{ transform:translateY(0); }:root[data-style="2"] #sheet .handle{ width:40px; height:4px; background:#e2ddce; border-radius:2px; margin:6px auto 14px; }:root[data-style="2"] #sheet h3{ margin:0 0 8px; font-family:'Amiri',serif; font-size:22px; color:var(--emerald); }:root[data-style="2"] #sheet .path{ font-size:13px; color:#7a7360; line-height:1.9; }:root[data-style="2"] #ip-card{ margin-top:16px; background:#faf8f1; border-radius:4px; padding:16px 18px; border:1px solid #e2ddce; }:root[data-style="2"] #ip-card .ip-row{ display:flex; gap:8px; font-size:13.5px; padding:8px 0; border-bottom:1px solid #eee7d6; }:root[data-style="2"] #ip-card .ip-row:last-child{ border-bottom:none; }:root[data-style="2"] #ip-card .ip-label{ color:#aaa; min-width:80px; }:root[data-style="2"] #ip-card .ip-value{ color:#222; font-weight:700; }:root[data-style="2"] #ip-card img.ip-photo{ max-width:140px; border-radius:4px; display:block; margin:2px 0 12px; }:root[data-style="2"] #ip-card .ip-bio{ font-size:13px; color:#444; line-height:1.9; margin-top:10px; background:#fff; padding:12px 14px; border-radius:4px; border-inline-start:3px solid var(--gold); }:root[data-style="2"] #ip-card .ip-notaries{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }:root[data-style="2"] #ip-card .ip-notary-chip{ background:#fff; border:1px solid #e2ddce; border-radius:3px; padding:5px 12px; font-size:12px; color:#6a5636; font-weight:600; }:root[data-style="2"] #ip-card .ip-sadaha{ display:flex; flex-direction:column; gap:4px; margin:4px 0 10px; }:root[data-style="2"] #ip-card .ip-sadaha-item{ background:#fff; border-radius:3px; padding:6px 10px; font-size:13px; color:#4a3f2a; }:root[data-style="2"] #ip-card .ip-sadaha-item b{ color:var(--emerald); }:root[data-style="2"] .name-chip{ color:var(--emerald); text-decoration:underline dotted; cursor:pointer; }:root[data-style="2"] #nameTooltip{ position:fixed; z-index:100; background:var(--panel-dark); color:#fff; padding:8px 12px; border-radius:3px; font-size:13px; box-shadow:var(--card-shadow); display:none; max-width:260px; text-align:center; }:root[data-style="2"] #nameTooltip.show{ display:block; }:root[data-style="2"] #ip-card .ip-empty{ color:#bbb; font-size:12.5px; margin-top:10px; text-align:center; padding:8px 0; }:root[data-style="2"] #backdrop{ position:fixed; inset:0; background:rgba(20,20,20,.4); z-index:25; opacity:0; pointer-events:none; transition:opacity .2s; }:root[data-style="2"] #backdrop.show{ opacity:1; pointer-events:auto; }:root[data-style="2"] .node.path-hidden, :root[data-style="2"] .link.path-hidden{ display:none; }:root[data-style="2"] .manual-mode .node{ cursor:grab; }:root[data-style="2"] .manual-mode .node:active{ cursor:grabbing; }:root[data-style="2"] .plus-badge circle{ fill:#fff; stroke:var(--emerald); stroke-width:1.6px; }:root[data-style="2"] .plus-badge text{ font-size:15px; font-weight:800; fill:var(--emerald); text-anchor:middle; dominant-baseline:middle; }:root[data-style="2"] .plus-badge{ cursor:pointer; }:root[data-style="2"] .minus-badge circle{ fill:#fff; stroke:var(--maroon); stroke-width:1.6px; }:root[data-style="2"] .minus-badge text{ font-size:15px; font-weight:800; fill:var(--maroon); text-anchor:middle; dominant-baseline:middle; }:root[data-style="2"] .minus-badge{ cursor:pointer; display:none; }:root[data-style="2"] body.show-delete-badges .minus-badge{ display:block; }:root[data-style="2"] .approve-badge circle{ fill:#fff; stroke:#1E7A4C; stroke-width:1.8px; }:root[data-style="2"] .approve-badge text{ font-size:14px; font-weight:800; fill:#1E7A4C; text-anchor:middle; dominant-baseline:middle; }:root[data-style="2"] .approve-badge{ cursor:pointer; }:root[data-style="2"] .reject-badge circle{ fill:#fff; stroke:var(--maroon); stroke-width:1.8px; }:root[data-style="2"] .reject-badge text{ font-size:14px; font-weight:800; fill:var(--maroon); text-anchor:middle; dominant-baseline:middle; }:root[data-style="2"] .reject-badge{ cursor:pointer; }:root[data-style="2"] .star-badge{ display:none; cursor:default; }:root[data-style="2"] .star-badge circle{ fill:#fff; stroke:var(--gold-bright); stroke-width:1.6px; }:root[data-style="2"] .star-badge text{ font-size:15px; fill:var(--gold-bright); text-anchor:middle; dominant-baseline:middle; }:root[data-style="2"] .node.is-focal .plus-badge, :root[data-style="2"] .node.is-focal .minus-badge{ display:none !important; }:root[data-style="2"] .role-limited .minus-badge{ display:none !important; }:root[data-style="2"] .no-tree-edit .plus-badge{ display:none !important; }
-  .no-tree-edit .plus-badge{ display:none !important; }:root[data-style="2"] .node.is-focal .star-badge{ display:block !important; }:root[data-style="2"] .node.is-focal circle[class^="avatar-"]{ fill:#B0600A !important; stroke:#7A4006 !important; }:root[data-style="2"] .node.is-focal .tag-text{ fill:#7A4006 !important; }:root[data-style="2"] #myTreeInfoPanel{
-  position:fixed; top:70px; right:16px; z-index:60; background:#fff; border:1px solid #e2ddce;
-  border-radius:4px; box-shadow:var(--card-shadow); padding:14px 16px; min-width:190px; display:none;
-}:root[data-style="2"] #myTreeInfoPanel.show{ display:block; }:root[data-style="2"] #myTreeInfoPanel h4{ margin:0 0 8px 0; font-size:16px; color:var(--emerald); text-align:center; }:root[data-style="2"] #myTreeInfoPanel .mti-row{ font-size:14px; color:#444; margin:4px 0; display:flex; justify-content:space-between; gap:12px; }:root[data-style="2"] #myTreeInfoPanel button{ width:100%; margin-top:10px; padding:9px; border:none; border-radius:4px; background:var(--panel-dark); color:var(--gold-bright); font-weight:700; cursor:pointer; }:root[data-style="2"] #mtiClose{ position:absolute; top:6px; left:10px; cursor:pointer; font-size:15px; color:#999; }:root[data-style="2"] #mtiClose:hover{ color:var(--maroon); }:root[data-style="2"] #authOverlay{ position:fixed; inset:0; z-index:200; background:linear-gradient(180deg, var(--panel-dark) 0%, var(--panel-dark-2) 100%); display:flex; align-items:center; justify-content:center; padding:20px; }:root[data-style="2"] #authOverlay.hidden{ display:none; }:root[data-style="2"] #authCard{ background:#fff; border-radius:4px; padding:30px 26px; width:100%; max-width:360px; box-shadow:var(--card-shadow-lg); text-align:center; border-top:4px solid var(--gold-bright); }:root[data-style="2"] #authCard h2{ margin:0 0 4px 0; color:var(--emerald); font-size:20px; }:root[data-style="2"] #authCard p.sub{ margin:0 0 20px 0; color:#888; font-size:13px; }:root[data-style="2"] #authCard input{ width:100%; box-sizing:border-box; padding:11px 12px; margin-bottom:12px; border-radius:4px; border:1px solid #ddd; font-size:15px; text-align:right; }:root[data-style="2"] #authCard button{ width:100%; padding:12px; border:none; border-radius:4px; background:var(--panel-dark); color:var(--gold-bright); font-weight:700; font-size:15px; cursor:pointer; margin-top:4px; }:root[data-style="2"] #authCard button.secondary{ background:transparent; color:var(--emerald); text-decoration:underline; margin-top:10px; padding:6px; }:root[data-style="2"] #authError{ color:var(--maroon); font-size:13px; margin-top:10px; min-height:18px; }:root[data-style="2"] #authLoading{ color:#888; font-size:13px; margin-top:10px; }:root[data-style="2"] #infoBackdrop{ position:fixed; inset:0; background:rgba(20,20,20,.4); z-index:45; opacity:0; pointer-events:none; transition:opacity .25s; }:root[data-style="2"] #infoBackdrop.show{ opacity:1; pointer-events:auto; }:root[data-style="2"] #infoModal{
-  position:fixed; left:0; right:0; bottom:0; z-index:50; background:#fff;
-  border-radius:0; box-shadow:0 -14px 40px rgba(0,0,0,.15); width:100%; max-height:82vh; max-height:82dvh;
-  display:flex; flex-direction:column; transform:translateY(110%); opacity:1; pointer-events:none;
-  transition:transform .3s cubic-bezier(.22,.9,.34,1); border-top:3px solid var(--gold-bright);
-}:root[data-style="2"] #infoModal.show{ transform:translateY(0); opacity:1; pointer-events:auto; }:root[data-style="2"] #infoModal::before{ display:none; }:root[data-style="2"] .info-modal-header{ display:flex; justify-content:space-between; align-items:center; padding:20px 24px 10px; font-family:'Amiri',serif; font-size:19px; font-weight:700; color:var(--emerald); border-bottom:1px solid #eee7d6; }:root[data-style="2"] #infoModalClose{ font-size:13px; color:#999; cursor:pointer; border:1px solid #e2ddce; border-radius:3px; padding:4px 12px; }:root[data-style="2"] .info-tabs{ display:flex; gap:0; padding:0 24px; border-bottom:1px solid #eee7d6; }:root[data-style="2"] .info-tab{ flex:1; border:none; background:transparent; color:#8a7550; padding:13px 6px; border-radius:0; font-size:12.5px; font-weight:700; cursor:pointer; border-bottom:3px solid transparent; }:root[data-style="2"] .info-tab.active{ background:transparent; color:var(--emerald); border-bottom-color:var(--gold-bright); }:root[data-style="2"] .info-tab-content{ padding:16px 24px 28px; overflow-y:auto; background:#fff; }:root[data-style="2"] .info-tab-content .soon{ text-align:center; color:#bbb; padding:36px 0; font-size:14px; }:root[data-style="2"] .f-label{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--trunk); font-weight:700; margin:18px 0 6px; }:root[data-style="2"] .f-label::before{ content:""; width:4px; height:4px; background:var(--gold); flex:none; }:root[data-style="2"] .f-input{ width:100%; box-sizing:border-box; padding:11px 14px; border:1px solid #e2ddce; border-radius:4px; font-size:14px; text-align:right; outline:none; background:#faf8f1; }:root[data-style="2"] .f-input:focus{ border-color:var(--gold); background:#fff; }:root[data-style="2"] .f-row{ display:flex; gap:10px; align-items:center; font-size:13.5px; }:root[data-style="2"] .f-row label{ display:flex; align-items:center; gap:4px; }:root[data-style="2"] .f-age{ margin-top:10px; font-size:13.5px; color:#333; background:var(--gold-soft); display:inline-block; padding:6px 14px; border-radius:3px; font-weight:700; }:root[data-style="2"] .f-btn-sm{ background:var(--panel-dark); color:var(--gold-bright); border:none; border-radius:4px; padding:9px 16px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; }:root[data-style="2"] .theme-btn.active{ outline:3px solid var(--gold-bright); outline-offset:2px; }:root[data-style="2"] .chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }:root[data-style="2"] .chip{ background:#faf8f1; border:1px solid #e2ddce; border-radius:3px; padding:7px 13px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; position:relative; }:root[data-style="2"] .chip select{ font-size:11.5px; border:none; background:transparent; }:root[data-style="2"] .chip .chip-x{ color:var(--maroon); font-weight:700; cursor:pointer; }:root[data-style="2"] .autocomplete-dropdown{ position:absolute; top:48px; right:0; left:0; background:#fff; border:1px solid #e2ddce; border-radius:4px; box-shadow:var(--card-shadow-lg); max-height:220px; overflow-y:auto; z-index:5; display:none; }:root[data-style="2"] .autocomplete-dropdown.show{ display:block; }:root[data-style="2"] .autocomplete-dropdown.dropdown-up{ top:auto; bottom:48px; }:root[data-style="2"] .autocomplete-item{ padding:10px 14px; font-size:13px; cursor:pointer; border-bottom:1px solid #f2eee2; }:root[data-style="2"] .autocomplete-item:last-child{ border-bottom:none; }:root[data-style="2"] .autocomplete-item:hover{ background:#faf4e6; }:root[data-style="2"] .autocomplete-item .chain-sub{ display:block; font-size:11px; color:#aaa; margin-top:2px; }:root[data-style="2"] .wife-block{ border:1px solid #e2ddce; background:#faf8f1; border-radius:4px; padding:14px; margin-top:12px; }:root[data-style="2"] .wife-block .f-input{ margin-bottom:8px; }:root[data-style="2"] .wife-type-chooser{ display:flex; gap:8px; margin-top:10px; }:root[data-style="2"] .wife-type-chooser button{ flex:1; }:root[data-style="2"] .wife-type-chooser #wifeTypeOutside{ background:#4a3b26; }:root[data-style="2"] .father-search-result{ font-size:12.5px; color:var(--trunk); margin-top:4px; }:root[data-style="2"] .wife-children{ display:flex; flex-wrap:wrap; gap:8px; font-size:12.5px; }:root[data-style="2"] .wife-children label{ display:flex; align-items:center; gap:4px; }:root[data-style="2"] #photoPreviewWrap img{ max-width:130px; border-radius:4px; margin-top:10px; display:block; }:root[data-style="2"] .f-save-btn{ width:100%; margin-top:24px; padding:13px; background:#1E7A4C; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:14.5px; cursor:pointer; }:root[data-style="2"] #f-saveMsg{ text-align:center; margin-top:8px; font-size:13px; color:#1E7A4C; min-height:1px; font-weight:600; }
+  .no-tree-edit .plus-badge{ display:none !important; }
 
 /* ============ الاستايل ٣: المستقبلي (data-style=3) ============ */
 :root[data-style="3"]{
@@ -1073,44 +982,31 @@
 
 /* ================================================================
    كتلة الحركات العصرية (Bounce / Expand / Slide)
-   تعمل فقط على تصميمَي "لوحة التحكم" (data-style=2) و"المستقبلي" (data-style=3)
-   على جميع الأجهزة. التصميم الافتراضي لا يتأثر إطلاقًا.
+   تعمل فقط على تصميم "المستقبلي" (data-style=3) على جميع الأجهزة. التصميم الافتراضي لا يتأثر إطلاقًا.
    كتلة معزولة تمامًا — حذفها يعيد كل شيء كما كان بلا أي أثر.
-   ================================================================ */
-:root[data-style="2"], :root[data-style="3"]{
+   ================================================================ */ :root[data-style="3"]{
   --fx-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --fx-overshoot: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* 1) ارتداد الأزرار */
-:root[data-style="2"] button,
 :root[data-style="3"] button,
-:root[data-style="2"] .f-btn-sm,
 :root[data-style="3"] .f-btn-sm,
-:root[data-style="2"] .dt-tab,
 :root[data-style="3"] .dt-tab{
   transition: transform .35s var(--fx-bounce), box-shadow .35s ease, background .2s ease !important;
 }
-:root[data-style="2"] button:hover,
 :root[data-style="3"] button:hover,
-:root[data-style="2"] .dt-tab:hover,
 :root[data-style="3"] .dt-tab:hover,
-:root[data-style="2"] .f-btn-sm:hover,
 :root[data-style="3"] .f-btn-sm:hover{
   transform: scale(1.07) !important;
 }
-:root[data-style="2"] button:active,
 :root[data-style="3"] button:active,
-:root[data-style="2"] .dt-tab:active,
 :root[data-style="3"] .dt-tab:active,
-:root[data-style="2"] .f-btn-sm:active,
 :root[data-style="3"] .f-btn-sm:active{
   transform: scale(0.9) !important;
 }
 /* استثناء: عناصر التحكم بالشجرة والعقد لا تتأثر حتى لا يتشوّه الرسم */
-:root[data-style="2"] .node button,
 :root[data-style="3"] .node button,
-:root[data-style="2"] svg button,
 :root[data-style="3"] svg button{
   transform: none !important;
 }
@@ -1123,11 +1019,8 @@
   60%{ opacity:1; clip-path: inset(0 0 -6% 0); }
   to{ opacity:1; clip-path: inset(0 0 0 0); }
 }
-:root[data-style="2"] .bottom-panel.show,
 :root[data-style="3"] .bottom-panel.show,
-:root[data-style="2"] #infoModal.show,
 :root[data-style="3"] #infoModal.show,
-:root[data-style="2"] #sheet.show,
 :root[data-style="3"] #sheet.show{
   animation: fxExpandPanel .5s var(--fx-overshoot) both !important;
 }
@@ -1137,22 +1030,18 @@
   from{ opacity:0; transform: translateY(-14px); }
   to{ opacity:1; transform: translateY(0); }
 }
-:root[data-style="2"] .autocomplete-dropdown.show,
 :root[data-style="3"] .autocomplete-dropdown.show{
   animation: fxSlideInDown .4s ease both !important;
 }
-:root[data-style="2"] .autocomplete-item,
 :root[data-style="3"] .autocomplete-item{
   transition: padding-right .3s ease, background .3s ease, color .3s ease;
 }
-:root[data-style="2"] .autocomplete-item:hover,
 :root[data-style="3"] .autocomplete-item:hover{
   padding-right: 32px !important;
 }
 
 /* احترام تفضيل تقليل الحركة لمن يعانون من الحساسية للحركة */
-@media (prefers-reduced-motion: reduce){
-  :root[data-style="2"] *, :root[data-style="3"] *{
+@media (prefers-reduced-motion: reduce){ :root[data-style="3"] *{
     animation: none !important;
     transition: none !important;
   }
@@ -1174,31 +1063,26 @@
 }
 
 /* ================================================================
-   توهج عناصر المشجرة والاقتراحات — لتصميمَي "لوحة التحكم" و"المستقبلي" فقط
+   توهج عناصر المشجرة والاقتراحات — لتصميم "المستقبلي" فقط
    ================================================================ */
 /* الدوائر: توهج بنفس لونها */
-:root[data-style="2"] .node circle,
 :root[data-style="3"] .node circle{
   filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 0 12px currentColor);
   transition: filter .28s ease;
 }
 /* الأسماء: توهج أبيض كالإنارة */
 /* عند مرور المؤشر على عقدة: توهج أقوى + حدود بارزة + نص أوضح */
-:root[data-style="2"] .node:hover circle,
 :root[data-style="3"] .node:hover circle{
   filter: drop-shadow(0 0 9px currentColor) drop-shadow(0 0 22px currentColor) brightness(1.25);
 }
-:root[data-style="2"] .node:hover .tag,
 :root[data-style="3"] .node:hover .tag{
   stroke:#FFD770 !important;
   stroke-width:2.4px !important;
   filter: drop-shadow(0 0 10px rgba(255,215,112,.85));
 }
-:root[data-style="2"] .node,
 :root[data-style="3"] .node{ cursor:pointer; }
 
 /* عند مرور المؤشر على اقتراح: حدود وتوهج ووضوح أكبر للنص */
-:root[data-style="2"] .autocomplete-item:hover,
 :root[data-style="3"] .autocomplete-item:hover{
   box-shadow: inset 0 0 0 2px rgba(212,175,55,.75), 0 0 16px rgba(212,175,55,.35) !important;
   border-radius:10px !important;
@@ -1206,19 +1090,16 @@
   filter: brightness(1.06);
 }
 
-/* الأجهزة اللمسية: توهج عند الضغط بدلًا من hover (اللمس لا يدعم hover) — لتصميمَي لوحة التحكم والمستقبلي */
+/* الأجهزة اللمسية: توهج عند الضغط بدلًا من hover (اللمس لا يدعم hover) — لتصميم المستقبلي */
 @media (hover:none) and (pointer:coarse){
-  :root[data-style="2"] .node:active circle,
   :root[data-style="3"] .node:active circle{
     filter: drop-shadow(0 0 9px currentColor) drop-shadow(0 0 22px currentColor) brightness(1.25);
   }
-  :root[data-style="2"] .node:active .tag,
   :root[data-style="3"] .node:active .tag{
     stroke:#FFD770 !important;
     stroke-width:2.4px !important;
     filter: drop-shadow(0 0 10px rgba(255,215,112,.85));
   }
-  :root[data-style="2"] .autocomplete-item:active,
   :root[data-style="3"] .autocomplete-item:active{
     box-shadow: inset 0 0 0 2px rgba(212,175,55,.75), 0 0 16px rgba(212,175,55,.35) !important;
     border-radius:10px !important;
@@ -1229,11 +1110,10 @@
 
 /* ================================================================
    [كتلة مضافة] توهج نيون للواجهة — بشدة متوسطة (واضح دون أن يكون صارخًا)
-   يعمل على: لوحة التحكم (2) والمستقبلي (3) فقط
+   يعمل على: تصميم المستقبلي (3) فقط
    لا يشمل: التصميم الافتراضي · عناصر رسم الشجرة (دوائر/أسماء/روابط)
    كتلة معزولة: حذفها يعيد كل شيء كما كان بلا أثر
-   ================================================================ */
-:root[data-style="2"], :root[data-style="3"]{
+   ================================================================ */ :root[data-style="3"]{
   --neon: #00FFA2;                      /* أخضر نيون */
   --neon-2: #00D1FF;                    /* أزرق كهربائي */
   --neon-soft: rgba(0, 255, 162, .22);
@@ -1241,94 +1121,74 @@
 }
 
 /* ---------- الهيدر: حد سفلي متوهج + هالة خفيفة ---------- */
-:root[data-style="2"] #dtHeader,
 :root[data-style="3"] #dtHeader{
   border-bottom: 1px solid var(--neon-soft) !important;
   box-shadow: 0 0 24px var(--neon-soft), 0 4px 20px rgba(0,0,0,.28) !important;
 }
 
 /* ---------- التبويبات: توهج النص عند المرور والتفعيل ---------- */
-:root[data-style="2"] .dt-tab:hover,
 :root[data-style="3"] .dt-tab:hover,
-:root[data-style="2"] .dt-tab.dt-active,
 :root[data-style="3"] .dt-tab.dt-active{
   color: var(--neon) !important;
   text-shadow: 0 0 8px var(--neon), 0 0 18px var(--neon-soft);
   border-bottom-color: var(--neon) !important;
 }
-:root[data-style="2"] .dt-tab .dt-ic,
 :root[data-style="3"] .dt-tab .dt-ic{
   transition: filter .25s ease;
 }
-:root[data-style="2"] .dt-tab:hover .dt-ic,
 :root[data-style="3"] .dt-tab:hover .dt-ic{
   filter: drop-shadow(0 0 6px var(--neon-soft));
 }
 
 /* ---------- اللوحات والنوافذ: حدود متوهجة + هالة ---------- */
-:root[data-style="2"] .bottom-panel,
 :root[data-style="3"] .bottom-panel,
-:root[data-style="2"] #infoModal,
 :root[data-style="3"] #infoModal,
-:root[data-style="2"] #sheet,
 :root[data-style="3"] #sheet{
   border: 1px solid var(--neon-soft) !important;
   box-shadow: 0 0 34px var(--neon-soft), 0 18px 50px rgba(0,0,0,.32) !important;
 }
 
 /* ---------- قائمة الاقتراحات: حد متوهج خفيف ---------- */
-:root[data-style="2"] .autocomplete-dropdown,
 :root[data-style="3"] .autocomplete-dropdown{
   border: 1px solid var(--neon-soft) !important;
   box-shadow: 0 0 26px var(--neon-soft), 0 14px 40px rgba(0,0,0,.26) !important;
 }
 
 /* ---------- الحقول: توهج عند التركيز ---------- */
-:root[data-style="2"] input:focus,
 :root[data-style="3"] input:focus,
-:root[data-style="2"] textarea:focus,
 :root[data-style="3"] textarea:focus,
-:root[data-style="2"] select:focus,
 :root[data-style="3"] select:focus{
   outline: none !important;
   border-color: var(--neon) !important;
   box-shadow: 0 0 0 2px var(--neon-soft), 0 0 16px var(--neon-soft) !important;
 }
-:root[data-style="2"] .searchbar:focus-within,
 :root[data-style="3"] .searchbar:focus-within{
   box-shadow: 0 0 0 2px var(--neon-soft), 0 0 18px var(--neon-soft) !important;
 }
 
 /* ---------- الأزرار: هالة عند المرور ---------- */
-:root[data-style="2"] .f-btn-sm:hover,
 :root[data-style="3"] .f-btn-sm:hover,
-:root[data-style="2"] .f-save-btn:hover,
 :root[data-style="3"] .f-save-btn:hover{
   box-shadow: 0 0 18px var(--neon-soft), 0 0 34px var(--neon-2-soft) !important;
 }
 
 /* ---------- زر المساعد الذكي: هالة زرقاء مميّزة ---------- */
-:root[data-style="2"] #dtChatToggle,
 :root[data-style="3"] #dtChatToggle{
   border-color: var(--neon-2) !important;
   box-shadow: 0 0 20px var(--neon-2-soft), 0 8px 26px rgba(0,0,0,.3) !important;
 }
-:root[data-style="2"] #dtChatToggle:hover,
 :root[data-style="3"] #dtChatToggle:hover{
   box-shadow: 0 0 28px var(--neon-2-soft), 0 0 48px var(--neon-2-soft) !important;
 }
-:root[data-style="2"] #aiChatPanel,
 :root[data-style="3"] #aiChatPanel{
   border-color: var(--neon-2) !important;
   box-shadow: 0 0 30px var(--neon-2-soft), 0 16px 44px rgba(0,0,0,.34) !important;
 }
 
 /* ---------- شارة المستخدم + أزرار التحكم بالشجرة: هالة خفيفة ---------- */
-:root[data-style="2"] #currentUserBadge,
 :root[data-style="3"] #currentUserBadge{
   box-shadow: 0 0 16px var(--neon-soft) !important;
 }
-:root[data-style="2"] .zoom-fab button:hover,
 :root[data-style="3"] .zoom-fab button:hover{
   box-shadow: 0 0 20px var(--neon-soft), 0 8px 24px rgba(0,0,0,.3) !important;
 }
@@ -1337,76 +1197,58 @@
    [محدَّث ٢] توهج الشجرة — التوهج يظهر عند التفاعل فقط
    • قبل الفأرة: بلا توهج إطلاقًا. حدّ الدائرة بحدّة إطار صندوق الاسم-عند-hover + أشد قليلًا
    • عند الفأرة: إطار الدائرة يتوهج + اللوجو داخلها يتوهج + صندوق الاسم يتوهج
-   يعمل على: لوحة التحكم (2) والمستقبلي (3) فقط
+   يعمل على: تصميم المستقبلي (3) فقط
    ================================================================ */
 
 /* ---------- الحالة الطبيعية: نظيفة بلا توهج ---------- */
-:root[data-style="2"] .node circle,
 :root[data-style="3"] .node circle{
   filter: none !important;
   transition: filter .25s ease, stroke-width .25s ease, stroke .25s ease;
 }
 /* حدّ الدائرة: بحدّة إطار الصندوق-عند-hover (1.4px) + أشد قليلًا => 1.8px */
-:root[data-style="2"] .node .avatar-root,
 :root[data-style="3"] .node .avatar-root,
-:root[data-style="2"] .node .avatar-joinpoint,
 :root[data-style="3"] .node .avatar-joinpoint,
-:root[data-style="2"] .node .avatar-trunk,
 :root[data-style="3"] .node .avatar-trunk,
-:root[data-style="2"] .node .avatar-leaf,
 :root[data-style="3"] .node .avatar-leaf,
-:root[data-style="2"] .node .avatar-trunk-red,
 :root[data-style="3"] .node .avatar-trunk-red,
-:root[data-style="2"] .node .avatar-trunk-green,
 :root[data-style="3"] .node .avatar-trunk-green,
-:root[data-style="2"] .node .avatar-trunk-blue,
 :root[data-style="3"] .node .avatar-trunk-blue,
-:root[data-style="2"] .node .avatar-trunk-gold,
 :root[data-style="3"] .node .avatar-trunk-gold,
-:root[data-style="2"] .node .avatar-female,
 :root[data-style="3"] .node .avatar-female{
   stroke-width: 1.8px !important;
 }
 
 /* صندوق الاسم واللوجو والخطوط: طبيعية تمامًا قبل الفأرة */
-:root[data-style="2"] .node .tag,
 :root[data-style="3"] .node .tag{
   filter: none !important;
   transition: stroke .25s ease, stroke-width .25s ease, filter .25s ease;
 }
-:root[data-style="2"] .node text,
 :root[data-style="3"] .node text{
   filter: none !important;
 }
-:root[data-style="2"] .node .glyph,
 :root[data-style="3"] .node .glyph{
   filter: none !important;
   transition: filter .25s ease;
 }
-:root[data-style="2"] .link,
 :root[data-style="3"] .link{
   filter: none !important;
 }
 
 /* ---------- عند مرور الفأرة: التوهج يظهر ---------- */
 /* إطار الدائرة يتوهج */
-:root[data-style="2"] .node:hover circle,
 :root[data-style="3"] .node:hover circle{
   filter: drop-shadow(0 0 5px var(--neon)) drop-shadow(0 0 14px var(--neon-soft)) !important;
 }
 /* اللوجو (أيقونة الشخص) داخل الدائرة يتوهج */
-:root[data-style="2"] .node:hover .glyph,
 :root[data-style="3"] .node:hover .glyph{
   filter: drop-shadow(0 0 4px var(--neon)) drop-shadow(0 0 9px var(--neon-soft)) !important;
 }
 /* صندوق الاسم يتوهج */
-:root[data-style="2"] .node:hover .tag,
 :root[data-style="3"] .node:hover .tag{
   stroke: var(--neon) !important;
   stroke-width: 1.4px !important;
   filter: drop-shadow(0 0 6px var(--neon-soft)) !important;
 }
-:root[data-style="2"] .node:hover text,
 :root[data-style="3"] .node:hover text{
   filter: none !important;
   font-weight: 700 !important;
@@ -1414,15 +1256,12 @@
 
 /* ---------- اللمس: نفس سلوك الفأرة ---------- */
 @media (hover:none) and (pointer:coarse){
-  :root[data-style="2"] .node:active circle,
   :root[data-style="3"] .node:active circle{
     filter: drop-shadow(0 0 5px var(--neon)) drop-shadow(0 0 14px var(--neon-soft)) !important;
   }
-  :root[data-style="2"] .node:active .glyph,
   :root[data-style="3"] .node:active .glyph{
     filter: drop-shadow(0 0 4px var(--neon)) drop-shadow(0 0 9px var(--neon-soft)) !important;
   }
-  :root[data-style="2"] .node:active .tag,
   :root[data-style="3"] .node:active .tag{
     stroke: var(--neon) !important;
     stroke-width: 1.4px !important;
@@ -1719,32 +1558,9 @@ body:not(.authed) #artBackground{
     background:var(--bg-2, #161f18);
     border-color:var(--glow, #2FE3A6);
   }
-  :root[data-style="2"] .bottom-panel:not(#relPanel){
-    background:var(--card-bg, #FBFAF3);
-  }
 }
 
-/* ============================================================
-   التصميم الرابع: "أسمل" — يطابق الصورة المرجعية شكلًا (حبة دواء،
-   شريط علوي داكن، صندوق أبيض مدوّر للتكبير) — الألوان تتبع الثيمات
-   الأربعة تلقائيًا عبر المتغيرات الحالية (--ink/--bg/--card-bg/--gold).
-   ============================================================ */
-
-/* شريط علوي داكن خلفي فقط (لا وظيفة له) لإعطاء نفس شكل الهيدر بالمرجع */
-#asmalHeaderBar{ display:none; }
-:root[data-style="4"] #asmalHeaderBar{
-  display:block; position:fixed; inset:0 0 auto 0; height:64px;
-  background:var(--ink); z-index:48;
-}
-
-/* شارة المستخدم تبقى بموضعها الحالي (كما طلب)، فقط نتأكد من ظهورها فوق الشريط الداكن ونعدّل ألوانها لتناسبه */
-:root[data-style="4"] #currentUserBadge{
-  z-index:56 !important; background:rgba(255,255,255,.95) !important;
-  top:12px !important; right:auto !important; left:14px !important;
-  height:40px !important; box-sizing:border-box !important; padding:0 12px !important;
-}
-
-/* أيقونة الأخبار الجديدة (news-icon.png) — تُطبَّق الآن على كل التصاميم، بخلفية شفافة وتوهج يتبع حوافها */
+/* أيقونة الأخبار (news-icon.png) — تُطبَّق على كل التصاميم، بخلفية شفافة وتوهج يتبع حوافها */
 #newsNavBtn{
   font-size:0 !important; background:transparent !important; border:none !important; box-shadow:none !important;
 }
@@ -1754,87 +1570,13 @@ body:not(.authed) #artBackground{
   filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
 }
 
-/* موضع خاص بتصميم أسمل فقط (بقية التصاميم تبقى بموضعها الأصلي من الـHTML) */
-:root[data-style="4"] #newsNavBtn{
-  position:fixed !important; top:12px !important; left:auto !important; right:14px !important;
-  width:40px; height:40px; z-index:56;
+/* تبديل مواضع أيقونة الأخبار وأزرار A+/A- عن موضعها الافتراضي بالـHTML */
+#newsNavBtn{
+  top:10px !important; left:auto !important; right:10px !important;
 }
-
-
-/* لوحات هذه الثلاثة تحديدًا: تنبثق كقائمة صغيرة أسفل أيقونتها مباشرة (بدل الانزلاق من أسفل الشاشة)،
-   حصريًا بتصميم "أسمل" — بقية اللوحات بكل التصاميم (بما فيها أسمل) تبقى بنمطها الأصلي.
-   العرض الآن يمتد من بداية منطقة A+ (يمينًا) تقريبًا حتى قرب نهاية الصفحة يسارًا */
-:root[data-style="4"] #searchPanel,
-:root[data-style="4"] #ioPanel,
-:root[data-style="4"] #attachmentsPanel{
-  position:fixed !important; top:56px !important; bottom:auto !important;
-  right:10px !important; left:14px !important; margin:0 !important;
-  max-width:none !important; width:auto !important;
-  border-radius:4px 16px 16px 16px !important;
-  background:var(--card-bg); box-shadow:var(--card-shadow-lg);
-  padding:12px !important;
-  z-index:57 !important;
+#uiScaleControls{
+  top:70px !important; right:auto !important; left:14px !important;
 }
-
-/* بقية لوحات أسمل: يحكمها الآن الأسلوب الموحّد (UNIFIED BOTTOM-SHEET) في نهاية الملف */
-
-/* أزرار A+/A- تنزل قليلًا لتتوضّع أسفل الشريط الداكن بدل تراكبها معه */
-:root[data-style="4"] #uiScaleControls{ top:76px !important; }
-
-/* الصندوق الموحّد: تكبير، تصغير، إعادة تعيين، حذف — أربع خانات حقيقية بنفس الحاوية
-   (deleteBadgeToggle يُنقَل فعليًا ليصبح ابنًا رابعًا داخل .zoom-fab عبر app.js، فيرث تلقائيًا
-   كل تنسيق .zoom-fab button المشترك أدناه بلا أي حساب موضع يدوي منفصل — هذا يحل مشكلة
-   عدم انضباط حدود الخانة الرابعة نهائيًا). العرض 56px (أُنقص بمقدار ربعه من 74px الأصلية).
-   مرفوع لمنتصف الصفحة رأسيًا، بنفس عمود اليسار (14px) دون تحريك أفقي. */
-:root[data-style="4"] .zoom-fab{
-  position:fixed !important; left:14px !important; top:calc(50% - 112px) !important; bottom:auto !important;
-  background:var(--card-bg); border:1px solid color-mix(in srgb, var(--ink) 12%, var(--line));
-  border-radius:14px; box-shadow:var(--card-shadow); padding:0; gap:0 !important;
-}
-:root[data-style="4"] .zoom-fab button{
-  width:56px !important; height:56px !important; border-radius:0 !important;
-  display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-  background:transparent !important; border:none !important; box-shadow:none !important;
-  font-size:15px; color:var(--ink);
-  transition:background .15s ease;
-}
-:root[data-style="4"] .zoom-fab button:not(:last-child){
-  border-bottom:1px solid color-mix(in srgb, var(--ink) 10%, var(--line)) !important;
-}
-:root[data-style="4"] .zoom-fab button:first-child{ border-radius:14px 14px 0 0 !important; }
-:root[data-style="4"] .zoom-fab button:last-child{ border-radius:0 0 14px 14px !important; }
-:root[data-style="4"] #zoomIn::after{ content:"تكبير"; }
-:root[data-style="4"] #zoomOut::after{ content:"تصغير"; }
-:root[data-style="4"] #zoomReset::after{ content:"إعادة تعيين"; }
-:root[data-style="4"] .zoom-fab button::after{ font-family:'Tajawal',sans-serif; font-size:9px; font-weight:700; }
-
-/* علامات الحذف: نفس الزر الحقيقي (deleteBadgeToggle)، بأيقونة "شخص+X" بدل السلة (بصريًا فقط عبر CSS) */
-:root[data-style="4"] #deleteBadgeToggle{
-  font-size:0 !important;
-}
-:root[data-style="4"] #deleteBadgeToggle::before{
-  content:""; display:block; width:22px; height:22px;
-  background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23241a10%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2%22/%3E%3Ccircle cx=%229%22 cy=%227%22 r=%224%22/%3E%3Cline x1=%2217%22 y1=%228%22 x2=%2222%22 y2=%2213%22/%3E%3Cline x1=%2222%22 y1=%228%22 x2=%2217%22 y2=%2213%22/%3E%3C/svg%3E');
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-}
-:root[data-style="4"] #deleteBadgeToggle::after{ content:"تفعيل الحذف"; }
-/* حالة التفعيل: نفس الكلاس "active" الذي يبدّله app.js أصلًا — نلوّن الخانة لتوضيح أنه مفعّل */
-:root[data-style="4"] #deleteBadgeToggle.active{
-  background:var(--gold) !important;
-}
-:root[data-style="4"] #deleteBadgeToggle.active::after{ color:#fff; }
-
-/* الشريط السفلي الداكن (نفس شكل المرجع) — الأيقونات المتبقية فقط، تلقائيًا بفضل position:fixed للمنقولات */
-:root[data-style="4"] #bottomBar{
-  z-index:58 !important;
-  flex-direction:row-reverse !important;
-  background:var(--ink) !important; border-radius:22px !important; margin:0 10px 10px !important;
-  bottom:10px !important; box-shadow:0 6px 20px rgba(0,0,0,.25) !important;
-}
-:root[data-style="4"] #bottomBar button{ color:#fff !important; }
-/* تصحيح ارتفاع مرجع اللوحات (--barh) ليطابق الشكل الجديد للشريط (حبة + هامش سفلي 10px)،
-   حتى تبدأ كل اللوحات مباشرة فوق الشريط بدل التداخل معه أو ترك فجوة */
-:root[data-style="4"]{ --barh:66px; }
 
 /* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
 #themeChooser, #layoutChooser{
@@ -1842,75 +1584,6 @@ body:not(.authed) #artBackground{
 }
 #themeChooser .theme-btn, #layoutChooser .layout-btn{
   flex:0 0 auto; white-space:nowrap;
-}
-
-/* ============================================================
-   ===== ASMAL ADMIN MENU / INLINE SEARCH START (معزول) =====
-   القائمة المنسدلة الإدارية (أدمن + أسمل فقط): تفتح من موضع
-   أيقونة الأخبار يسارًا، وتكشف بحث/مرفقات/تصدير بهذا الترتيب.
-   البحث المضمّن الدائم (غير الأدمن + أسمل فقط): مربع كتابة بحث
-   حقيقي دائم من موضع الأخبار حتى شارة المستخدم، بلا أيقونة.
-   ============================================================ */
-#asmalAdminMenuItems{ display:none; }
-:root[data-style="4"] #asmalAdminMenuItems{
-  display:flex !important; position:fixed; top:12px; right:58px; z-index:55;
-  align-items:center; gap:10px;
-  max-width:0; overflow:hidden; transition:max-width .25s ease;
-}
-:root[data-style="4"] #asmalAdminMenuItems.open{ max-width:280px; }
-/* زر التشغيل بموضع أيقونة الأخبار: دائرة خضراء بأيقونة ☰ (بدل صورة الأخبار)، أخبار حقيقية تظهر كعنصر أول داخل القائمة */
-:root[data-style="4"] #newsNavBtn.admin-toggle-mode{
-  background:var(--emerald) !important; box-shadow:0 3px 8px rgba(0,0,0,.25) !important; border-radius:50%;
-}
-:root[data-style="4"] #newsNavBtn.admin-toggle-mode::after{ content:none !important; }
-:root[data-style="4"] #newsNavBtn.admin-toggle-mode::before{
-  content:"☰"; display:flex; align-items:center; justify-content:center;
-  width:100%; height:100%; font-size:20px; color:#fff;
-}
-:root[data-style="4"] #asmalAdminMenuItems #asmalAdminNewsLink{
-  width:40px; height:40px; flex:none; display:block;
-  filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
-}
-:root[data-style="4"] #asmalAdminMenuItems #searchToggle,
-:root[data-style="4"] #asmalAdminMenuItems #ioToggle,
-:root[data-style="4"] #asmalAdminMenuItems #attachmentsToggle{
-  position:static !important; flex:none !important;
-  width:36px !important; height:36px !important; border-radius:50% !important;
-  padding:0 !important; margin:0 !important;
-  background:var(--card-bg) !important; border:1px solid var(--line) !important; box-shadow:none !important;
-  display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:15px !important; color:var(--ink) !important;
-}
-:root[data-style="4"] #asmalAdminMenuItems #searchToggle::after,
-:root[data-style="4"] #asmalAdminMenuItems #ioToggle::after,
-:root[data-style="4"] #asmalAdminMenuItems #attachmentsToggle::after{ content:none !important; }
-
-#asmalInlineSearch{ display:none; }
-:root[data-style="4"] #asmalInlineSearch{
-  display:flex !important; position:fixed; top:12px; right:60px; left:220px; height:40px; z-index:56;
-  align-items:center;
-}
-:root[data-style="4"] #asmalInlineSearch .searchbar{
-  position:relative !important; width:100% !important; max-width:none !important; margin:0 !important;
-  display:flex !important; align-items:center;
-  background:var(--card-bg); border:1px solid var(--line); border-radius:20px; padding:0 12px; height:40px;
-}
-:root[data-style="4"] #asmalInlineSearch .searchbar svg{ width:16px; height:16px; flex:none; color:var(--ink); }
-:root[data-style="4"] #asmalInlineSearch .searchbar input{
-  border:none !important; background:transparent !important; outline:none; flex:1;
-  font-size:13px !important; padding:0 8px !important; color:var(--ink);
-}
-:root[data-style="4"] #asmalInlineSearch .autocomplete-dropdown.dropdown-up{
-  top:100% !important; bottom:auto !important;
-}
-/* ===== ASMAL ADMIN MENU / INLINE SEARCH END ===== */
-
-/* تبديل مواضع أيقونة الأخبار وأزرار A+/A- ببقية التصاميم (غير أسمل) فقط — كل أيقونة تنتقل لمكان الأخرى */
-:root:not([data-style="4"]) #newsNavBtn{
-  top:10px !important; left:auto !important; right:10px !important;
-}
-:root:not([data-style="4"]) #uiScaleControls{
-  top:70px !important; right:auto !important; left:14px !important;
 }
 
 /* ============================================================
@@ -2072,7 +1745,6 @@ body:not(.authed) #artBackground{
 .panel-close-x:active{ background:rgba(0,0,0,.14); }
 /* اللوحات تحتاج تموضع نسبي حتى يلتصق زر الإغلاق بها؛ معظمها أصلًا كذلك، ونؤكدها هنا */
 .bottom-panel{ position:relative; }
-:root[data-style="4"] #searchPanel, :root[data-style="4"] #ioPanel, :root[data-style="4"] #attachmentsPanel{ position:fixed !important; }
 /* ===== UNIFIED PANEL CLOSE BUTTON END ===== */
 
 /* ============================================================
@@ -2096,12 +1768,12 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
 
 /* ============================================================
    ===== UNIFIED BOTTOM-SHEET POPUP START (معزول — احذف لإلغاء التوحيد) =====
-   أسلوب موحّد لكل التصاميم (1/2/3/أسمل): اللوحة تنبثق من فوق الشريط السفلي
+   أسلوب موحّد لكل التصاميم: اللوحة تنبثق من فوق الشريط السفلي
    مباشرةً وتمتد للأعلى حتى قرب الهدر — موسّطة أفقيًا، بعرض مؤطّر، ولا تتراكب
    مع الشريط إطلاقًا. مبنية على نفس معادلة ملف popup-demo.html الموزون.
 
    المتغيّرات:
-     --barh : ارتفاع منطقة الشريط لكل تصميم (مضبوط مسبقًا: 1=64 · 2=64 · 3=58 · 4=78)
+     --barh : ارتفاع منطقة الشريط لكل تصميم (مضبوط مسبقًا لكل تصميم قائم)
      نضيف 8px فراغ أمان فوق الشريط عبر calc، وارتفاع الهدر التقديري 64px + 12 أمان.
    ============================================================ */
 .bottom-panel.unified-sheet,
@@ -2135,13 +1807,4 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
   border-radius:16px !important;
 }
 
-/* استثناء أسمل: searchPanel/ioPanel/attachmentsPanel تبقى منبثقة من الأعلى (top:56px)
-   كما ضُبطت سابقًا — لا نطبّق عليها أسلوب القاع. نعيد تأكيد ذلك حتى لا تُطغى عليها القاعدة أعلاه. */
-:root[data-style="4"] #searchPanel,
-:root[data-style="4"] #ioPanel,
-:root[data-style="4"] #attachmentsPanel{
-  top:56px !important; bottom:auto !important;
-  left:14px !important; right:10px !important; transform:none !important;
-  width:auto !important;
-}
 /* ===== UNIFIED BOTTOM-SHEET POPUP END ===== */

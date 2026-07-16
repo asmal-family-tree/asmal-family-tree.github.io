@@ -1,7 +1,7 @@
 /* ============================================================
    news-styles.css — تصميم صفحة الأخبار
    القسم الأول: متغيرات الألوان — منسوخة حرفيًا من styles.css
-   (نفس 3 layoutStyles × 4 themes الحقيقية). أي تحديث لألوان
+   (نفس layoutStyles القائمة × 4 themes الحقيقية). أي تحديث لألوان
    الموقع الأصلي يجب نسخه هنا أيضًا يدويًا للحفاظ على التطابق.
    ============================================================ */
 
@@ -28,27 +28,6 @@
   --gold:#8FA3B8; --gold-soft:#DFE5EC; --gold-bright:#A9BDD1;
   --emerald:#2E3A45; --emerald-2:#3E4E5C; --maroon:#7A3B45;
   --card-bg:#FFFFFF;
-}
-:root[data-style="2"]{
-  --bg:#F4F1EA; --ink:#20242B; --line:#9c8a5e;
-  --gold:#C08A2E; --gold-soft:#EAD9B0; --gold-bright:#DBA53E;
-  --emerald:#1B2430; --emerald-2:#232C3A; --maroon:#7A2E1F;
-  --card-bg:#FFFFFF;
-}
-:root[data-style="2"][data-theme="royal-green"]{
-  --bg:#EFEBDD; --ink:#182018;
-  --gold:#C9A227; --gold-soft:#E8DDB0; --gold-bright:#E4C441;
-  --emerald:#0F2A1C; --emerald-2:#173826; --card-bg:#FBFAF3;
-}
-:root[data-style="2"][data-theme="desert-gold"]{
-  --bg:#F1E6CC; --ink:#2c2015;
-  --gold:#C08A2E; --gold-soft:#EAD9B0; --gold-bright:#E0A836;
-  --emerald:#3A2814; --emerald-2:#4A3218; --card-bg:#FFFCF3;
-}
-:root[data-style="2"][data-theme="pearl-white"]{
-  --bg:#EEF1F5; --ink:#1F2933;
-  --gold:#8FA3B8; --gold-soft:#DFE5EC; --gold-bright:#A9BDD1;
-  --emerald:#2E3A45; --emerald-2:#3E4E5C; --card-bg:#FFFFFF;
 }
 :root[data-style="3"]{
   --bg:#12151C; --ink:#E9EDEE; --line:#3a4a44;

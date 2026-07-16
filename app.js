@@ -329,7 +329,6 @@ const TOUR_STEPS = [
 
 let _tourActiveSteps = [];
 let _tourIndex = 0;
-let _tourMenuWasOpened = false;
 
 function getFilteredTourSteps(){
   return TOUR_STEPS.filter(s => {
@@ -360,12 +359,6 @@ function startTour(versionToMark){
   // العناصر position:fixed، فتنزاح دائرة الإضاءة عن مكانها الصحيح. يُعاد الوضع الأصلي بنهاية الجولة.
   window._tourSavedZoom = document.body.style.zoom || "";
   document.body.style.zoom = "1";
-  // فتح القائمة الإدارية المنسدلة مسبقًا (أسمل+أدمن) حتى تظهر أيقوناتها بمواضعها الفعلية أثناء الجولة
-  const adminMenu = document.getElementById("asmalAdminMenuItems");
-  if (adminMenu && !adminMenu.classList.contains("open")){
-    adminMenu.classList.add("open");
-    _tourMenuWasOpened = true;
-  }
   document.getElementById("tourOverlay").style.display = "block";
   requestAnimationFrame(() => requestAnimationFrame(() => showTourStep(0, versionToMark)));
 }
@@ -409,11 +402,6 @@ function nextTourStep(i, versionToMark){
 async function endTour(versionToMark){
   document.getElementById("tourOverlay").style.display = "none";
   document.body.style.zoom = window._tourSavedZoom || "";
-  if (_tourMenuWasOpened){
-    const adminMenu = document.getElementById("asmalAdminMenuItems");
-    if (adminMenu) adminMenu.classList.remove("open");
-    _tourMenuWasOpened = false;
-  }
   if (versionToMark){
     localStorage.setItem("tourLastSeenVersion", String(versionToMark));
   }
@@ -473,7 +461,7 @@ document.getElementById("guestEnterLink").onclick = (e) => {
 //   • المستخدم يحفظ في localStorage      => يغيّره لنفسه فقط، ويتجاوز به العام
 // عند التحميل: نقرأ العام، ثم إن وُجد اختيار شخصي فهو الذي يُطبَّق.
 async function loadAndApplySiteTheme(){
-  let theme = "royal-green", layoutStyle = "4"; // الافتراضي الجديد: أسمل بالأخضر الملكي، ما لم يُحدَّد غيره صراحة
+  let theme = "royal-green", layoutStyle = ""; // الافتراضي: الأخضر الملكي بشكل الواجهة الأصلي، ما لم يُحدَّد غيره صراحة
   try{
     const snap = await db.collection("meta").doc("siteSettings").get();
     if (snap.exists){
@@ -517,114 +505,7 @@ function applyLayoutStyle(layoutStyle){
   document.querySelectorAll(".layout-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.style === layoutStyle);
   });
-  placeDeleteBadgeCellForAsmal(layoutStyle);
-  applyAsmalAdminOnlyVisibility();
-  placeAsmalAdminMenuOrInlineSearch(layoutStyle);
-  if (typeof window.counterZoomTopControls === "function") window.counterZoomTopControls();
 }
-
-// ===== ASMAL ADMIN MENU / INLINE SEARCH START (معزول — احذف هذه الدالة واستدعاءها بأمان لإلغاء الميزة) =====
-// أسمل + أدمن: بحث/مرفقات/تصدير تُنقل داخل قائمة منسدلة تفتح من موضع أيقونة الأخبار يسارًا.
-// أسمل + غير أدمن: أيقونة البحث تختفي، ويظهر بدلها مربع كتابة بحث مباشر ودائم في الهدر.
-// أي تصميم آخر: كل شيء يعود لمكانه الأصلي (الشريط السفلي / لوحة البحث المنبثقة).
-let _asmalNewsClickBound = false;
-function placeAsmalAdminMenuOrInlineSearch(layoutStyle){
-  const menuItems = document.getElementById("asmalAdminMenuItems");
-  const inlineSearchBox = document.getElementById("asmalInlineSearch");
-  const newsBtn = document.getElementById("newsNavBtn");
-  const bottomBar = document.getElementById("bottomBar");
-  const searchToggle = document.getElementById("searchToggle");
-  const ioToggle = document.getElementById("ioToggle");
-  const attachmentsToggle = document.getElementById("attachmentsToggle");
-  const searchbar = document.querySelector("#searchPanel .searchbar");
-  const searchPanel = document.getElementById("searchPanel");
-  if (!menuItems || !inlineSearchBox || !newsBtn || !bottomBar || !searchToggle || !ioToggle || !attachmentsToggle || !searchbar || !searchPanel) return;
-
-  const style4Admin = layoutStyle === "4" && isAdminUser();
-  const style4NonAdmin = layoutStyle === "4" && !isAdminUser();
-
-  // تفعيل اعتراض ضغطة أيقونة الأخبار مرة واحدة فقط (يتحقق من الحالة الحالية عند كل ضغطة)
-  if (!_asmalNewsClickBound){
-    newsBtn.addEventListener("click", (e)=>{
-      if (document.documentElement.getAttribute("data-style") === "4" && isAdminUser()){
-        e.preventDefault();
-        menuItems.classList.toggle("open");
-        if (typeof window.counterZoomTopControls === "function") window.counterZoomTopControls();
-      }
-    });
-    // إغلاق القائمة تلقائيًا عند الضغط على أي أيقونة بداخلها، حتى تظهر لوحتها بوضوح بلا تراكب
-    [searchToggle, attachmentsToggle, ioToggle].forEach(btn => {
-      btn.addEventListener("click", () => { menuItems.classList.remove("open"); });
-    });
-    _asmalNewsClickBound = true;
-  }
-
-  if (style4Admin){
-    newsBtn.classList.add("admin-toggle-mode");
-    // بحث ثم المرفقات ثم تصدير — بهذا الترتيب داخل القائمة (تظهر يمين لليسار: أخبار،بحث،مرفقات،تصدير)
-    if (searchToggle.parentElement !== menuItems) menuItems.appendChild(searchToggle);
-    if (attachmentsToggle.parentElement !== menuItems) menuItems.appendChild(attachmentsToggle);
-    if (ioToggle.parentElement !== menuItems) menuItems.appendChild(ioToggle);
-    if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
-  } else if (style4NonAdmin){
-    newsBtn.classList.remove("admin-toggle-mode");
-    menuItems.classList.remove("open");
-    if (searchToggle.parentElement !== bottomBar) bottomBar.appendChild(searchToggle);
-    if (attachmentsToggle.parentElement !== bottomBar) bottomBar.appendChild(attachmentsToggle);
-    if (ioToggle.parentElement !== bottomBar) bottomBar.appendChild(ioToggle);
-    searchToggle.style.setProperty("display", "none", "important");
-    if (searchbar.parentElement !== inlineSearchBox) inlineSearchBox.appendChild(searchbar);
-  } else {
-    newsBtn.classList.remove("admin-toggle-mode");
-    menuItems.classList.remove("open");
-    // ملاحظة: لا ننقل هذه الأزرار إطلاقًا هنا إن كانت أصلًا داخل الشريط السفلي —
-    // النقل غير المشروط كان يعيد ترتيبها لآخر الشريط في كل تحميل، فيكسر أي ترتيب مخصّص بالـHTML.
-    if (searchToggle.parentElement !== bottomBar) bottomBar.appendChild(searchToggle);
-    if (attachmentsToggle.parentElement !== bottomBar) bottomBar.appendChild(attachmentsToggle);
-    if (ioToggle.parentElement !== bottomBar) bottomBar.appendChild(ioToggle);
-    searchToggle.style.removeProperty("display");
-    if (searchbar.parentElement !== searchPanel) searchPanel.appendChild(searchbar);
-  }
-}
-// ===== ASMAL ADMIN MENU / INLINE SEARCH END =====
-
-// ===== ASMAL DELETE-CELL START (معزول — احذف هذه الدالة والسطر الذي يستدعيها بأمان لإلغاء الميزة) =====
-// تصميم "أسمل" فقط: ينقل زر علامات الحذف فعليًا ليصبح ابنًا رابعًا داخل صندوق التكبير (.zoom-fab)
-// بدل تموضع مستقل بحسابات يدوية — هذا يضمن التحاق حدوده تلقائيًا مع باقي الخانات الثلاث.
-function placeDeleteBadgeCellForAsmal(layoutStyle){
-  const del = document.getElementById("deleteBadgeToggle");
-  const zoomFab = document.querySelector(".zoom-fab");
-  const bottomBar = document.getElementById("bottomBar");
-  if (!del || !zoomFab || !bottomBar) return;
-  if (layoutStyle === "4"){
-    if (del.parentElement !== zoomFab) zoomFab.appendChild(del);
-  } else {
-    if (del.parentElement !== bottomBar) bottomBar.appendChild(del);
-  }
-}
-// ===== ASMAL DELETE-CELL END =====
-
-// ===== ASMAL ADMIN-ONLY START (معزول — احذف هذه الدالة واستدعاءاتها بأمان لإلغاء القيد) =====
-// تصميم "أسمل" فقط: المرفقات + تصدير/استيراد + تفعيل الحذف لا تظهر إلا للأدمن.
-// نستخدم style.setProperty(..., 'important') حتى تتغلّب على display:flex!important
-// الخاصة بتصميم أسمل بالأنماط، بلا حاجة لتعديل تلك القواعد.
-function applyAsmalAdminOnlyVisibility(){
-  const style4Active = document.documentElement.getAttribute("data-style") === "4";
-  const admin = (typeof isAdminUser === "function") && isAdminUser();
-  ["ioToggle", "attachmentsToggle", "deleteBadgeToggle"].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (style4Active && !admin){
-      el.style.setProperty("display", "none", "important");
-    } else if (style4Active && admin){
-      el.style.removeProperty("display");
-    }
-    // غير تصميم أسمل: لا نلمس display إطلاقًا — القرار بالكامل لـ applyRolePermissions/TAB_PERMS
-    // (كان اللمس هنا سابقًا يُعيد إظهار هذي الأزرار لغير الأدمن بالخطأ بالتصاميم الأخرى)
-  });
-}
-window.applyAsmalAdminOnlyVisibility = applyAsmalAdminOnlyVisibility;
-// ===== ASMAL ADMIN-ONLY END =====
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
   btn.onclick = async () => {
@@ -8174,7 +8055,7 @@ window.addEventListener("touchend", bgEnd);
 
 /* =====================================================================
    تكبير/تصغير الواجهة بالكامل (A+ / A-) — يشمل الخطوط والأزرار والتبويبات
-   وجميع تصاميم الموقع (الافتراضي ولوحة التحكم والمستقبلي) بشكل متناسب.
+   وجميع تصاميم الموقع القائمة (الافتراضي والمستقبلي) بشكل متناسب.
    يُحفظ الاختيار بمتصفح كل مستخدم (localStorage).
 
    ملاحظة مهمة: خاصية zoom تكبّر كل شيء بصريًا، لكن وحدات الشاشة (vh/dvh)
@@ -8201,28 +8082,10 @@ window.addEventListener("touchend", bgEnd);
     });
   }
 
-  // عناصر التحكّم العلوية الثابتة (position:fixed) في تصميم أسمل: تتضرّر منطقة نقرها
-  // من zoom الـbody (المتصفح يفصل بين الرسم البصري وخريطة النقر مع fixed+zoom).
-  // الحل: نعكس الـzoom عليها (1/uiScale) فيُلغى أثر تكبير الـbody، وتبقى بحجم ثابت
-  // ومنطقة نقر دقيقة مطابقة لموضعها المرئي، مهما غُيّر التحجيم.
-  function counterZoomTopControls(){
-    const inv = uiScale ? (1 / uiScale) : 1;
-    const ids = ["newsNavBtn", "asmalAdminMenuItems", "asmalInlineSearch"];
-    const isAsmal = document.documentElement.getAttribute("data-style") === "4";
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      // نطبّق العكس في أسمل فقط (حيث هذه العناصر ثابتة أعلى الشاشة)؛ غير ذلك نُزيله.
-      el.style.zoom = isAsmal ? String(inv) : "";
-    });
-  }
-  window.counterZoomTopControls = counterZoomTopControls; // ليُستدعى عند تغيير التصميم
-
   function applyUiScale(){
     document.body.style.zoom = uiScale;
     localStorage.setItem("uiScale", String(uiScale));
     applyScaledPanelSizing();
-    counterZoomTopControls();
   }
 
   const upBtn = document.getElementById("uiScaleUp");
