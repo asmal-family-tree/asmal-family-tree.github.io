@@ -583,6 +583,19 @@ function applyLayoutStyle(layoutStyle){
     });
   }
 
+  // قسم "شكل الواجهة" الجديد — حقيقي بالكامل: يُشغّل نفس زر layoutChooser
+  // الحقيقي (بكل صلاحياته وحفظه)، بلا أي تكرار للمنطق.
+  const layoutPicker = document.getElementById("asmalLayoutPickerDemo");
+  if (layoutPicker){
+    layoutPicker.addEventListener("click", (e) => {
+      const btn = e.target.closest(".asmal-style-option");
+      if (!btn) return;
+      const realStyle = btn.dataset.realStyle;
+      const realBtn = document.querySelector(`#layoutChooser .layout-btn[data-style="${realStyle}"]`);
+      if (realBtn) realBtn.click();
+    });
+  }
+
   // ملاحظة: اختيار الثيم هنا بصري فقط بهذه الخطوة (تبديل "active" فقط) — بلا
   // تفعيل حقيقي على الموقع، اتساقًا مع "بلا أي ربط وظيفي بعد" المتفق عليه.
   if (themePicker){

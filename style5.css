@@ -16,11 +16,17 @@
 }
 :root[data-style="5"] #tree-wrap{ background:var(--bg); }
 
-/* إخفاء كل شيء من التصميم الحقيقي غير مطلوب بهذه الخطوة التجريبية،
-   حتى لا يتراكب مع عناصر أسمل الجديدة */
+/* إخفاء كل شيء من التصميم الحقيقي غير موجود أصلًا بالملف المرجعي —
+   حتى لو كان عنصرًا افتراضيًا بالموقع (شارة المستخدم، الإطار الزخرفي،
+   أزرار تكبير/تصغير/تحديث الشجرة، زر "عرض الشجرة كاملة") — لا يُضاف
+   على أسمل أي شيء لم يكن بالمرجع، إلا بإذن صريح لاحقًا لكل عنصر تحديدًا. */
 :root[data-style="5"] #bottomBar,
 :root[data-style="5"] #newsNavBtn,
-:root[data-style="5"] #uiScaleControls{
+:root[data-style="5"] #uiScaleControls,
+:root[data-style="5"] .zoom-fab,
+:root[data-style="5"] #exitFocus,
+:root[data-style="5"] #currentUserBadge,
+:root[data-style="5"] #ornateFrame{
   display:none !important;
 }
 
