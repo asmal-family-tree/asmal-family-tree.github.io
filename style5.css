@@ -1,0 +1,215 @@
+/* ============================================================
+   style5.css — تصميم "أسمل" (data-style="5")
+   مبني على ملف مرجعي (واجهة عائمة) قدّمه محمد رشاد، مع ربط كل عنصر
+   بوظيفة حقيقية بالموقع بدل المحتوى التجريبي. لا شيء من تصميم/حركة/
+   خيارات المرجع محذوف — الاستثناء الوحيد المتفق عليه: صندوق ".shell"
+   التجريبي الفارغ (لا وجود له بموقعنا أصلاً، فلم يُنقل هنا).
+   هذا الملف مستقل تمامًا: لا يُعدَّل styles.css ولا app.js لأجل ألوانه
+   أو حركاته — فقط إضافات ضرورية أُنجزت بـindex.html (روابط + أزرار
+   + عناصر HTML جديدة) وبـapp.js (تشغيل التفاعل: فتح/إغلاق القائمة،
+   نقل حقل البحث، وحفظ تفضيلات الحركة/الشكل).
+   ============================================================ */
+
+/* ============================================================
+   الثيمان الجديدان من المرجع — يُضافان لثيماتنا الأربعة القائمة
+   (Sitewide: تعمل مع أي تصميم عبر data-theme، وليس أسمل فقط)
+   ============================================================ */
+:root[data-theme="cream"]{
+  --bg:#f4f1ea; --card-bg:#efe9df; --line:#ddd4c8; --ink:#6a5f57;
+  --gold:#a1968e; --gold-soft:#ece4d9; --gold-bright:#c8bca9;
+  --emerald:#2f2a26; --emerald-2:#4b5563; --maroon:#8b5e34;
+  --card-shadow:0 10px 24px rgba(0,0,0,.08);
+  --card-shadow-lg:0 14px 34px rgba(0,0,0,.12);
+}
+:root[data-theme="midnight"]{
+  --bg:#0b1120; --card-bg:#111827; --line:#374151; --ink:#e5e7eb;
+  --gold:#9ca3af; --gold-soft:#1f2937; --gold-bright:#e5e7eb;
+  --emerald:#1f2937; --emerald-2:#374151; --maroon:#7f1d1d;
+  --card-shadow:0 10px 24px rgba(0,0,0,.55);
+  --card-shadow-lg:0 14px 34px rgba(0,0,0,.65);
+}
+
+/* ============================================================
+   خلفية الصفحة والشجرة بتصميم أسمل — تتبع متغيرات الثيم الحالي
+   ============================================================ */
+:root[data-style="5"] body{ background:var(--bg); transition:background 220ms ease, color 220ms ease; }
+:root[data-style="5"] #tree-wrap{ background:var(--bg); }
+:root[data-style="5"] #artBackground{ opacity:.5; }
+
+/* ============================================================
+   إخفاء عناصر الشريط السفلي الأصلي غير المطلوبة بأسمل
+   (البحث والمساعد الذكي يُستبدلان بشريط البحث الدائم أسفل الشاشة)
+   ============================================================ */
+:root[data-style="5"] #searchToggle,
+:root[data-style="5"] #aiChatToggle{
+  display:none !important;
+}
+
+/* أيقونات الإيموجي الأصلية تختفي بأسمل، وتظهر أيقونات RemixIcon بدلها */
+.asmal-ic{ display:none; font-size:20px; line-height:1; }
+:root[data-style="5"] #bottomBar button .emoji-ic,
+:root[data-style="5"] #newsNavBtn .emoji-ic{ display:none; }
+:root[data-style="5"] #bottomBar button .asmal-ic,
+:root[data-style="5"] #newsNavBtn .asmal-ic{ display:inline-flex; align-items:center; justify-content:center; }
+
+/* ============================================================
+   القائمة العائمة — تُبنى فوق #bottomBar الحقيقي (نفس الأزرار
+   ونفس الصلاحيات تمامًا، فقط بشكل دوائر عمودية بدل صف أفقي)
+   ============================================================ */
+:root[data-style="5"] #bottomBar{
+  position:fixed; right:18px; bottom:88px; left:auto; top:auto; inset:auto auto 88px auto;
+  display:flex; flex-direction:column-reverse; align-items:center;
+  gap:12px; background:none; border:none; box-shadow:none; padding:0;
+  z-index:997; overflow:visible; width:auto; height:auto;
+}
+:root[data-style="5"] #bottomBar > button{
+  position:relative; width:52px; height:52px; min-width:52px; border-radius:999px; border:none;
+  background:var(--emerald); color:var(--gold-bright, #e5e7eb);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; cursor:pointer; box-shadow:0 10px 30px rgba(15,23,42,.45);
+  opacity:0; transform:translateY(16px) scale(.85); pointer-events:none;
+  transition:opacity 240ms cubic-bezier(.22,.61,.36,1), transform 240ms cubic-bezier(.22,.61,.36,1),
+             background 150ms ease, color 150ms ease;
+}
+:root[data-style="5"] #bottomBar.asmal-open > button{
+  opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+}
+:root[data-style="5"] #bottomBar > button:hover{
+  background:var(--gold-bright); color:var(--emerald);
+}
+
+/* تلميح النص عند التمرير — نقرأ نفس خاصية title القائمة أصلاً بلا أي تكرار */
+:root[data-style="5"] #bottomBar > button::before{
+  content:attr(title);
+  position:absolute; right:calc(100% + 10px); top:50%; transform:translateY(-50%) scale(.96);
+  background:#020617; color:#e5e7eb; padding:6px 12px; border-radius:999px; font-size:13px;
+  white-space:nowrap; opacity:0; box-shadow:0 12px 30px rgba(15,23,42,.85);
+  transition:opacity 180ms ease, transform 180ms ease; pointer-events:none;
+}
+:root[data-style="5"] #bottomBar > button:hover::before{
+  opacity:1; transform:translateY(-50%) scale(1);
+}
+
+/* ---------- أنواع حركة الفتح الأربعة (من نافذة إعدادات النمط) ---------- */
+:root[data-style="5"] #bottomBar.transition-slide > button{
+  opacity:0; transform:translateY(16px) scale(.85);
+  transition:opacity 240ms cubic-bezier(.22,.61,.36,1), transform 240ms cubic-bezier(.22,.61,.36,1);
+}
+:root[data-style="5"] #bottomBar.transition-slide.asmal-open > button{ opacity:1; transform:translateY(0) scale(1); }
+
+:root[data-style="5"] #bottomBar.transition-rotate > button{
+  opacity:0; transform:translateX(20px) rotate(-20deg) scale(.8);
+  transition:opacity 230ms ease-out, transform 260ms cubic-bezier(0.22,0.61,0.36,1);
+}
+:root[data-style="5"] #bottomBar.transition-rotate.asmal-open > button{ opacity:1; transform:translateX(0) rotate(0deg) scale(1); }
+
+:root[data-style="5"] #bottomBar.transition-bounce > button{
+  opacity:0; transform:translateY(16px) scale(.7);
+  transition:opacity 200ms ease-out;
+}
+:root[data-style="5"] #bottomBar.transition-bounce.asmal-open > button{
+  opacity:1; animation:asmal-bounce-in 340ms cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes asmal-bounce-in{
+  0%{ transform:translateY(18px) scale(.5); }
+  55%{ transform:translateY(-4px) scale(1.06); }
+  100%{ transform:translateY(0) scale(1); }
+}
+
+:root[data-style="5"] #bottomBar.transition-blur > button{
+  opacity:0; transform:translateY(12px); filter:blur(8px);
+  transition:opacity 220ms ease-out, transform 260ms cubic-bezier(.22,.61,.36,1), filter 260ms ease-out;
+}
+:root[data-style="5"] #bottomBar.transition-blur.asmal-open > button{
+  opacity:1; transform:translateY(0); filter:blur(0);
+}
+
+/* ---------- وضع "نصوص" بدل الأيقونات ---------- */
+:root[data-style="5"] #bottomBar.mode-text > button{
+  font-size:13px; width:auto; min-width:auto; height:34px; padding:0 12px; border-radius:999px;
+}
+:root[data-style="5"] #bottomBar.mode-text > button .asmal-ic{ display:none !important; }
+:root[data-style="5"] #bottomBar.mode-text > button::after{
+  content:attr(title); font-size:13px; white-space:nowrap;
+}
+:root[data-style="5"] #bottomBar.mode-text > button::before{ content:none; }
+
+/* ============================================================
+   شريط البحث الدائم + زر فتح/إغلاق القائمة
+   ============================================================ */
+#asmalBottomShell{ display:none; }
+:root[data-style="5"] #asmalBottomShell{
+  display:block; position:fixed; left:10px; right:10px; bottom:10px; z-index:996;
+}
+:root[data-style="5"] #asmalBottomShell .bottom-row{
+  display:flex; align-items:center; gap:8px;
+}
+:root[data-style="5"] .search-wrap{
+  flex:1; min-height:50px; border-radius:18px; border:1px solid var(--line);
+  background:var(--card-bg); box-shadow:var(--card-shadow);
+  display:flex; flex-direction:column; justify-content:center; align-items:stretch;
+  padding:0 10px; direction:rtl; transition:all 220ms ease; transform-origin:bottom;
+}
+:root[data-style="5"] .search-wrap.expanded{
+  padding:6px 10px 8px; gap:6px; box-shadow:var(--card-shadow-lg); transform:translateY(-10px);
+}
+:root[data-style="5"] .search-top-row{ display:flex; align-items:center; gap:8px; min-height:50px; }
+:root[data-style="5"] #asmalSearchHost{ flex:1; display:flex; }
+:root[data-style="5"] #asmalSearchHost .searchbar{
+  flex:1; display:flex; align-items:center; gap:6px; position:relative;
+  border:none !important; background:transparent !important; box-shadow:none !important; padding:0 !important;
+}
+:root[data-style="5"] #asmalSearchHost .searchbar svg{ width:18px; height:18px; opacity:.55; color:var(--ink); flex:none; }
+:root[data-style="5"] #asmalSearchHost #search{
+  flex:1; border:none !important; outline:none; background:transparent; color:var(--ink);
+  font-size:15px; font-weight:500; text-align:right; font-family:'Tajawal',sans-serif;
+}
+:root[data-style="5"] #asmalSearchHost #search::placeholder{ color:var(--line); opacity:1; }
+:root[data-style="5"] .send-btn{
+  width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+  background:var(--bg); color:var(--ink); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; font-size:15px;
+}
+:root[data-style="5"] .search-bottom-row{
+  display:none; align-items:center; justify-content:flex-start; gap:6px;
+  font-size:11px; color:var(--line); opacity:0; transform:translateY(6px) scale(.95);
+  transition:opacity 300ms ease, transform 300ms ease;
+}
+:root[data-style="5"] .search-wrap.expanded .search-bottom-row{
+  display:flex; opacity:1; transform:translateY(0) scale(1);
+}
+:root[data-style="5"] .chip-inline{
+  display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:999px;
+  border:1px solid var(--line); background:var(--bg); cursor:pointer; white-space:nowrap;
+  color:var(--ink); font-family:'Tajawal',sans-serif;
+}
+:root[data-style="5"] .chip-inline i{ font-size:14px; }
+:root[data-style="5"] .chip-inline.active{
+  background:var(--emerald); color:var(--gold-bright,#fff); border-color:var(--emerald);
+}
+:root[data-style="5"] .menu-btn{
+  width:50px; height:50px; border-radius:18px; border:1px solid var(--line);
+  background:var(--card-bg); color:var(--ink); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; box-shadow:var(--card-shadow); font-size:22px;
+  transition:transform 220ms ease, box-shadow 220ms ease;
+}
+:root[data-style="5"] .menu-btn.active{
+  transform:rotate(45deg); box-shadow:0 18px 45px rgba(15,23,42,.35);
+}
+
+@media (max-width:640px){
+  :root[data-style="5"] .search-wrap{ min-height:50px; border-radius:16px; }
+  :root[data-style="5"] #asmalSearchHost #search{ font-size:14px; }
+  :root[data-style="5"] .send-btn{ width:30px; height:30px; font-size:14px; }
+  :root[data-style="5"] .menu-btn{ width:50px; height:50px; border-radius:16px; font-size:20px; }
+  :root[data-style="5"] .chip-inline{ font-size:10px; padding:3px 7px; }
+}
+
+/* ============================================================
+   خيارات النمط الخاصة بأسمل داخل لوحة "designPanel" (النمط)
+   ============================================================ */
+:root[data-style="5"] #asmalStyleOptions{ display:block !important; }
+:root[data-style="5"] #asmalTransitionChooser .asmal-opt-btn.active,
+:root[data-style="5"] #asmalModeChooser .asmal-opt-btn.active{
+  background:var(--emerald); color:#fff; border-color:var(--emerald);
+}

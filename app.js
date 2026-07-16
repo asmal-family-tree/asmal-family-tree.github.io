@@ -506,7 +506,115 @@ function applyLayoutStyle(layoutStyle){
   document.querySelectorAll(".layout-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.style === layoutStyle);
   });
+  if (typeof applyAsmalSearchRelocation === "function") applyAsmalSearchRelocation(layoutStyle);
 }
+
+// ===== ASMAL (STYLE 5) INTERACTIVE UI START (معزول — احذف هذا البلوك بأمان لإلغاء الميزة) =====
+// كل التفاعل الخاص بتصميم "أسمل": نقل حقل البحث الحقيقي (مع اقتراحاته) لشريط
+// البحث الدائم، فتح/إغلاق القائمة العائمة، شريحتا "بحث بالاسم"/"المساعد الذكي"
+// (تُشغِّل زر aiChatToggle الحقيقي بلا أي تكرار وظيفي)، وحفظ تفضيلات حركة
+// الفتح وشكل الأزرار بـlocalStorage.
+
+// نقل .searchbar الحقيقية (تحوي #search + #searchDropdown) بين مكانها الأصلي
+// داخل searchPanel وبين شريط البحث الدائم بأسمل — بلا تكرار لأي عنصر أو منطق.
+function applyAsmalSearchRelocation(layoutStyle){
+  const host = document.getElementById("asmalSearchHost");
+  const originalHome = document.getElementById("searchPanel");
+  const searchbar = document.querySelector(".searchbar");
+  if (!host || !originalHome || !searchbar) return;
+  if (layoutStyle === "5"){
+    if (searchbar.parentElement !== host) host.appendChild(searchbar);
+  } else if (searchbar.parentElement !== originalHome){
+    originalHome.appendChild(searchbar);
+  }
+}
+
+const asmalMenuToggle = document.getElementById("asmalMenuToggle");
+if (asmalMenuToggle){
+  asmalMenuToggle.onclick = () => {
+    const bar = document.getElementById("bottomBar");
+    if (!bar) return;
+    bar.classList.toggle("asmal-open");
+    asmalMenuToggle.classList.toggle("active");
+  };
+}
+
+const asmalChipSearch = document.getElementById("asmalChipSearch");
+if (asmalChipSearch){
+  asmalChipSearch.onclick = () => {
+    const input = document.getElementById("search");
+    if (input) input.focus();
+  };
+}
+
+const asmalChipAI = document.getElementById("asmalChipAI");
+if (asmalChipAI){
+  asmalChipAI.onclick = () => {
+    const btn = document.getElementById("aiChatToggle");
+    if (btn) btn.click();
+  };
+}
+
+const asmalSearchSend = document.getElementById("asmalSearchSend");
+if (asmalSearchSend){
+  asmalSearchSend.onclick = () => {
+    const input = document.getElementById("search");
+    if (input) input.focus();
+  };
+}
+
+// توسيع/طي شريط البحث عند التركيز على الحقل الحقيقي (فقط بتصميم أسمل)
+document.addEventListener("focusin", (e) => {
+  if (e.target && e.target.id === "search" && document.documentElement.getAttribute("data-style") === "5"){
+    const wrap = document.getElementById("asmalSearchWrap");
+    if (wrap) wrap.classList.add("expanded");
+  }
+});
+document.addEventListener("focusout", (e) => {
+  if (e.target && e.target.id === "search"){
+    const wrap = document.getElementById("asmalSearchWrap");
+    if (!wrap) return;
+    setTimeout(() => {
+      if (!wrap.contains(document.activeElement)) wrap.classList.remove("expanded");
+    }, 120);
+  }
+});
+
+// تفضيلات حركة فتح القائمة وشكل أزرارها (أيقونات/نصوص) — تُحفظ لكل متصفح
+const ASMAL_TRANSITIONS = ["transition-slide", "transition-rotate", "transition-bounce", "transition-blur"];
+const ASMAL_MODES = ["mode-icons", "mode-text"];
+
+function applyAsmalPrefs(){
+  const bar = document.getElementById("bottomBar");
+  if (!bar) return;
+  const savedTransition = localStorage.getItem("asmalTransition") || "transition-slide";
+  const savedMode = localStorage.getItem("asmalMode") || "mode-icons";
+  ASMAL_TRANSITIONS.forEach(c => bar.classList.remove(c));
+  ASMAL_MODES.forEach(c => bar.classList.remove(c));
+  bar.classList.add(savedTransition);
+  bar.classList.add(savedMode);
+  document.querySelectorAll("#asmalTransitionChooser .asmal-opt-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.transition === savedTransition);
+  });
+  document.querySelectorAll("#asmalModeChooser .asmal-opt-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.mode === savedMode);
+  });
+}
+applyAsmalPrefs();
+
+document.querySelectorAll("#asmalTransitionChooser .asmal-opt-btn").forEach(btn => {
+  btn.onclick = () => {
+    localStorage.setItem("asmalTransition", btn.dataset.transition);
+    applyAsmalPrefs();
+  };
+});
+document.querySelectorAll("#asmalModeChooser .asmal-opt-btn").forEach(btn => {
+  btn.onclick = () => {
+    localStorage.setItem("asmalMode", btn.dataset.mode);
+    applyAsmalPrefs();
+  };
+});
+// ===== ASMAL (STYLE 5) INTERACTIVE UI END =====
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
   btn.onclick = async () => {
