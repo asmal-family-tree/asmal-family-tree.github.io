@@ -506,139 +506,95 @@ function applyLayoutStyle(layoutStyle){
   document.querySelectorAll(".layout-btn").forEach(b => {
     b.classList.toggle("active", b.dataset.style === layoutStyle);
   });
-  if (typeof applyAsmalSearchRelocation === "function") applyAsmalSearchRelocation(layoutStyle);
 }
 
-// ===== ASMAL (STYLE 5) INTERACTIVE UI START (معزول — احذف هذا البلوك بأمان لإلغاء الميزة) =====
-// كل التفاعل الخاص بتصميم "أسمل": نقل حقل البحث الحقيقي (مع اقتراحاته) لشريط
-// البحث الدائم، فتح/إغلاق القائمة العائمة، شريحتا "بحث بالاسم"/"المساعد الذكي"
-// (تُشغِّل زر aiChatToggle الحقيقي بلا أي تكرار وظيفي)، وحفظ تفضيلات حركة
-// الفتح وشكل الأزرار بـlocalStorage.
+// ===== ASMAL DEMO UI START (معزول تمامًا — احذف هذا البلوك بأمان لإلغاء الميزة) =====
+// الخطوة الأولى المتفق عليها لتصميم "أسمل": استنساخ تفاعلي كامل للملف المرجعي
+// (فتح/إغلاق القائمة، حركات الفتح الأربعة، وضع أيقونات/نصوص، تمدد شريط البحث،
+// نافذة إعدادات النمط) — بلا أي ربط بلوحاتنا أو أزرارنا الحقيقية حتى الآن.
+// كل المعرّفات هنا جديدة كليًا (Demo) ولا تتقاطع مع أي عنصر حقيقي بالموقع.
+(function initAsmalDemoUI(){
+  const fabWrapper = document.getElementById("asmalFabWrapper");
+  const menuToggle = document.getElementById("asmalMenuToggleDemo");
+  const mainSearch = document.getElementById("asmalMainSearchDemo");
+  const searchWrap = document.getElementById("asmalSearchWrapDemo");
+  const chipPrompt = document.getElementById("asmalChipPromptDemo");
+  const chipAssistant = document.getElementById("asmalChipAssistantDemo");
+  if (!fabWrapper || !menuToggle || !mainSearch || !searchWrap) return;
 
-// نقل .searchbar الحقيقية (تحوي #search + #searchDropdown) بين مكانها الأصلي
-// داخل searchPanel وبين شريط البحث الدائم بأسمل — بلا تكرار لأي عنصر أو منطق.
-function applyAsmalSearchRelocation(layoutStyle){
-  const host = document.getElementById("asmalSearchHost");
-  const originalHome = document.getElementById("searchPanel");
-  const searchbar = document.querySelector(".searchbar");
-  if (host && originalHome && searchbar){
-    if (layoutStyle === "5"){
-      if (searchbar.parentElement !== host) host.appendChild(searchbar);
-    } else if (searchbar.parentElement !== originalHome){
-      originalHome.appendChild(searchbar);
-    }
-  }
+  const transitionClasses = ["transition-slide", "transition-rotate", "transition-bounce", "transition-blur"];
+  const modeClasses = ["mode-icons", "mode-text"];
 
-  // زر الأخبار: بتصميم أسمل يصبح عنصرًا عاشرًا داخل القائمة العائمة نفسها
-  // (بدل أيقونة مستقلة عائمة أعلى الشاشة كبقية التصاميم) — تحقيقًا لاستقلالية
-  // أسمل الكاملة عن أي تموضع موروث من styles.css. تنسيقه الأصلي (inline)
-  // يُحفظ ويُستعاد بدقة عند العودة لأي تصميم آخر.
-  const newsBtn = document.getElementById("newsNavBtn");
-  const bar = document.getElementById("bottomBar");
-  const artBg = document.getElementById("artBackground");
-  if (newsBtn && bar && artBg){
-    if (layoutStyle === "5"){
-      if (newsBtn.parentElement !== bar){
-        if (!newsBtn.dataset.originalStyle) newsBtn.dataset.originalStyle = newsBtn.getAttribute("style") || "";
-        newsBtn.removeAttribute("style");
-        bar.appendChild(newsBtn);
-      }
-    } else if (newsBtn.parentElement !== artBg.parentElement){
-      artBg.parentElement.insertBefore(newsBtn, artBg);
-      if (newsBtn.dataset.originalStyle !== undefined){
-        newsBtn.setAttribute("style", newsBtn.dataset.originalStyle);
-        delete newsBtn.dataset.originalStyle;
-      }
-    }
-  }
-}
-
-const asmalMenuToggle = document.getElementById("asmalMenuToggle");
-if (asmalMenuToggle){
-  asmalMenuToggle.onclick = () => {
-    const bar = document.getElementById("bottomBar");
-    if (!bar) return;
-    bar.classList.toggle("asmal-open");
-    asmalMenuToggle.classList.toggle("active");
+  menuToggle.onclick = () => {
+    fabWrapper.classList.toggle("open");
+    menuToggle.classList.toggle("active");
   };
-}
 
-const asmalChipSearch = document.getElementById("asmalChipSearch");
-if (asmalChipSearch){
-  asmalChipSearch.onclick = () => {
-    const input = document.getElementById("search");
-    if (input) input.focus();
-  };
-}
-
-const asmalChipAI = document.getElementById("asmalChipAI");
-if (asmalChipAI){
-  asmalChipAI.onclick = () => {
-    const btn = document.getElementById("aiChatToggle");
-    if (btn) btn.click();
-  };
-}
-
-const asmalSearchSend = document.getElementById("asmalSearchSend");
-if (asmalSearchSend){
-  asmalSearchSend.onclick = () => {
-    const input = document.getElementById("search");
-    if (input) input.focus();
-  };
-}
-
-// توسيع/طي شريط البحث عند التركيز على الحقل الحقيقي (فقط بتصميم أسمل)
-document.addEventListener("focusin", (e) => {
-  if (e.target && e.target.id === "search" && document.documentElement.getAttribute("data-style") === "5"){
-    const wrap = document.getElementById("asmalSearchWrap");
-    if (wrap) wrap.classList.add("expanded");
-  }
-});
-document.addEventListener("focusout", (e) => {
-  if (e.target && e.target.id === "search"){
-    const wrap = document.getElementById("asmalSearchWrap");
-    if (!wrap) return;
+  mainSearch.addEventListener("focus", () => searchWrap.classList.add("expanded"));
+  mainSearch.addEventListener("blur", () => {
     setTimeout(() => {
-      if (!wrap.contains(document.activeElement)) wrap.classList.remove("expanded");
+      if (!searchWrap.contains(document.activeElement)) searchWrap.classList.remove("expanded");
     }, 120);
+  });
+
+  if (chipPrompt) chipPrompt.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
+  if (chipAssistant) chipAssistant.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
+
+  // نافذة إعدادات النمط
+  const styleModal = document.getElementById("asmalStyleModalDemo");
+  const styleModalClose = document.getElementById("asmalStyleModalCloseDemo");
+  const transitionPicker = document.getElementById("asmalTransitionPickerDemo");
+  const modePicker = document.getElementById("asmalModePickerDemo");
+  const themePicker = document.getElementById("asmalThemePickerDemo");
+  const styleButton = Array.from(document.querySelectorAll(".asmal-fab-item"))
+    .find(btn => btn.dataset.label === "النمط");
+
+  if (styleButton && styleModal){
+    styleButton.onclick = () => styleModal.setAttribute("aria-hidden", "false");
   }
-});
+  if (styleModalClose && styleModal){
+    styleModalClose.onclick = () => styleModal.setAttribute("aria-hidden", "true");
+  }
+  if (styleModal){
+    styleModal.addEventListener("click", (e) => {
+      if (e.target.classList.contains("asmal-style-modal-backdrop")) styleModal.setAttribute("aria-hidden", "true");
+    });
+  }
 
-// تفضيلات حركة فتح القائمة وشكل أزرارها (أيقونات/نصوص) — تُحفظ لكل متصفح
-const ASMAL_TRANSITIONS = ["transition-slide", "transition-rotate", "transition-bounce", "transition-blur"];
-const ASMAL_MODES = ["mode-icons", "mode-text"];
+  if (transitionPicker){
+    transitionPicker.addEventListener("click", (e) => {
+      const btn = e.target.closest(".asmal-style-option");
+      if (!btn || !btn.dataset.value) return;
+      transitionClasses.forEach(c => fabWrapper.classList.remove(c));
+      fabWrapper.classList.add(btn.dataset.value);
+      transitionPicker.querySelectorAll(".asmal-style-option").forEach(o => o.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  }
 
-function applyAsmalPrefs(){
-  const bar = document.getElementById("bottomBar");
-  if (!bar) return;
-  const savedTransition = localStorage.getItem("asmalTransition") || "transition-slide";
-  const savedMode = localStorage.getItem("asmalMode") || "mode-icons";
-  ASMAL_TRANSITIONS.forEach(c => bar.classList.remove(c));
-  ASMAL_MODES.forEach(c => bar.classList.remove(c));
-  bar.classList.add(savedTransition);
-  bar.classList.add(savedMode);
-  document.querySelectorAll("#asmalTransitionChooser .asmal-opt-btn").forEach(b => {
-    b.classList.toggle("active", b.dataset.transition === savedTransition);
-  });
-  document.querySelectorAll("#asmalModeChooser .asmal-opt-btn").forEach(b => {
-    b.classList.toggle("active", b.dataset.mode === savedMode);
-  });
-}
-applyAsmalPrefs();
+  if (modePicker){
+    modePicker.addEventListener("click", (e) => {
+      const btn = e.target.closest(".asmal-style-option");
+      if (!btn || !btn.dataset.value) return;
+      modeClasses.forEach(c => fabWrapper.classList.remove(c));
+      fabWrapper.classList.add(btn.dataset.value);
+      modePicker.querySelectorAll(".asmal-style-option").forEach(o => o.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  }
 
-document.querySelectorAll("#asmalTransitionChooser .asmal-opt-btn").forEach(btn => {
-  btn.onclick = () => {
-    localStorage.setItem("asmalTransition", btn.dataset.transition);
-    applyAsmalPrefs();
-  };
-});
-document.querySelectorAll("#asmalModeChooser .asmal-opt-btn").forEach(btn => {
-  btn.onclick = () => {
-    localStorage.setItem("asmalMode", btn.dataset.mode);
-    applyAsmalPrefs();
-  };
-});
-// ===== ASMAL (STYLE 5) INTERACTIVE UI END =====
+  // ملاحظة: اختيار الثيم هنا بصري فقط بهذه الخطوة (تبديل "active" فقط) — بلا
+  // تفعيل حقيقي على الموقع، اتساقًا مع "بلا أي ربط وظيفي بعد" المتفق عليه.
+  if (themePicker){
+    themePicker.addEventListener("click", (e) => {
+      const btn = e.target.closest(".asmal-style-option");
+      if (!btn) return;
+      themePicker.querySelectorAll(".asmal-style-option").forEach(o => o.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  }
+})();
+// ===== ASMAL DEMO UI END =====
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
   btn.onclick = async () => {

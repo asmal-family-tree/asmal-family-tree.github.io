@@ -1,115 +1,84 @@
 /* ============================================================
    style5.css — تصميم "أسمل" (data-style="5")
-   مبني على ملف مرجعي (واجهة عائمة) قدّمه محمد رشاد، مع ربط كل عنصر
-   بوظيفة حقيقية بالموقع بدل المحتوى التجريبي. لا شيء من تصميم/حركة/
-   خيارات المرجع محذوف — الاستثناء الوحيد المتفق عليه: صندوق ".shell"
-   التجريبي الفارغ (لا وجود له بموقعنا أصلاً، فلم يُنقل هنا).
-   هذا الملف مستقل تمامًا: لا يُعدَّل styles.css ولا app.js لأجل ألوانه
-   أو حركاته — فقط إضافات ضرورية أُنجزت بـindex.html (روابط + أزرار
-   + عناصر HTML جديدة) وبـapp.js (تشغيل التفاعل: فتح/إغلاق القائمة،
-   نقل حقل البحث، وحفظ تفضيلات الحركة/الشكل).
+   الخطوة الأولى (متفق عليها): استنساخ بصري وتفاعلي كامل للملف
+   المرجعي — كل شيء يعمل (فتح/إغلاق القائمة، حركات الفتح الأربعة،
+   وضع أيقونات/نصوص، شريط البحث المتمدد، نافذة إعدادات النمط) —
+   لكن بلا أي ربط وظيفي حقيقي بعد (لا فتح لوحات، لا بحث حقيقي،
+   لا تنقل لأي صفحة). كل عناصر هذه الخطوة بمعرّفات جديدة كليًا
+   (asmal*Demo) معزولة تمامًا عن أزرارنا ولوحاتنا الحقيقية.
+   الربط الوظيفي الحقيقي سيكون خطوة تالية منفصلة بإذن صريح لاحقًا.
    ============================================================ */
 
-/* ============================================================
-   الثيمان الجديدان من المرجع — يُضافان لثيماتنا الأربعة القائمة
-   (Sitewide: تعمل مع أي تصميم عبر data-theme، وليس أسمل فقط)
-   ============================================================ */
-:root[data-theme="cream"]{
-  --bg:#f4f1ea; --card-bg:#efe9df; --line:#ddd4c8; --ink:#6a5f57;
-  --gold:#a1968e; --gold-soft:#ece4d9; --gold-bright:#c8bca9;
-  --emerald:#2f2a26; --emerald-2:#4b5563; --maroon:#8b5e34;
-  --card-shadow:0 10px 24px rgba(0,0,0,.08);
-  --card-shadow-lg:0 14px 34px rgba(0,0,0,.12);
+/* خلفية الصفحة تتبع متغيرات الثيم الحالي (وليس ثيمي المرجع التجريبيين) */
+:root[data-style="5"] body{
+  background:var(--bg); color:var(--ink);
+  transition:background 220ms ease, color 220ms ease;
 }
-:root[data-theme="midnight"]{
-  --bg:#0b1120; --card-bg:#111827; --line:#374151; --ink:#e5e7eb;
-  --gold:#9ca3af; --gold-soft:#1f2937; --gold-bright:#e5e7eb;
-  --emerald:#1f2937; --emerald-2:#374151; --maroon:#7f1d1d;
-  --card-shadow:0 10px 24px rgba(0,0,0,.55);
-  --card-shadow-lg:0 14px 34px rgba(0,0,0,.65);
-}
-
-/* ============================================================
-   خلفية الصفحة والشجرة بتصميم أسمل — تتبع متغيرات الثيم الحالي
-   ============================================================ */
-:root[data-style="5"] body{ background:var(--bg); transition:background 220ms ease, color 220ms ease; }
 :root[data-style="5"] #tree-wrap{ background:var(--bg); }
-:root[data-style="5"] #artBackground{ opacity:.5; }
 
-/* ============================================================
-   إخفاء عناصر الشريط السفلي الأصلي غير المطلوبة بأسمل
-   (البحث والمساعد الذكي يُستبدلان بشريط البحث الدائم أسفل الشاشة)
-   ============================================================ */
-:root[data-style="5"] #searchToggle,
-:root[data-style="5"] #aiChatToggle,
-:root[data-style="5"] #deleteBadgeToggle{
+/* إخفاء كل شيء من التصميم الحقيقي غير مطلوب بهذه الخطوة التجريبية،
+   حتى لا يتراكب مع عناصر أسمل الجديدة */
+:root[data-style="5"] #bottomBar,
+:root[data-style="5"] #newsNavBtn,
+:root[data-style="5"] #uiScaleControls{
   display:none !important;
 }
 
-/* أيقونات الإيموجي الأصلية تختفي بأسمل، وتظهر أيقونات RemixIcon بدلها */
-.asmal-ic{ display:none; font-size:20px; line-height:1; }
-:root[data-style="5"] #bottomBar button .emoji-ic,
-:root[data-style="5"] #newsNavBtn .emoji-ic{ display:none; }
-:root[data-style="5"] #bottomBar button .asmal-ic,
-:root[data-style="5"] #newsNavBtn .asmal-ic{ display:inline-flex; align-items:center; justify-content:center; }
-
 /* ============================================================
-   القائمة العائمة — تُبنى فوق #bottomBar الحقيقي (نفس الأزرار
-   ونفس الصلاحيات تمامًا، فقط بشكل دوائر عمودية بدل صف أفقي)
+   القائمة العائمة (fab) — نسخة طبق الأصل من المرجع
    ============================================================ */
-:root[data-style="5"] #bottomBar{
-  position:fixed; right:18px; bottom:88px; left:auto; top:auto; inset:auto auto 88px auto;
-  display:flex; flex-direction:column-reverse; align-items:center;
-  gap:12px; background:none; border:none; box-shadow:none; padding:0;
-  z-index:997; overflow:visible; width:auto; height:auto;
+:root[data-style="5"] .asmal-fab-wrapper{
+  position:fixed; right:18px; bottom:78px; z-index:999;
 }
-:root[data-style="5"] #bottomBar > *{
-  position:relative; width:52px; height:52px; min-width:52px; border-radius:999px; border:none;
-  background:var(--emerald); color:var(--gold-bright, #e5e7eb);
+:root[data-style="5"] .asmal-fab-menu{
+  position:absolute; right:0; bottom:76px;
+  display:flex; flex-direction:column; gap:12px;
+  pointer-events:none;
+}
+:root[data-style="5"] .asmal-fab-item{
+  position:relative; width:52px; height:52px; border:none; border-radius:999px;
+  cursor:pointer; background:#020617; color:#e5e7eb;
   display:flex; align-items:center; justify-content:center;
-  font-size:20px; cursor:pointer; box-shadow:0 10px 30px rgba(15,23,42,.45);
-  opacity:0; transform:translateY(16px) scale(.85); pointer-events:none;
-  transition:opacity 240ms cubic-bezier(.22,.61,.36,1), transform 240ms cubic-bezier(.22,.61,.36,1),
-             background 150ms ease, color 150ms ease;
+  box-shadow:0 10px 30px rgba(15,23,42,.55); font-size:20px;
 }
-:root[data-style="5"] #bottomBar.asmal-open > *{
-  opacity:1; transform:translateY(0) scale(1); pointer-events:auto;
+:root[data-style="5"] .asmal-fab-item::before{
+  content:attr(data-label);
+  position:absolute; right:calc(100% + 10px); top:50%;
+  transform:translateY(-50%) scale(.96);
+  background:#020617; color:#e5e7eb; padding:6px 12px; border-radius:999px;
+  font-size:14px; white-space:nowrap; opacity:0;
+  box-shadow:0 12px 30px rgba(15,23,42,.85);
+  transition:opacity 180ms cubic-bezier(.22,.61,.36,1), transform 180ms cubic-bezier(.22,.61,.36,1);
+  pointer-events:none;
 }
-:root[data-style="5"] #bottomBar > *:hover{
-  background:var(--gold-bright); color:var(--emerald);
-}
-
-/* تلميح النص عند التمرير — نقرأ نفس خاصية title القائمة أصلاً بلا أي تكرار */
-:root[data-style="5"] #bottomBar > *::before{
-  content:attr(data-fab-label);
-  position:absolute; right:calc(100% + 10px); top:50%; transform:translateY(-50%) scale(.96);
-  background:#020617; color:#e5e7eb; padding:6px 12px; border-radius:999px; font-size:13px;
-  white-space:nowrap; opacity:0; box-shadow:0 12px 30px rgba(15,23,42,.85);
-  transition:opacity 180ms ease, transform 180ms ease; pointer-events:none;
-}
-:root[data-style="5"] #bottomBar > *:hover::before{
+:root[data-style="5"] .asmal-fab-item:hover::before{
   opacity:1; transform:translateY(-50%) scale(1);
 }
+:root[data-style="5"] .asmal-fab-item:hover{
+  background:radial-gradient(circle at 30% 0, var(--gold-bright) 0, var(--gold) 40%, var(--emerald) 100%);
+  box-shadow:0 18px 40px rgba(21,128,61,.8);
+}
+:root[data-style="5"] .asmal-fab-wrapper.open .asmal-fab-item{ pointer-events:auto; }
 
-/* ---------- أنواع حركة الفتح الأربعة (من نافذة إعدادات النمط) ---------- */
-:root[data-style="5"] #bottomBar.transition-slide > *{
+/* أنواع حركة الفتح الأربعة */
+:root[data-style="5"] .asmal-fab-wrapper.transition-slide .asmal-fab-item{
   opacity:0; transform:translateY(16px) scale(.85);
   transition:opacity 240ms cubic-bezier(.22,.61,.36,1), transform 240ms cubic-bezier(.22,.61,.36,1);
 }
-:root[data-style="5"] #bottomBar.transition-slide.asmal-open > *{ opacity:1; transform:translateY(0) scale(1); }
+:root[data-style="5"] .asmal-fab-wrapper.transition-slide.open .asmal-fab-item{ opacity:1; transform:translateY(0) scale(1); }
 
-:root[data-style="5"] #bottomBar.transition-rotate > *{
+:root[data-style="5"] .asmal-fab-wrapper.transition-rotate .asmal-fab-item{
   opacity:0; transform:translateX(20px) rotate(-20deg) scale(.8);
-  transition:opacity 230ms ease-out, transform 260ms cubic-bezier(0.22,0.61,0.36,1);
+  transition:opacity 230ms ease-out, transform 260ms cubic-bezier(.22,.61,.36,1);
 }
-:root[data-style="5"] #bottomBar.transition-rotate.asmal-open > *{ opacity:1; transform:translateX(0) rotate(0deg) scale(1); }
+:root[data-style="5"] .asmal-fab-wrapper.transition-rotate.open .asmal-fab-item{ opacity:1; transform:translateX(0) rotate(0deg) scale(1); }
 
-:root[data-style="5"] #bottomBar.transition-bounce > *{
+:root[data-style="5"] .asmal-fab-wrapper.transition-bounce .asmal-fab-item{
   opacity:0; transform:translateY(16px) scale(.7);
   transition:opacity 200ms ease-out;
 }
-:root[data-style="5"] #bottomBar.transition-bounce.asmal-open > *{
-  opacity:1; animation:asmal-bounce-in 340ms cubic-bezier(0.34,1.56,0.64,1) forwards;
+:root[data-style="5"] .asmal-fab-wrapper.transition-bounce.open .asmal-fab-item{
+  opacity:1; animation:asmal-bounce-in 340ms cubic-bezier(.34,1.56,.64,1) forwards;
 }
 @keyframes asmal-bounce-in{
   0%{ transform:translateY(18px) scale(.5); }
@@ -117,100 +86,136 @@
   100%{ transform:translateY(0) scale(1); }
 }
 
-:root[data-style="5"] #bottomBar.transition-blur > *{
+:root[data-style="5"] .asmal-fab-wrapper.transition-blur .asmal-fab-item{
   opacity:0; transform:translateY(12px); filter:blur(8px);
   transition:opacity 220ms ease-out, transform 260ms cubic-bezier(.22,.61,.36,1), filter 260ms ease-out;
 }
-:root[data-style="5"] #bottomBar.transition-blur.asmal-open > *{
+:root[data-style="5"] .asmal-fab-wrapper.transition-blur.open .asmal-fab-item{
   opacity:1; transform:translateY(0); filter:blur(0);
 }
 
-/* ---------- وضع "نصوص" بدل الأيقونات ---------- */
-:root[data-style="5"] #bottomBar.mode-text > *{
-  font-size:13px; width:auto; min-width:auto; height:34px; padding:0 12px; border-radius:999px;
+/* وضع نصوص بدل الأيقونات */
+:root[data-style="5"] .asmal-fab-wrapper.mode-text .asmal-fab-item{
+  font-size:13px; width:auto; min-width:auto; height:34px; padding:0 11px; justify-content:center;
 }
-:root[data-style="5"] #bottomBar.mode-text > * .asmal-ic{ display:none !important; }
-:root[data-style="5"] #bottomBar.mode-text > *::after{
-  content:attr(data-fab-label); font-size:13px; white-space:nowrap;
-}
-:root[data-style="5"] #bottomBar.mode-text > *::before{ content:none; }
+:root[data-style="5"] .asmal-fab-wrapper.mode-text .asmal-fab-item::before{ content:none; }
+:root[data-style="5"] .asmal-fab-wrapper.mode-text .asmal-fab-item i{ display:none; }
+:root[data-style="5"] .asmal-fab-wrapper.mode-text .asmal-fab-item span{ display:inline; white-space:nowrap; }
+:root[data-style="5"] .asmal-fab-wrapper.mode-icons .asmal-fab-item span{ display:none; }
 
 /* ============================================================
-   شريط البحث الدائم + زر فتح/إغلاق القائمة
+   الصف السفلي والبحث
    ============================================================ */
-#asmalBottomShell{ display:none; }
-:root[data-style="5"] #asmalBottomShell{
-  display:block; position:fixed; left:10px; right:10px; bottom:10px; z-index:996;
+:root[data-style="5"] .asmal-bottom-shell{
+  position:fixed; left:10px; right:10px; bottom:10px;
+  display:flex; flex-direction:column; gap:6px; z-index:998;
 }
-:root[data-style="5"] #asmalBottomShell .bottom-row{
+:root[data-style="5"] .asmal-bottom-row{
   display:flex; align-items:center; gap:8px;
 }
-:root[data-style="5"] .search-wrap{
-  flex:1; min-height:50px; border-radius:18px; border:1px solid var(--line);
+:root[data-style="5"] .asmal-search-wrap{
+  flex:1; height:50px; border-radius:18px; border:1px solid var(--line);
   background:var(--card-bg); box-shadow:var(--card-shadow);
   display:flex; flex-direction:column; justify-content:center; align-items:stretch;
   padding:0 10px; direction:rtl; transition:all 220ms ease; transform-origin:bottom;
 }
-:root[data-style="5"] .search-wrap.expanded{
-  padding:6px 10px 8px; gap:6px; box-shadow:var(--card-shadow-lg); transform:translateY(-10px);
+:root[data-style="5"] .asmal-search-wrap.expanded{
+  height:90px; padding:6px 10px 8px; gap:6px;
+  box-shadow:var(--card-shadow-lg); transform:translateY(-10px);
 }
-:root[data-style="5"] .search-top-row{ display:flex; align-items:center; gap:8px; min-height:50px; }
-:root[data-style="5"] #asmalSearchHost{ flex:1; display:flex; }
-:root[data-style="5"] #asmalSearchHost .searchbar{
-  flex:1; display:flex; align-items:center; gap:6px; position:relative;
-  border:none !important; background:transparent !important; box-shadow:none !important; padding:0 !important;
-}
-:root[data-style="5"] #asmalSearchHost .searchbar svg{ width:18px; height:18px; opacity:.55; color:var(--ink); flex:none; }
-:root[data-style="5"] #asmalSearchHost #search{
-  flex:1; border:none !important; outline:none; background:transparent; color:var(--ink);
+:root[data-style="5"] .asmal-search-top-row{ display:flex; align-items:center; gap:8px; }
+:root[data-style="5"] .asmal-search-input{
+  flex:1; border:none; outline:none; background:transparent; color:var(--ink);
   font-size:15px; font-weight:500; text-align:right; font-family:'Tajawal',sans-serif;
 }
-:root[data-style="5"] #asmalSearchHost #search::placeholder{ color:var(--line); opacity:1; }
-:root[data-style="5"] .send-btn{
+:root[data-style="5"] .asmal-search-input::placeholder{ color:var(--line); opacity:1; }
+:root[data-style="5"] .asmal-send-btn{
   width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
   background:var(--bg); color:var(--ink); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; flex-shrink:0; font-size:15px;
+  cursor:pointer; flex-shrink:0;
 }
-:root[data-style="5"] .search-bottom-row{
+:root[data-style="5"] .asmal-send-btn i{ font-size:17px; }
+:root[data-style="5"] .asmal-search-bottom-row{
   display:none; align-items:center; justify-content:flex-start; gap:6px;
   font-size:11px; color:var(--line); opacity:0; transform:translateY(6px) scale(.95);
-  transition:opacity 300ms ease, transform 300ms ease;
+  transition:opacity 450ms ease-in-out, transform 450ms ease-in-out;
 }
-:root[data-style="5"] .search-wrap.expanded .search-bottom-row{
-  display:flex; opacity:1; transform:translateY(0) scale(1);
-}
-:root[data-style="5"] .chip-inline{
+:root[data-style="5"] .asmal-chip-inline{
   display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:999px;
   border:1px solid var(--line); background:var(--bg); cursor:pointer; white-space:nowrap;
-  color:var(--ink); font-family:'Tajawal',sans-serif;
 }
-:root[data-style="5"] .chip-inline i{ font-size:14px; }
-:root[data-style="5"] .chip-inline.active{
-  background:var(--emerald); color:var(--gold-bright,#fff); border-color:var(--emerald);
+:root[data-style="5"] .asmal-chip-inline i{ font-size:14px; }
+:root[data-style="5"] .asmal-search-wrap.expanded .asmal-search-bottom-row{
+  display:flex; opacity:1; transform:translateY(0) scale(1);
+  animation:asmal-subtle-shake 500ms ease-in-out 1;
 }
-:root[data-style="5"] .menu-btn{
+@keyframes asmal-subtle-shake{
+  0%{ transform:translateY(6px) scale(.95); }
+  40%{ transform:translateY(6px) scale(.95); }
+  60%{ transform:translateY(3px) scale(1.02); }
+  80%{ transform:translateY(6px) scale(.98); }
+  100%{ transform:translateY(6px) scale(.95); }
+}
+:root[data-style="5"] .asmal-menu-btn{
   width:50px; height:50px; border-radius:18px; border:1px solid var(--line);
   background:var(--card-bg); color:var(--ink); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; flex-shrink:0; box-shadow:var(--card-shadow); font-size:22px;
+  cursor:pointer; flex-shrink:0; box-shadow:var(--card-shadow);
   transition:transform 220ms ease, box-shadow 220ms ease;
 }
-:root[data-style="5"] .menu-btn.active{
-  transform:rotate(45deg); box-shadow:0 18px 45px rgba(15,23,42,.35);
+:root[data-style="5"] .asmal-menu-btn.active{
+  transform:rotate(45deg); box-shadow:0 18px 45px rgba(15,23,42,.45);
 }
+:root[data-style="5"] .asmal-menu-btn i{ font-size:22px; }
 
 @media (max-width:640px){
-  :root[data-style="5"] .search-wrap{ min-height:50px; border-radius:16px; }
-  :root[data-style="5"] #asmalSearchHost #search{ font-size:14px; }
-  :root[data-style="5"] .send-btn{ width:30px; height:30px; font-size:14px; }
-  :root[data-style="5"] .menu-btn{ width:50px; height:50px; border-radius:16px; font-size:20px; }
-  :root[data-style="5"] .chip-inline{ font-size:10px; padding:3px 7px; }
+  :root[data-style="5"] .asmal-search-wrap{ height:50px; border-radius:16px; }
+  :root[data-style="5"] .asmal-search-wrap.expanded{ height:80px; }
+  :root[data-style="5"] .asmal-search-input{ font-size:14px; }
+  :root[data-style="5"] .asmal-send-btn{ width:30px; height:30px; }
+  :root[data-style="5"] .asmal-send-btn i{ font-size:16px; }
+  :root[data-style="5"] .asmal-menu-btn{ width:50px; height:50px; border-radius:16px; }
+  :root[data-style="5"] .asmal-menu-btn i{ font-size:20px; }
+  :root[data-style="5"] .asmal-chip-inline{ font-size:10px; padding:3px 7px; }
 }
 
 /* ============================================================
-   خيارات النمط الخاصة بأسمل داخل لوحة "designPanel" (النمط)
+   نافذة إعدادات النمط
    ============================================================ */
-:root[data-style="5"] #asmalStyleOptions{ display:block !important; }
-:root[data-style="5"] #asmalTransitionChooser .asmal-opt-btn.active,
-:root[data-style="5"] #asmalModeChooser .asmal-opt-btn.active{
-  background:var(--emerald); color:#fff; border-color:var(--emerald);
+:root[data-style="5"] .asmal-style-modal{
+  position:fixed; inset:0; z-index:999;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none; opacity:0; transition:opacity 220ms ease;
+}
+:root[data-style="5"] .asmal-style-modal[aria-hidden="false"]{
+  pointer-events:auto; opacity:1;
+}
+:root[data-style="5"] .asmal-style-modal-backdrop{
+  position:absolute; inset:0; background:rgba(15,23,42,.35);
+  opacity:0; transition:opacity 220ms ease-in-out;
+}
+:root[data-style="5"] .asmal-style-modal[aria-hidden="false"] .asmal-style-modal-backdrop{ opacity:1; }
+:root[data-style="5"] .asmal-style-modal-container{
+  position:relative; z-index:1; width:90%; max-width:380px; border-radius:18px;
+  border:1px solid var(--line); background:var(--card-bg); box-shadow:0 22px 50px rgba(0,0,0,.35);
+  padding:12px 14px; direction:rtl; transform:translateY(12px); transition:transform 220ms ease;
+}
+:root[data-style="5"] .asmal-style-modal[aria-hidden="false"] .asmal-style-modal-container{ transform:translateY(0); }
+:root[data-style="5"] .asmal-style-modal-header{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-bottom:10px; font-size:13px; color:var(--ink);
+}
+:root[data-style="5"] .asmal-style-modal-close{
+  border:none; background:transparent; cursor:pointer; width:26px; height:26px;
+  border-radius:999px; display:flex; align-items:center; justify-content:center; color:var(--line);
+}
+:root[data-style="5"] .asmal-style-modal-close i{ font-size:18px; }
+:root[data-style="5"] .asmal-style-modal-section{ margin-bottom:10px; }
+:root[data-style="5"] .asmal-style-modal-label{ font-size:11px; color:var(--line); margin-bottom:4px; }
+:root[data-style="5"] .asmal-style-modal-options{ display:flex; flex-wrap:wrap; gap:6px; }
+:root[data-style="5"] .asmal-style-option{
+  border-radius:999px; border:1px solid var(--line); background:var(--bg);
+  padding:4px 10px; font-size:11px; cursor:pointer; color:var(--ink);
+}
+:root[data-style="5"] .asmal-style-option.active{
+  background:var(--gold-soft); border-color:var(--gold); color:var(--ink); font-weight:700;
 }
