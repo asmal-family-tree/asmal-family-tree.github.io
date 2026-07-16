@@ -15,7 +15,8 @@
    التصميم/الخلفية/المساعد الذكي) — يُستثنى: البحث، شجرتي، خيوط النسب.
    يُظهر/يُخفى عبر class="show" من app.js (دالة openOnlyPanel). */
 #panelsBackdrop{
-  position:fixed; inset:0; background:rgba(20,14,8,.45); z-index:58;
+  position:fixed; top:0; left:0; right:0; bottom:var(--barh, 64px); z-index:58;
+  background:rgba(20,14,8,.45);
   opacity:0; pointer-events:none; transition:opacity .25s;
 }
 #panelsBackdrop.show{ opacity:1; pointer-events:auto; }
@@ -311,7 +312,7 @@
   #currentUserBadge.show{ display:flex; }
   #currentUserBadge button{ border:none; background:#eee; border-radius:12px; padding:3px 8px; font-size:11px; cursor:pointer; color:#555; }
   #uiScaleControls{
-    position:fixed; top:10px; right:10px; z-index:55; display:flex; gap:6px;
+    display:none;
   }
   #uiScaleControls button{
     width:30px; height:30px; border:1px solid #ddd; background:rgba(255,253,246,0.95); border-radius:50%;
@@ -319,6 +320,15 @@
     box-shadow:0 2px 8px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center;
   }
   #uiScaleControls button:active{ background:#eee; }
+
+  /* أزرار A+/A-: سطح المكتب فقط (يُخفى بالجوال تمامًا) */
+  @media (min-width:1024px) and (hover:hover) and (pointer:fine){
+    #uiScaleControls{
+      display:flex !important; position:fixed !important;
+      top:10px !important; right:10px !important; left:auto !important; bottom:auto !important;
+      z-index:55; gap:6px;
+    }
+  }
 
   #customAlertBackdrop{
     position:fixed; inset:0; background:rgba(20,14,8,.4); z-index:500; opacity:0; pointer-events:none; transition:opacity .2s;
@@ -660,9 +670,8 @@
   #dtHeader .dt-tab span:not(.dt-ic){ font-size:16px; font-weight:700; white-space:nowrap; }
   #dtHeader .dt-tab:hover{ background:rgba(239,231,216,.1); color:var(--gold-bright,#D4AF37); }
 
-  /* إخفاء الشريط السفلي وأزرار تكبير الخط نهائيًا بسطح المكتب */
+  /* إخفاء الشريط السفلي بسطح المكتب (يُستبدل بتبويبات الهيدر) */
   #bottomBar{ display:none !important; }
-  #uiScaleControls{ display:none !important; }
 
   #currentUserBadge{
     top:calc(var(--dt-header-h) + 14px) !important;
@@ -1587,12 +1596,9 @@ body:not(.authed) #artBackground{
   filter:drop-shadow(0 0 4px var(--gold)) drop-shadow(0 0 4px var(--gold));
 }
 
-/* تبديل مواضع أيقونة الأخبار وأزرار A+/A- عن موضعها الافتراضي بالـHTML */
+/* تبديل موضع أيقونة الأخبار عن موضعها الافتراضي بالـHTML */
 #newsNavBtn{
   top:10px !important; left:auto !important; right:10px !important;
-}
-#uiScaleControls{
-  top:70px !important; right:auto !important; left:14px !important;
 }
 
 /* إجبار صف واحد (بلا التفاف) لأزرار الثيمات وأزرار التصاميم بلوحة التصميم، مع سماح بالتمرير الأفقي عند الحاجة */
@@ -1793,10 +1799,14 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
 
    المتغيّرات:
      --barh : ارتفاع منطقة الشريط لكل تصميم (مضبوط مسبقًا لكل تصميم قائم)
-   ============================================================ */
-.bottom-panel.unified-sheet,
-#searchPanel, #ioPanel, #attachmentsPanel,
-#usersPanel, #recordsPanel, #designPanel, #bgPanel, #relPanel, #myTreePanel{
+
+   بنية اللوحة أصبحت: <panel> > (زر الإغلاق ثابت + <div class="panel-scroll-inner"> المحتوى القابل للتمرير </div>)
+   هذا يضمن بقاء زر ✕ ثابتًا بزاويته دائمًا حتى لو ظهر شريط تمرير داخلي بالمحتوى.
+   السلكتور مُعزَّز بـ:root لضمان أولوية قطعية على أي قاعدة أقدم تخص نفس المعرّف (كقواعد الأجهزة اللمسية القديمة). */
+:root .bottom-panel.unified-sheet,
+:root #searchPanel, :root #ioPanel, :root #attachmentsPanel,
+:root #usersPanel, :root #recordsPanel, :root #designPanel, :root #bgPanel, :root #relPanel, :root #myTreePanel,
+:root #aiChatPanel{
   position:fixed !important;
   left:50% !important; right:auto !important;
   transform:translateX(-50%) !important;
@@ -1808,26 +1818,19 @@ body.trusted-users-mode #usersPanel #inspectSearchBox{ display:none !important; 
   height:fit-content !important;
   max-height:86vh !important;
   max-height:86dvh !important;
-  overflow-y:auto !important;
-  -webkit-overflow-scrolling:touch;
+  overflow:hidden !important;
   border-radius:28px !important;
   z-index:59 !important;
+  padding:0 !important;
 }
-
-/* المساعد الذكي: نفس الأسلوب الموحّد تمامًا */
-#aiChatPanel{
-  position:fixed !important;
-  left:50% !important; right:auto !important;
-  transform:translateX(-50%) !important;
-  width:94% !important;
-  max-width:560px !important;
-  bottom:calc(var(--barh, 64px) + 8px) !important;
-  top:auto !important; margin:0 !important;
-  height:fit-content !important;
-  max-height:86vh !important;
-  max-height:86dvh !important;
-  overflow-y:auto !important; z-index:59 !important;
-  border-radius:28px !important;
+:root .bottom-panel.unified-sheet > .panel-scroll-inner,
+:root #searchPanel > .panel-scroll-inner, :root #ioPanel > .panel-scroll-inner, :root #attachmentsPanel > .panel-scroll-inner,
+:root #usersPanel > .panel-scroll-inner, :root #recordsPanel > .panel-scroll-inner, :root #designPanel > .panel-scroll-inner,
+:root #bgPanel > .panel-scroll-inner, :root #relPanel > .panel-scroll-inner, :root #myTreePanel > .panel-scroll-inner,
+:root #aiChatPanel > .panel-scroll-inner{
+  display:block; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  max-height:86vh; max-height:86dvh;
+  padding:16px 14px;
 }
 
 /* ===== UNIFIED BOTTOM-SHEET POPUP END ===== */

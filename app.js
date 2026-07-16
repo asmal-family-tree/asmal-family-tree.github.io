@@ -5055,8 +5055,15 @@ const bottomPanels = ["searchPanel", "relPanel", "myTreePanel", "ioPanel", "desi
 // ===== UNIFIED PANEL CLOSE BUTTON START (معزول — احذف هذا البلوك بأمان لإلغاء الميزة) =====
 // يحقن زر ✕ إغلاق موحّد أعلى كل لوحة منبثقة، فبدل الاعتماد على الضغط على الأيقونة ثانيةً،
 // يقدر المستخدم يغلق أي لوحة مباشرة. الزر بموضع ثابت أعلى يسار اللوحة.
+// المحتوى الأصلي يُنقل لغلاف داخلي (.panel-scroll-inner) هو من يتمرّر، فيبقى الزر ثابتًا
+// بزاويته دائمًا حتى لو ظهر شريط تمرير داخلي بالمحتوى الطويل.
 bottomPanels.forEach(panel => {
   if (!panel || panel.querySelector(".panel-close-x")) return;
+  const inner = document.createElement("div");
+  inner.className = "panel-scroll-inner";
+  while (panel.firstChild) inner.appendChild(panel.firstChild);
+  panel.appendChild(inner);
+
   const x = document.createElement("button");
   x.className = "panel-close-x";
   x.type = "button";
