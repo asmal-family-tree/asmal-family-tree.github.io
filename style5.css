@@ -185,6 +185,35 @@
 }
 
 /* ============================================================
+   لوحتا "خيوط النسب" و"شجرتي" — بنفس "جلد" نافذة إعدادات النمط
+   تمامًا (خلفية/حدود/زوايا/ظل)، لكن تنبثقان من أسفل الشاشة بدل
+   المنتصف، بعرض ثابت 90%/380px (نفس عرض نافذة النمط بالضبط —
+   هذا العرض يصبح موحّدًا لكل لوحة نبنيها بأسمل مستقبلًا).
+   ============================================================ */
+:root[data-style="5"] #relPanel,
+:root[data-style="5"] #myTreePanel{
+  position:fixed !important;
+  left:50% !important; right:auto !important; top:auto !important;
+  transform:translateX(-50%) !important;
+  bottom:14px !important; margin:0 !important;
+  width:90% !important; max-width:380px !important;
+  border-radius:18px !important;
+  border:1px solid var(--line) !important;
+  background:var(--card-bg) !important;
+  box-shadow:0 22px 50px rgba(0,0,0,.35) !important;
+  padding:0 !important;
+}
+:root[data-style="5"] #relPanel .panel-scroll-inner,
+:root[data-style="5"] #myTreePanel .panel-scroll-inner{
+  padding:12px 14px !important;
+}
+/* زر الإغلاق: بأعلى اليمين (كما بنافذة إعدادات النمط)، بدل أعلى اليسار المعتاد */
+:root[data-style="5"] #relPanel .panel-close-x,
+:root[data-style="5"] #myTreePanel .panel-close-x{
+  left:auto !important; right:8px !important;
+}
+
+/* ============================================================
    نافذة إعدادات النمط
    ============================================================ */
 :root[data-style="5"] .asmal-style-modal{

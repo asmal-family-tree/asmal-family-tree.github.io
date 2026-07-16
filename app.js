@@ -540,6 +540,22 @@ function applyLayoutStyle(layoutStyle){
   if (chipPrompt) chipPrompt.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
   if (chipAssistant) chipAssistant.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
 
+  // ربط الأزرار الثلاثة بعناصرها الحقيقية (كل زر يُشغّل .click() على العنصر
+  // الحقيقي مباشرة، بلا أي تكرار للمنطق أو الصلاحيات)
+  const ASMAL_REAL_LINKS = {
+    "الأخبار": "newsNavBtn",
+    "خيوط النسب": "relToggle",
+    "شجرتي": "myTreeToggle"
+  };
+  document.querySelectorAll(".asmal-fab-item").forEach(item => {
+    const realId = ASMAL_REAL_LINKS[item.dataset.label];
+    if (!realId) return;
+    item.onclick = () => {
+      const realEl = document.getElementById(realId);
+      if (realEl) realEl.click();
+    };
+  });
+
   // نافذة إعدادات النمط
   const styleModal = document.getElementById("asmalStyleModalDemo");
   const styleModalClose = document.getElementById("asmalStyleModalCloseDemo");
