@@ -637,7 +637,7 @@ function applyLayoutStyle(layoutStyle){
 
   // الضغط داخل شريط البحث السفلي (وليس داخل لوحة مفتوحة) يُغلق أي لوحة
   // منبثقة مفتوحة حاليًا من قائمة الأدوات.
-  mainSearch.addEventListener("focus", () => {
+  searchHost.addEventListener("focusin", () => {
     document.querySelectorAll(".bottom-panel.show").forEach(p => {
       if (typeof clearPanelInputs === "function") clearPanelInputs(p);
       p.classList.remove("show");
