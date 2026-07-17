@@ -17,15 +17,16 @@
 :root[data-style="5"] #tree-wrap{ background:var(--bg); }
 
 /* إخفاء كل شيء من التصميم الحقيقي غير موجود أصلًا بالملف المرجعي —
-   حتى لو كان عنصرًا افتراضيًا بالموقع (شارة المستخدم، الإطار الزخرفي،
-   أزرار تكبير/تصغير/تحديث الشجرة، زر "عرض الشجرة كاملة") — لا يُضاف
-   على أسمل أي شيء لم يكن بالمرجع، إلا بإذن صريح لاحقًا لكل عنصر تحديدًا. */
+   حتى لو كان عنصرًا افتراضيًا بالموقع (الإطار الزخرفي، أزرار تكبير/تصغير/
+   تحديث الشجرة، زر "عرض الشجرة كاملة") — لا يُضاف على أسمل أي شيء لم يكن
+   بالمرجع، إلا بإذن صريح لاحقًا لكل عنصر تحديدًا.
+   استثناء: شارة المستخدم (#currentUserBadge) تظهر بأسمل بنفس شكلها
+   وسلوكها بالتصاميم الأخرى، بإذن صريح. */
 :root[data-style="5"] #bottomBar,
 :root[data-style="5"] #newsNavBtn,
 :root[data-style="5"] #uiScaleControls,
 :root[data-style="5"] .zoom-fab,
 :root[data-style="5"] #exitFocus,
-:root[data-style="5"] #currentUserBadge,
 :root[data-style="5"] #ornateFrame{
   display:none !important;
 }
@@ -257,6 +258,28 @@
 
 /* بأسمل: الشريط السفلي مخفي، فالخلفية المعتمة تغطي كامل الشاشة */
 :root[data-style="5"] #panelsBackdrop{ bottom:0 !important; }
+
+/* ============================================================
+   بطاقة معلومات الشخص السريعة (#sheet) ولوحة الإضافة (#infoModal)
+   — بنفس "جلد" أسمل تمامًا (خلفية/حدود/زوايا/ظل)، منبثقتان من
+   أسفل الشاشة بعرض ثابت 90%/380px (نفس معيار بقية لوحات أسمل)،
+   بدل الشكل الافتراضي (بطاقة بيضاء بعرض كامل الشاشة).
+   ============================================================ */
+:root[data-style="5"] #sheet,
+:root[data-style="5"] #infoModal{
+  left:50% !important; right:auto !important;
+  transform:translateX(-50%) translateY(110%) !important;
+  bottom:90px !important;
+  width:90% !important; max-width:380px !important;
+  border-radius:18px !important;
+  border:1px solid var(--line) !important;
+  background:var(--card-bg) !important;
+  box-shadow:0 22px 50px rgba(0,0,0,.35) !important;
+}
+:root[data-style="5"] #sheet.show,
+:root[data-style="5"] #infoModal.show{
+  transform:translateX(-50%) translateY(0) !important;
+}
 
 /* ============================================================
    البطاقة العائمة الصغيرة (اختصارات: الأخبار/خيوط النسب/الحذف/تحديث)
