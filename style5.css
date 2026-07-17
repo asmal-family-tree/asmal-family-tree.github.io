@@ -269,7 +269,7 @@
 :root[data-style="5"] #infoModal{
   left:50% !important; right:auto !important;
   transform:translateX(-50%) translateY(110%) !important;
-  bottom:90px !important;
+  bottom:60px !important;
   width:90% !important; max-width:380px !important;
   border-radius:18px !important;
   border:1px solid var(--line) !important;
