@@ -1073,6 +1073,14 @@ function applyRolePermissions(){
 async function checkMigrationStatusAndLoad(){
   try{
     await loadTreeFromFirestore();
+    // جسر الوصول من صفحة الإحصائيات (stats.html): فتح نموذج "إضافة معلومات"
+    // مباشرة لشخص محدد بمعرفه، ثم تنظيف الرابط لمنع إعادة الفتح لاحقًا.
+    const openInfoId = new URLSearchParams(location.search).get("openInfo");
+    if (openInfoId && typeof root !== "undefined" && root){
+      const d = root.descendants().find(n => n.data.id === openInfoId);
+      if (d && typeof openInfoModal === "function") openInfoModal(d);
+      history.replaceState(null, "", location.pathname);
+    }
   }catch(e){
     console.error("تعذّر تحميل الشجرة من قاعدة البيانات:", e);
   }
