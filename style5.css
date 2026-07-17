@@ -275,10 +275,14 @@
   border:1px solid var(--line) !important;
   background:var(--card-bg) !important;
   box-shadow:0 22px 50px rgba(0,0,0,.35) !important;
+  opacity:0 !important; visibility:hidden !important;
+  transition:transform .3s cubic-bezier(.22,.9,.34,1), opacity .3s ease, visibility 0s linear .3s !important;
 }
 :root[data-style="5"] #sheet.show,
 :root[data-style="5"] #infoModal.show{
   transform:translateX(-50%) translateY(0) !important;
+  opacity:1 !important; visibility:visible !important;
+  transition:transform .3s cubic-bezier(.22,.9,.34,1), opacity .3s ease, visibility 0s linear 0s !important;
 }
 
 /* ============================================================
