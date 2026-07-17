@@ -294,6 +294,22 @@
    مكانها، والقائمتان العائمتان (يسار/يمين) تنكمشان تلقائيًا.
    ============================================================ */
 :root[data-style="5"].asmal-ai-mode #tree-svg{ display:none !important; }
+/* إخفاء افتراضي مطلق لكل عناصر أسمل الجديدة (بلا شرط) — تظهر فقط
+   عند تفعيل data-style="5" صراحة عبر القواعد الخاصة أدناه؛ هذا يمنع
+   ظهورها بشكل غير منسّق (نصوص/أزرار عادية متراكمة) بالتصميمين الآخرين. */
+.asmal-fab-wrapper,
+.asmal-bottom-shell,
+.asmal-style-modal,
+.asmal-flcard{
+  display:none;
+}
+:root[data-style="5"] .asmal-fab-wrapper{ display:block; }
+:root[data-style="5"] .asmal-bottom-shell{ display:flex; }
+:root[data-style="5"] .asmal-flcard{ display:flex; }
+/* نافذة إعدادات النمط تُدار بخاصية aria-hidden الحقيقية بدل display دائمًا،
+   فتُفعَّل مساحتها فقط بأسمل، وتُخفى داخليًا بواسطة CSS الأصلي لها أدناه */
+:root[data-style="5"] .asmal-style-modal{ display:flex; }
+
 #asmalChatMessagesHost{ display:none; }
 :root[data-style="5"].asmal-ai-mode #asmalChatMessagesHost{
   display:flex; flex-direction:column; position:absolute; inset:0;
@@ -321,11 +337,16 @@
 :root[data-style="5"] #asmalSearchHost #search::placeholder,
 :root[data-style="5"] #asmalSearchHost #aiChatInput::placeholder{ color:var(--line); opacity:1; }
 :root[data-style="5"] #asmalSearchHost #aiChatSend{
-  border-radius:14px !important; border:1px solid var(--line) !important;
-  background:var(--emerald) !important; color:#fff !important;
-  padding:6px 14px !important; font-size:13px !important; font-weight:700 !important;
-  cursor:pointer; flex-shrink:0;
+  width:32px !important; height:32px !important; min-width:32px !important; max-width:32px !important;
+  border-radius:50% !important; border:1px solid var(--line) !important;
+  background:var(--bg) !important; color:var(--ink) !important;
+  display:flex !important; align-items:center; justify-content:center;
+  cursor:pointer; flex:none !important; padding:0 !important; font-size:15px;
 }
+.asmal-ic{ display:none; }
+:root[data-style="5"] #aiChatSend .ai-send-text{ display:none; }
+:root[data-style="5"] #aiChatSend .asmal-ic{ display:inline-flex !important; }
+:root[data-style="5"] #aiChatInputRow{ width:100%; }
 /* رفع كل قوائم الاقتراحات (بحث، خيوط النسب، شجرتي، أي حقل آخر) فوق كل شيء */
 :root[data-style="5"] .autocomplete-dropdown{ z-index:1000 !important; }
 
