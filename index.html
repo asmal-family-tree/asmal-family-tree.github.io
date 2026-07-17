@@ -24,7 +24,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=79">
+<link rel="stylesheet" href="styles.css?v=80">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
 <link rel="stylesheet" href="style5.css?v=15">
 </head>
@@ -119,23 +119,31 @@
 <div id="authOverlay">
   <div id="authCard">
     <h2>🌳 شجرة بني أسمل الحكمي</h2>
-    <p class="sub" id="authSubtitle">سجّل الدخول للمتابعة</p>
-    <input id="authUsername" type="text" placeholder="اسم المستخدم" autocomplete="username">
-    <input id="authPassword" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-    <button id="authLoginBtn">دخول</button>
-    <div id="authError"></div>
-    <div id="authLoading" style="display:none">جارِ التحقق…</div>
-    <div class="auth-bottom-row">
-      <a id="openRegisterLink" href="#" class="register-link">التسجيل ➕</a>
-      <a id="guestEnterLink" href="#" class="guest-btn">
-        <span class="guest-btn-flourish">›</span>
-        <span class="guest-btn-icon">🕵️</span>
-        <span class="guest-btn-text">
-          <span class="guest-btn-title">الدخول كضيف</span>
-          <span class="guest-btn-sub">(مشاهدة فقط)</span>
-        </span>
-        <span class="guest-btn-flourish">‹</span>
-      </a>
+    <!-- ===== INITIAL SESSION CHECK START (معزول — احذف بأمان لإلغاء الميزة) =====
+         يظهر بدل النموذج فورًا عند كل تحميل صفحة، حتى يتأكد Firebase من وجود
+         جلسة محفوظة (يستغرق كسر ثانية) — يمنع "ومضة" نموذج الدخول الكامل
+         التي تُوحي بالخروج من النظام رغم بقاء الجلسة فعليًا. -->
+    <div id="authInitialCheck" style="padding:20px 0; text-align:center; color:#8a7a5a;">جارِ التحقق من الجلسة…</div>
+    <!-- ===== INITIAL SESSION CHECK END ===== -->
+    <div id="authFormFields" style="display:none;">
+      <p class="sub" id="authSubtitle">سجّل الدخول للمتابعة</p>
+      <input id="authUsername" type="text" placeholder="اسم المستخدم" autocomplete="username">
+      <input id="authPassword" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+      <button id="authLoginBtn">دخول</button>
+      <div id="authError"></div>
+      <div id="authLoading" style="display:none">جارِ التحقق…</div>
+      <div class="auth-bottom-row">
+        <a id="openRegisterLink" href="#" class="register-link">التسجيل ➕</a>
+        <a id="guestEnterLink" href="#" class="guest-btn">
+          <span class="guest-btn-flourish">›</span>
+          <span class="guest-btn-icon">🕵️</span>
+          <span class="guest-btn-text">
+            <span class="guest-btn-title">الدخول كضيف</span>
+            <span class="guest-btn-sub">(مشاهدة فقط)</span>
+          </span>
+          <span class="guest-btn-flourish">‹</span>
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -664,7 +672,7 @@
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=50"></script>
+<script src="app.js?v=52"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {

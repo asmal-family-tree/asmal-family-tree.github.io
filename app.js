@@ -488,6 +488,12 @@ async function loadAndApplySiteTheme(){
     if (myLayout !== null) layoutStyle = myLayout;
   }
 
+  // على سطح المكتب: "المستقبلي" هو التصميم الوحيد المدعوم حاليًا — يُجبَر
+  // دائمًا بغض النظر عن أي تفضيل محفوظ (أسمل غير متجاوب مع سطح المكتب بعد).
+  // هذا تجاوز لهذه الجلسة فقط، لا يُكتب فوق التفضيل الحقيقي المحفوظ.
+  const isDesktopViewport = window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)").matches;
+  if (isDesktopViewport && layoutStyle === "5") layoutStyle = "3";
+
   applyTheme(theme);
   applyLayoutStyle(layoutStyle);
 }
@@ -924,6 +930,12 @@ auth.onAuthStateChanged((fbUser) => {
     window.authUser = null;
     document.body.classList.remove("authed");   // إخفاء كل عناصر التحكم فورًا
     document.getElementById("authOverlay").classList.remove("hidden");
+    // تأكَّد الآن فعليًا أنه لا توجد جلسة محفوظة — نُظهر نموذج الدخول
+    // الحقيقي بدل رسالة "جارِ التحقق من الجلسة…" الأولية.
+    const initialCheck = document.getElementById("authInitialCheck");
+    const formFields = document.getElementById("authFormFields");
+    if (initialCheck) initialCheck.style.display = "none";
+    if (formFields) formFields.style.display = "block";
   }
 });
 

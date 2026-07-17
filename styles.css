@@ -74,7 +74,32 @@
     --card-shadow-lg:0 14px 36px rgba(30,40,55,.20);
     --card-bg:#FFFFFF;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  /* ============ الثيم الخامس: فاتح كريمي ============ */
+  :root[data-theme="cream"]{
+    --bg:#f4f1ea; --line:#ddd4c8; --ink:#6a5f57;
+    --root:#4b5563; --root-ring:#c8bca9;
+    --trunk:#8b5e34; --trunk-ring:#6a5f57;
+    --leaf:#7a8a6a; --leaf-ring:#6a5f57;
+    --tagbg:var(--card-bg); --tagborder:#c8bca9;
+    --gold:#a1968e; --gold-soft:#ece4d9; --gold-bright:#c8bca9;
+    --emerald:#2f2a26; --emerald-2:#4b5563; --maroon:#8b5e34;
+    --card-shadow:0 10px 24px rgba(0,0,0,.08);
+    --card-shadow-lg:0 14px 34px rgba(0,0,0,.12);
+    --card-bg:#efe9df;
+  }
+  /* ============ الثيم السادس: داكن ============ */
+  :root[data-theme="midnight"]{
+    --bg:#0b1120; --line:#374151; --ink:#e5e7eb;
+    --root:#1f2937; --root-ring:#9ca3af;
+    --trunk:#374151; --trunk-ring:#1f2937;
+    --leaf:#4b5563; --leaf-ring:#1f2937;
+    --tagbg:var(--card-bg); --tagborder:#374151;
+    --gold:#9ca3af; --gold-soft:#1f2937; --gold-bright:#e5e7eb;
+    --emerald:#1f2937; --emerald-2:#374151; --maroon:#7f1d1d;
+    --card-shadow:0 10px 24px rgba(0,0,0,.55);
+    --card-shadow-lg:0 14px 34px rgba(0,0,0,.65);
+    --card-bg:#111827;
+  }
   html,body{ margin:0; overscroll-behavior:none; }
   #ornateFrame{ position:fixed; inset:6px; z-index:30; pointer-events:none; border:2px solid var(--gold); box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--emerald); border-radius:10px; }
   #artBackground{
@@ -328,6 +353,8 @@
       top:10px !important; right:10px !important; left:auto !important; bottom:auto !important;
       z-index:55; gap:6px;
     }
+    /* أسمل غير متجاوب مع سطح المكتب بعد — يُستبعد من خيارات الشكل هناك */
+    .layout-btn[data-style="5"]{ display:none !important; }
   }
 
   #customAlertBackdrop{
