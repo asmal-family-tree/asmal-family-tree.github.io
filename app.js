@@ -342,6 +342,9 @@ function getFilteredTourSteps(){
 
 async function checkAndMaybeStartTour(){
   if (!window.authUser || window.authUser.isGuest) return;
+  // الجولة غير متوافقة حاليًا مع تصميم أسمل (عناصرها بمواضع/حالات مختلفة تمامًا)
+  // فتُؤجَّل بصمت حتى يتصفح المستخدم بتصميم آخر، دون تعليم الجولة كمشاهَدة.
+  if (document.documentElement.getAttribute("data-style") === "5") return;
   try{
     const metaSnap = await db.collection("meta").doc("tourSettings").get();
     const currentVersion = metaSnap.exists ? (metaSnap.data().tourVersion || 1) : 1;
@@ -352,6 +355,12 @@ async function checkAndMaybeStartTour(){
 }
 
 function startTour(versionToMark){
+  // الجولة غير متوافقة حاليًا مع تصميم أسمل — تُمنع من هذا المدخل أيضًا
+  // (يغطي زر "معاينة الجولة الآن" اليدوي، وليس فقط البدء التلقائي).
+  if (document.documentElement.getAttribute("data-style") === "5"){
+    alert("الجولة التفاعلية غير متاحة حاليًا بتصميم أسمل. بدّل لتصميم آخر لعرضها.");
+    return;
+  }
   _tourActiveSteps = getFilteredTourSteps();
   _tourIndex = 0;
   if (!_tourActiveSteps.length) return;
@@ -552,6 +561,11 @@ function applyLayoutStyle(layoutStyle){
     const searchbar = document.querySelector(".searchbar");
     if (active){
       document.documentElement.classList.add("asmal-ai-mode");
+      // نُزيل حقل البحث بالاسم من الغلاف أولًا (لغرفة الأصلية) حتى لا
+      // يتراكب مع صف إدخال المساعد الذكي داخل نفس الغلاف الصغير.
+      if (searchbar && searchbarHome && searchbar.parentElement === searchHost){
+        searchbarHome.appendChild(searchbar);
+      }
       if (aiRowHost && aiRowHost.parentElement !== searchHost) searchHost.appendChild(aiRowHost);
       if (chatMessagesHost){
         const msgs = document.getElementById("aiChatMessages");
@@ -799,6 +813,16 @@ document.querySelectorAll(".layout-btn").forEach(btn => {
     if (!guard("design")) return;
     const layoutStyle = btn.dataset.style;
     const statusEl = document.getElementById("layoutStatus");
+
+    // إغلاق كل النوافذ المفتوحة أولًا (كل اللوحات المنبثقة، بطاقة معلومات
+    // الشخص، ولوحة الإضافة) قبل الانتقال فعليًا للتصميم الجديد.
+    document.querySelectorAll(".bottom-panel.show").forEach(p => {
+      if (typeof clearPanelInputs === "function") clearPanelInputs(p);
+      p.classList.remove("show");
+    });
+    document.getElementById("sheet")?.classList.remove("show");
+    document.getElementById("infoModal")?.classList.remove("show");
+    document.getElementById("panelsBackdrop")?.classList.remove("show");
 
     if (!isAdminUser()){
       localStorage.setItem("myLayout", layoutStyle);

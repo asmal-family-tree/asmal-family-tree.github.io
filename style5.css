@@ -152,6 +152,9 @@
   border:1px solid var(--line); background:var(--bg); cursor:pointer; white-space:nowrap;
 }
 :root[data-style="5"] .asmal-chip-inline i{ font-size:14px; }
+:root[data-style="5"] .asmal-chip-inline.active{
+  background:var(--emerald); color:#fff; border-color:var(--emerald); font-weight:700;
+}
 :root[data-style="5"] .asmal-search-wrap.expanded .asmal-search-bottom-row{
   display:flex; opacity:1; transform:translateY(0) scale(1);
   animation:asmal-subtle-shake 500ms ease-in-out 1;
@@ -323,8 +326,8 @@
   padding:6px 14px !important; font-size:13px !important; font-weight:700 !important;
   cursor:pointer; flex-shrink:0;
 }
-/* رفع شريط الاقتراحات فوق البطاقة العائمة اليمنى حتى لا يُحجب جزء منه */
-:root[data-style="5"] #searchDropdown{ z-index:1000 !important; }
+/* رفع كل قوائم الاقتراحات (بحث، خيوط النسب، شجرتي، أي حقل آخر) فوق كل شيء */
+:root[data-style="5"] .autocomplete-dropdown{ z-index:1000 !important; }
 
 /* ============================================================
    البطاقة العائمة الصغيرة (اختصارات: الأخبار/خيوط النسب/الحذف/تحديث)
