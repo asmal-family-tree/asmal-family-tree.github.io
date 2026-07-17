@@ -516,11 +516,13 @@ function applyLayoutStyle(layoutStyle){
 (function initAsmalDemoUI(){
   const fabWrapper = document.getElementById("asmalFabWrapper");
   const menuToggle = document.getElementById("asmalMenuToggleDemo");
-  const mainSearch = document.getElementById("asmalMainSearchDemo");
+  const searchHost = document.getElementById("asmalSearchHost");
   const searchWrap = document.getElementById("asmalSearchWrapDemo");
   const chipPrompt = document.getElementById("asmalChipPromptDemo");
   const chipAssistant = document.getElementById("asmalChipAssistantDemo");
-  if (!fabWrapper || !menuToggle || !mainSearch || !searchWrap) return;
+  const flCard = document.getElementById("asmalFlCard");
+  const flToggle = document.getElementById("asmalFlToggle");
+  if (!fabWrapper || !menuToggle || !searchHost || !searchWrap) return;
 
   const transitionClasses = ["transition-slide", "transition-rotate", "transition-bounce", "transition-blur"];
   const modeClasses = ["mode-icons", "mode-text"];
@@ -530,15 +532,83 @@ function applyLayoutStyle(layoutStyle){
     menuToggle.classList.toggle("active");
   };
 
-  mainSearch.addEventListener("focus", () => searchWrap.classList.add("expanded"));
-  mainSearch.addEventListener("blur", () => {
+  // توسيع/طي شريط البحث عند التركيز على أي حقل داخله (بحث أو مساعد ذكي)
+  searchHost.addEventListener("focusin", () => searchWrap.classList.add("expanded"));
+  searchHost.addEventListener("focusout", () => {
     setTimeout(() => {
       if (!searchWrap.contains(document.activeElement)) searchWrap.classList.remove("expanded");
     }, 120);
   });
 
-  if (chipPrompt) chipPrompt.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
-  if (chipAssistant) chipAssistant.onclick = () => { mainSearch.value = ""; mainSearch.focus(); searchWrap.classList.add("expanded"); };
+  // نقل عنصري البحث الحقيقي (.searchbar) وصف إدخال المساعد الذكي الحقيقي
+  // (aiChatInput/aiChatSend) بين مكانهما الأصليَين وغلاف البحث المشترك،
+  // حسب الوضع النشط (بحث بالاسم / المساعد الذكي).
+  const searchbarHome = document.getElementById("searchPanel");
+  const aiRowHost = document.getElementById("aiChatInput") ? document.getElementById("aiChatInput").parentElement : null;
+  const aiMessagesHome = document.getElementById("aiChatMessages") ? document.getElementById("aiChatMessages").parentElement : null;
+  const chatMessagesHost = document.getElementById("asmalChatMessagesHost");
+
+  function setAsmalAiMode(active){
+    const searchbar = document.querySelector(".searchbar");
+    if (active){
+      document.documentElement.classList.add("asmal-ai-mode");
+      if (aiRowHost && aiRowHost.parentElement !== searchHost) searchHost.appendChild(aiRowHost);
+      if (chatMessagesHost){
+        const msgs = document.getElementById("aiChatMessages");
+        if (msgs && msgs.parentElement !== chatMessagesHost) chatMessagesHost.appendChild(msgs);
+      }
+      fabWrapper.classList.remove("open");
+      menuToggle.classList.remove("active");
+      if (flCard) flCard.classList.add("collapsed");
+      if (flToggle) flToggle.textContent = "›";
+      if (chipPrompt) chipPrompt.classList.remove("active");
+      if (chipAssistant) chipAssistant.classList.add("active");
+      const aiInput = document.getElementById("aiChatInput");
+      if (aiInput) aiInput.focus();
+    } else {
+      document.documentElement.classList.remove("asmal-ai-mode");
+      if (searchbar && searchbar.parentElement !== searchHost) searchHost.appendChild(searchbar);
+      if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
+        aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
+      }
+      const msgs = document.getElementById("aiChatMessages");
+      if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
+        aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
+      }
+      if (chipAssistant) chipAssistant.classList.remove("active");
+      if (chipPrompt) chipPrompt.classList.add("active");
+    }
+  }
+
+  // البحث بالاسم: نشط افتراضيًا دومًا عند كل دخول — لكن فقط إن كان
+  // تصميم أسمل هو النشط فعليًا (نتحقق من data-style حتى لا نُفسد
+  // مكان حقل البحث الحقيقي بالتصاميم الأخرى).
+  function isAsmalActive(){ return document.documentElement.getAttribute("data-style") === "5"; }
+  if (isAsmalActive()) setAsmalAiMode(false);
+
+  // عند تبديل التصميم: نُعيد كل شيء لمكانه الأصلي إن غادرنا أسمل،
+  // أو نُفعّل البحث بالاسم افتراضيًا إن دخلنا أسمل.
+  const _origApplyLayoutStyle = window.applyLayoutStyle;
+  window.applyLayoutStyle = function(layoutStyle){
+    _origApplyLayoutStyle(layoutStyle);
+    if (layoutStyle === "5") setAsmalAiMode(false);
+    else {
+      document.documentElement.classList.remove("asmal-ai-mode");
+      const searchbar = document.querySelector(".searchbar");
+      if (searchbar && searchbarHome && searchbar.parentElement !== searchbarHome) searchbarHome.appendChild(searchbar);
+      if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
+        aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
+      }
+      const msgs = document.getElementById("aiChatMessages");
+      if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
+        aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
+      }
+    }
+  };
+
+  if (chipPrompt) chipPrompt.onclick = () => setAsmalAiMode(false);
+  if (chipAssistant) chipAssistant.onclick = () => setAsmalAiMode(!document.documentElement.classList.contains("asmal-ai-mode"));
+  window.asmalSetAiMode = setAsmalAiMode;
 
   // ربط الأزرار بعناصرها الحقيقية (كل زر يُشغّل .click() على العنصر
   // الحقيقي مباشرة، بلا أي تكرار للمنطق أو الصلاحيات). وعند فتح أي لوحة
@@ -714,6 +784,7 @@ function applyLayoutStyle(layoutStyle){
   const flRefresh = document.getElementById("asmalFlRefresh");
   if (flRefresh){
     flRefresh.onclick = () => {
+      if (typeof window.asmalSetAiMode === "function") window.asmalSetAiMode(false);
       const zr = document.getElementById("zoomReset");
       const ef = document.getElementById("exitFocus");
       if (zr) zr.click();

@@ -286,6 +286,47 @@
 }
 
 /* ============================================================
+   وضع المساعد الذكي (يحل محل الشجرة): يُفعَّل بإضافة كلاس
+   "asmal-ai-mode" على <html> — الشجرة تختفي، مساحة الرسائل تملأ
+   مكانها، والقائمتان العائمتان (يسار/يمين) تنكمشان تلقائيًا.
+   ============================================================ */
+:root[data-style="5"].asmal-ai-mode #tree-svg{ display:none !important; }
+#asmalChatMessagesHost{ display:none; }
+:root[data-style="5"].asmal-ai-mode #asmalChatMessagesHost{
+  display:flex; flex-direction:column; position:absolute; inset:0;
+  padding:16px 14px 100px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:var(--bg);
+}
+:root[data-style="5"] #asmalChatMessagesHost #aiChatMessages{
+  flex:1; display:flex; flex-direction:column; gap:10px;
+}
+
+/* حقل البحث المشترك (بحث بالاسم / سؤال المساعد) — نفس المظهر بالحالتين */
+:root[data-style="5"] #asmalSearchHost{ width:100%; }
+:root[data-style="5"] #asmalSearchHost .searchbar,
+:root[data-style="5"] #asmalSearchHost > div{
+  flex:1; display:flex; align-items:center; gap:6px; position:relative; width:100%;
+  border:none !important; background:transparent !important; box-shadow:none !important; padding:0 !important;
+}
+:root[data-style="5"] #asmalSearchHost .searchbar svg{ width:18px; height:18px; opacity:.55; color:var(--ink); flex:none; }
+:root[data-style="5"] #asmalSearchHost #search,
+:root[data-style="5"] #asmalSearchHost #aiChatInput{
+  flex:1; border:none !important; outline:none; background:transparent !important; color:var(--ink);
+  font-size:15px; font-weight:500; text-align:right; font-family:'Tajawal',sans-serif;
+  padding:0 !important; margin:0 !important; box-shadow:none !important;
+}
+:root[data-style="5"] #asmalSearchHost #search::placeholder,
+:root[data-style="5"] #asmalSearchHost #aiChatInput::placeholder{ color:var(--line); opacity:1; }
+:root[data-style="5"] #asmalSearchHost #aiChatSend{
+  border-radius:14px !important; border:1px solid var(--line) !important;
+  background:var(--emerald) !important; color:#fff !important;
+  padding:6px 14px !important; font-size:13px !important; font-weight:700 !important;
+  cursor:pointer; flex-shrink:0;
+}
+/* رفع شريط الاقتراحات فوق البطاقة العائمة اليمنى حتى لا يُحجب جزء منه */
+:root[data-style="5"] #searchDropdown{ z-index:1000 !important; }
+
+/* ============================================================
    البطاقة العائمة الصغيرة (اختصارات: الأخبار/خيوط النسب/الحذف/تحديث)
    يمين الشاشة، منتصف الارتفاع رأسيًا، أيقونات فقط بلا نصوص.
    ============================================================ */

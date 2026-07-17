@@ -26,7 +26,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <link rel="stylesheet" href="styles.css?v=79">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
-<link rel="stylesheet" href="style5.css?v=11">
+<link rel="stylesheet" href="style5.css?v=12">
 </head>
 <body>
 
@@ -241,6 +241,7 @@
     <button id="zoomReset" title="إعادة تعيين">⟳</button>
   </div>
   <button id="exitFocus" class="exit-focus">✕ عرض الشجرة كاملة</button>
+  <div id="asmalChatMessagesHost"></div>
 </div>
 
 <div id="myTreeInfoPanel">
@@ -457,8 +458,7 @@
   <div class="asmal-bottom-row">
     <div class="asmal-search-wrap" id="asmalSearchWrapDemo">
       <div class="asmal-search-top-row">
-        <input class="asmal-search-input" id="asmalMainSearchDemo" type="text" placeholder="اكتب هنا..." />
-        <button class="asmal-send-btn" aria-label="إرسال" title="إرسال"><i class="ri-send-plane-2-line"></i></button>
+        <div id="asmalSearchHost" style="flex:1; display:flex; align-items:center;"></div>
       </div>
       <div class="asmal-search-bottom-row">
         <button class="asmal-chip-inline" id="asmalChipPromptDemo">
@@ -664,7 +664,7 @@
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=47"></script>
+<script src="app.js?v=48"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {
