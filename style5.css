@@ -259,6 +259,35 @@
 :root[data-style="5"] #panelsBackdrop{ bottom:0 !important; }
 
 /* ============================================================
+   البطاقة العائمة الصغيرة (اختصارات: الأخبار/خيوط النسب/الحذف/تحديث)
+   يمين الشاشة، منتصف الارتفاع رأسيًا، أيقونات فقط بلا نصوص.
+   ============================================================ */
+:root[data-style="5"] .asmal-flcard{
+  position:fixed; top:50%; right:8px; left:auto; transform:translateY(-50%);
+  z-index:997; display:flex; flex-direction:column; gap:6px;
+  background:rgba(255,255,255,.18);
+  backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+  border:1px solid rgba(255,255,255,.4); border-radius:16px;
+  box-shadow:var(--card-shadow-lg); padding:6px;
+}
+:root[data-style="5"] .asmal-fl-toggle{
+  width:44px; height:32px; appearance:none; border:none;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold));
+  border-radius:10px; font-size:15px; font-weight:800; color:#fff; cursor:pointer; line-height:1;
+  box-shadow:0 2px 9px rgba(0,0,0,.3);
+}
+:root[data-style="5"] .asmal-fl-btns{ display:flex; flex-direction:column; gap:6px; }
+:root[data-style="5"] .asmal-flcard.collapsed .asmal-fl-btns{ display:none; }
+:root[data-style="5"] .asmal-fl-nav{
+  width:44px; height:40px; appearance:none; border:1px solid var(--line);
+  background:var(--card-bg); border-radius:10px; font-size:18px; color:var(--ink);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+:root[data-style="5"] .asmal-fl-nav.active{
+  background:var(--emerald); color:#fff; border-color:var(--emerald);
+}
+
+/* ============================================================
    نافذة إعدادات النمط
    ============================================================ */
 :root[data-style="5"] .asmal-style-modal{

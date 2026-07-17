@@ -675,6 +675,52 @@ function applyLayoutStyle(layoutStyle){
     pb.classList.remove("show");
   });
 })();
+
+// البطاقة العائمة الصغيرة (اختصارات: الأخبار/خيوط النسب/الحذف/تحديث)
+(function initAsmalFlCard(){
+  const card = document.getElementById("asmalFlCard");
+  const toggle = document.getElementById("asmalFlToggle");
+  if (!card || !toggle) return;
+
+  toggle.onclick = () => {
+    card.classList.toggle("collapsed");
+    toggle.textContent = card.classList.contains("collapsed") ? "›" : "‹";
+  };
+
+  // مزامنة حالة "نشط" لزر البطاقة مع حالة العنصر الحقيقي المرتبط به
+  function bindActiveSync(realId, btnEl){
+    const realEl = document.getElementById(realId);
+    if (!realEl || !btnEl) return;
+    const sync = () => btnEl.classList.toggle("active", realEl.classList.contains("show") || realEl.classList.contains("active"));
+    sync();
+    new MutationObserver(sync).observe(realEl, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  const flNews = document.getElementById("asmalFlNews");
+  if (flNews) flNews.onclick = () => { const el = document.getElementById("newsNavBtn"); if (el) el.click(); };
+
+  const flRel = document.getElementById("asmalFlRel");
+  if (flRel){
+    flRel.onclick = () => { const el = document.getElementById("relToggle"); if (el) el.click(); };
+    bindActiveSync("relPanel", flRel);
+  }
+
+  const flDelete = document.getElementById("asmalFlDelete");
+  if (flDelete){
+    flDelete.onclick = () => { const el = document.getElementById("deleteBadgeToggle"); if (el) el.click(); };
+    bindActiveSync("deleteBadgeToggle", flDelete);
+  }
+
+  const flRefresh = document.getElementById("asmalFlRefresh");
+  if (flRefresh){
+    flRefresh.onclick = () => {
+      const zr = document.getElementById("zoomReset");
+      const ef = document.getElementById("exitFocus");
+      if (zr) zr.click();
+      if (ef) ef.click();
+    };
+  }
+})();
 // ===== ASMAL DEMO UI END =====
 
 document.querySelectorAll(".layout-btn").forEach(btn => {
@@ -4549,7 +4595,7 @@ function sy(d){
 function centerOnRoot(){
   const w = svg.node().clientWidth, h = svg.node().clientHeight;
   return d3.zoomIdentity
-    .translate(w/2 - sx(root)*initScale, h*0.72 - sy(root)*initScale)
+    .translate(w/2 - sx(root)*initScale, (h - 50) - sy(root)*initScale)
     .scale(initScale);
 }
 

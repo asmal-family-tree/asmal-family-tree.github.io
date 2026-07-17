@@ -26,7 +26,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <link rel="stylesheet" href="styles.css?v=79">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
-<link rel="stylesheet" href="style5.css?v=7">
+<link rel="stylesheet" href="style5.css?v=8">
 </head>
 <body>
 
@@ -525,6 +525,16 @@
     </div>
   </div>
 </div>
+<div id="asmalFlCard" class="asmal-flcard">
+  <button class="asmal-fl-toggle" id="asmalFlToggle" type="button">‹</button>
+  <div class="asmal-fl-btns" id="asmalFlBtns">
+    <button class="asmal-fl-nav" id="asmalFlNews" type="button" title="الأخبار">🗞️</button>
+    <button class="asmal-fl-nav" id="asmalFlRel" type="button" title="خيوط النسب">🧮</button>
+    <button class="asmal-fl-nav" id="asmalFlDelete" type="button" title="إظهار/إخفاء علامات الحذف">🗑️</button>
+    <button class="asmal-fl-nav" id="asmalFlRefresh" type="button" title="تحديث المشجرة">⟳</button>
+  </div>
+</div>
+
 <!-- ===== ASMAL DEMO UI END ===== -->
 
 
@@ -654,7 +664,7 @@
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=46"></script>
+<script src="app.js?v=47"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {
