@@ -1281,63 +1281,88 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
     }
   });
 
-  const lines = [];
+  // ---------- تصنيف الحقول لثلاثة أقسام بصرية (أساسية / العائلة / النبذة)، كلٌّ بأيقونته ----------
+  const basicFields = [];
   if (data.birthYear){
-    // العمر يُحسب حتى سنة الوفاة إن كان متوفى، وإلا حتى السنة الحالية
     const isDead = data.deathStatus === "dead" && data.deathYear;
     const endYear = isDead ? parseInt(data.deathYear) : CURRENT_HIJRI_YEAR;
     const age = endYear - parseInt(data.birthYear);
-    lines.push({ label: "تاريخ الميلاد", value: data.birthYear + " هـ" });
-    if (age > 0 && age < 130) lines.push({ label: "العمر", value: age + " سنة تقريبًا" + (isDead ? " — عند الوفاة" : "") });
+    basicFields.push({ icon: "📅", label: "تاريخ الميلاد", value: data.birthYear + " هـ" });
+    if (age > 0 && age < 130) basicFields.push({ icon: "⏳", label: "العمر", value: age + " سنة تقريبًا" + (isDead ? " — عند الوفاة" : "") });
   }
-  lines.push({ label: "الحالة", value: data.deathStatus === "dead" ? "متوفى" : "حي يرزق" });
-  if (data.job) lines.push({ label: "الوظيفة", value: data.job });
-  if (data.nickname) lines.push({ label: "اللقب/الشهرة", value: data.nickname });
-  lines.push({ label: "عدد الأبناء بالمشجرة", value: String(sonsInTree) });
-  if (sonNames.length) lines.push({ label: "أسماء الأبناء", value: sonNames.join("، ") });
-  if (insideWifeFathers.length) lines.push({ label: "والد الزوجة (من القبيلة)", value: insideWifeFathers.join("، ") });
-  if (unclesLine) lines.push({ label: "الأخوال", value: unclesLine });
-  if (halfSiblingsLine) lines.push({ label: "الإخوة من الأم", value: halfSiblingsLine });
-  if (wifeSpecificNotaries.length) lines.push({ label: "عدلاء الزوجة/الزوجات", value: wifeSpecificNotaries.join("، ") });
-  if (data.bio) lines.push({ label: "نبذة", value: data.bio });
+  basicFields.push({ icon: data.deathStatus === "dead" ? "🕊️" : "💚", label: "الحالة", value: data.deathStatus === "dead" ? "متوفى" : "حي يرزق" });
+  if (data.job) basicFields.push({ icon: "💼", label: "الوظيفة", value: data.job });
+  if (data.nickname) basicFields.push({ icon: "🏷️", label: "اللقب/الشهرة", value: data.nickname });
 
-  function wrapText(text, maxChars){
+  const familyFields = [];
+  familyFields.push({ icon: "👨‍👦", label: "عدد الأبناء بالمشجرة", value: String(sonsInTree) });
+  if (sonNames.length) familyFields.push({ icon: "📋", label: "أسماء الأبناء", value: sonNames.join("، ") });
+  if (insideWifeFathers.length) familyFields.push({ icon: "🤝", label: "والد الزوجة (من القبيلة)", value: insideWifeFathers.join("، ") });
+  if (unclesLine) familyFields.push({ icon: "👥", label: "الأخوال", value: unclesLine });
+  if (halfSiblingsLine) familyFields.push({ icon: "👬", label: "الإخوة من الأم", value: halfSiblingsLine });
+  if (wifeSpecificNotaries.length) familyFields.push({ icon: "⚖️", label: "عدلاء الزوجة/الزوجات", value: wifeSpecificNotaries.join("، ") });
+
+  const bioFields = [];
+  if (data.bio) bioFields.push({ icon: "📜", label: "نبذة", value: data.bio });
+
+  // ---------- قياس دقيق لعرض النص (بدل عدّ الحروف التقريبي القديم) ----------
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+  function measureW(text, fontSize, weight){
+    measureCtx.font = `${weight || 400} ${fontSize}px Tajawal, sans-serif`;
+    return measureCtx.measureText(text).width;
+  }
+  function wrapByWidth(text, maxWidth, fontSize){
     const words = String(text).split(/\s+/);
     const out = [];
     let cur = "";
     words.forEach(w => {
-      if ((cur + " " + w).trim().length > maxChars && cur){
-        out.push(cur.trim());
-        cur = w;
-      } else {
-        cur = (cur ? cur + " " : "") + w;
-      }
+      const test = cur ? cur + " " + w : w;
+      if (measureW(test, fontSize) > maxWidth && cur){ out.push(cur); cur = w; }
+      else cur = test;
     });
-    if (cur) out.push(cur.trim());
+    if (cur) out.push(cur);
     return out.length ? out : [""];
   }
-
-  // النبذة التاريخية تحديدًا: نحترم فواصل الأسطر الأصلية (كل فقرة على حدة) قبل
-  // لفّ كل فقرة على حدة — بخلاف باقي الحقول، حتى يبقى كل تصنيف (قصة/رواية/...)
-  // في بداية سطره الخاص دائمًا، بدل أن يندمج بمنتصف سطر آخر.
-  function wrapBioText(text, maxChars){
+  // النبذة التاريخية تحديدًا: تحترم فواصل الأسطر الأصلية (كل فقرة على حدة) قبل
+  // لفّ كل فقرة على حدة، حتى تبقى تصنيفاتها (قصة/رواية/...) ببداية سطرها دومًا.
+  function wrapBioByWidth(text, maxWidth, fontSize){
     const paragraphs = String(text).split(/\n+/);
     let out = [];
-    paragraphs.forEach(p => { if (p.trim()) out = out.concat(wrapText(p, maxChars)); });
+    paragraphs.forEach(p => { if (p.trim()) out = out.concat(wrapByWidth(p, maxWidth, fontSize)); });
     return out.length ? out : [""];
   }
 
-  const W = blockWidth || 515, margin = 18, rowH = 34, subLineH = 20;
-  const MAX_CHARS_PER_LINE = 56;
-  const MAX_CHARS_PER_LINE_BIO = 84; // النبذة التاريخية فقط: تمتد لنهاية العرض المتاح، بلا توقف مبكر
+  const W = blockWidth || 515, margin = 18, subLineH = 20;
+  const VALUE_FONT_SIZE = 12.5;
+  const textMaxWidth = W - margin*2;
   const BIO_TAGS = ["قصة", "رواية", "حادثة", "معلومة", "نبذة تاريخية", "أدب"];
-  const wrappedLines = lines.map(l => ({
-    label: l.label,
-    valueLines: l.label === "نبذة" ? wrapBioText(l.value, MAX_CHARS_PER_LINE_BIO) : wrapText(l.value, MAX_CHARS_PER_LINE)
-  }));
-  const totalSubLines = wrappedLines.reduce((sum, l) => sum + l.valueLines.length, 0);
-  const H = 56 + (wrappedLines.length * (20 + 8)) + (totalSubLines * subLineH) + 14;
 
+  function prepSection(fields, isBio){
+    return fields.map(f => ({
+      icon: f.icon, label: f.label,
+      valueLines: isBio ? wrapBioByWidth(f.value, textMaxWidth, VALUE_FONT_SIZE) : wrapByWidth(f.value, textMaxWidth, VALUE_FONT_SIZE)
+    }));
+  }
+  const basicWrapped = prepSection(basicFields, false);
+  const familyWrapped = prepSection(familyFields, false);
+  const bioWrapped = prepSection(bioFields, true);
+
+  // ---------- حساب الارتفاع الكلي مسبقًا (يجب أن يطابق تمامًا حركة المؤشر أثناء الرسم أدناه) ----------
+  const HEADER_H = data.photo ? 118 : 74;
+  function sectionHeight(wrapped){
+    if (!wrapped.length) return 0;
+    let h = 22; // عنوان القسم
+    wrapped.forEach(f => { h += 20 + f.valueLines.length * subLineH + 6; });
+    return h + 4; // فراغ بعد القسم
+  }
+  const basicH = sectionHeight(basicWrapped);
+  const familyH = sectionHeight(familyWrapped);
+  const bioH = sectionHeight(bioWrapped);
+  const TOP_GAP = 26;
+  const H = HEADER_H + TOP_GAP + basicH + familyH + bioH + 14;
+
+  // ---------- بناء SVG ----------
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("xmlns", svgNS);
@@ -1348,54 +1373,108 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   svg.appendChild(styleEl);
 
   const bg = document.createElementNS(svgNS, "rect");
-  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("rx", 10); bg.setAttribute("fill", "#FFFDF6");
+  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("rx", 12); bg.setAttribute("fill", "#FFFDF6");
   bg.setAttribute("stroke", "#B8860B"); bg.setAttribute("stroke-width", 1.4);
   svg.appendChild(bg);
 
+  // شريط الهيدر الملوّن (اسم الشخص + صورته إن وُجدت)
+  const uid = Math.random().toString(36).slice(2);
+  const clipPath = document.createElementNS(svgNS, "clipPath");
+  clipPath.setAttribute("id", "hdrclip" + uid);
+  const clipShape = document.createElementNS(svgNS, "path");
+  clipShape.setAttribute("d", `M0,0 H${W} V${HEADER_H-12} Q${W},${HEADER_H} ${W-12},${HEADER_H} H12 Q0,${HEADER_H} 0,${HEADER_H-12} Z`);
+  clipPath.appendChild(clipShape);
+  svg.appendChild(clipPath);
+
+  const headerBg = document.createElementNS(svgNS, "rect");
+  headerBg.setAttribute("width", W); headerBg.setAttribute("height", HEADER_H); headerBg.setAttribute("fill", "#0B3D2E");
+  headerBg.setAttribute("clip-path", `url(#hdrclip${uid})`);
+  svg.appendChild(headerBg);
+  const hdrLine = document.createElementNS(svgNS, "rect");
+  hdrLine.setAttribute("x", 0); hdrLine.setAttribute("y", HEADER_H-3); hdrLine.setAttribute("width", W); hdrLine.setAttribute("height", 3);
+  hdrLine.setAttribute("fill", "#C9A227");
+  svg.appendChild(hdrLine);
+
+  if (data.photo){
+    const photoSize = 78;
+    const pClip = document.createElementNS(svgNS, "clipPath");
+    pClip.setAttribute("id", "photoclip" + uid);
+    const pCircle = document.createElementNS(svgNS, "circle");
+    pCircle.setAttribute("cx", W/2); pCircle.setAttribute("cy", 20 + photoSize/2); pCircle.setAttribute("r", photoSize/2);
+    pClip.appendChild(pCircle);
+    svg.appendChild(pClip);
+    const pImg = document.createElementNS(svgNS, "image");
+    pImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", data.photo);
+    pImg.setAttribute("x", W/2 - photoSize/2); pImg.setAttribute("y", 20);
+    pImg.setAttribute("width", photoSize); pImg.setAttribute("height", photoSize);
+    pImg.setAttribute("clip-path", `url(#photoclip${uid})`);
+    pImg.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    svg.appendChild(pImg);
+    const pRing = document.createElementNS(svgNS, "circle");
+    pRing.setAttribute("cx", W/2); pRing.setAttribute("cy", 20 + photoSize/2); pRing.setAttribute("r", photoSize/2);
+    pRing.setAttribute("fill", "none"); pRing.setAttribute("stroke", "#C9A227"); pRing.setAttribute("stroke-width", 2);
+    svg.appendChild(pRing);
+  }
+
   const title = document.createElementNS(svgNS, "text");
-  title.setAttribute("x", W/2); title.setAttribute("y", 30);
-  title.setAttribute("text-anchor", "middle"); title.setAttribute("font-size", "17"); title.setAttribute("font-weight", "700");
-  title.setAttribute("fill", "#0B3D2E");
+  title.setAttribute("x", W/2); title.setAttribute("y", data.photo ? HEADER_H - 16 : HEADER_H/2 + 6);
+  title.setAttribute("text-anchor", "middle"); title.setAttribute("font-size", "16"); title.setAttribute("font-weight", "700");
+  title.setAttribute("fill", "#FFFDF6");
   title.textContent = fiveName;
   svg.appendChild(title);
 
-  const sep = document.createElementNS(svgNS, "line");
-  sep.setAttribute("x1", margin); sep.setAttribute("x2", W - margin); sep.setAttribute("y1", 42); sep.setAttribute("y2", 42);
-  sep.setAttribute("stroke", "#E6D9B8");
-  svg.appendChild(sep);
-
-  let y = 62;
-  wrappedLines.forEach(l => {
+  // ---------- رسم الأقسام (عنوان مزخرف بخطين جانبيين + حقوله) ----------
+  let y = HEADER_H + TOP_GAP;
+  function drawSectionTitle(text){
+    const tw = measureW(text, 13, 700);
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", W/2); t.setAttribute("y", y);
+    t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "13"); t.setAttribute("font-weight", "700");
+    t.setAttribute("fill", "#0B3D2E");
+    t.textContent = text;
+    svg.appendChild(t);
+    [[margin, W/2 - tw/2 - 10], [W/2 + tw/2 + 10, W - margin]].forEach(([x1,x2]) => {
+      if (x2 > x1){
+        const ln = document.createElementNS(svgNS, "line");
+        ln.setAttribute("x1", x1); ln.setAttribute("x2", x2);
+        ln.setAttribute("y1", y-4); ln.setAttribute("y2", y-4); ln.setAttribute("stroke", "#E6D9B8");
+        svg.appendChild(ln);
+      }
+    });
+    y += 22;
+  }
+  function drawFieldRow(f){
     const t = document.createElementNS(svgNS, "text");
     t.setAttribute("x", W - margin); t.setAttribute("y", y);
     t.setAttribute("text-anchor", "end"); t.setAttribute("font-size", "12.5"); t.setAttribute("font-weight", "700"); t.setAttribute("fill", "#8B4A1E");
-    t.textContent = l.label + ":";
+    t.textContent = `${f.icon} ${f.label}:`;
     svg.appendChild(t);
     y += 20;
-    l.valueLines.forEach((vline) => {
+    f.valueLines.forEach((vline) => {
       const v = document.createElementNS(svgNS, "text");
       v.setAttribute("x", W - margin); v.setAttribute("y", y);
-      v.setAttribute("text-anchor", "end"); v.setAttribute("font-size", "12.5"); v.setAttribute("fill", "#333");
-      let matchedTag = (l.label === "نبذة") ? BIO_TAGS.find(tag => vline.startsWith(tag + ":") || vline.startsWith(tag + " :")) : null;
+      v.setAttribute("text-anchor", "end"); v.setAttribute("font-size", VALUE_FONT_SIZE); v.setAttribute("fill", "#333");
+      const matchedTag = (f.label === "نبذة") ? BIO_TAGS.find(tag => vline.startsWith(tag + ":") || vline.startsWith(tag + " :")) : null;
       if (matchedTag){
         const cut = vline.indexOf(":") + 1;
-        const tagPart = vline.slice(0, cut);
-        const restPart = vline.slice(cut);
         const tspanTag = document.createElementNS(svgNS, "tspan");
         tspanTag.setAttribute("fill", "#8B1E1E"); tspanTag.setAttribute("font-weight", "700");
-        tspanTag.textContent = tagPart;
+        tspanTag.textContent = vline.slice(0, cut);
         const tspanRest = document.createElementNS(svgNS, "tspan");
-        tspanRest.textContent = restPart;
-        v.appendChild(tspanTag);
-        v.appendChild(tspanRest);
+        tspanRest.textContent = vline.slice(cut);
+        v.appendChild(tspanTag); v.appendChild(tspanRest);
       } else {
         v.textContent = vline;
       }
       svg.appendChild(v);
       y += subLineH;
     });
-    y += 8;
-  });
+    y += 6;
+  }
+
+  if (basicWrapped.length){ drawSectionTitle("📋 معلومات أساسية"); basicWrapped.forEach(drawFieldRow); y += 4; }
+  if (familyWrapped.length){ drawSectionTitle("👪 العائلة والأبناء"); familyWrapped.forEach(drawFieldRow); y += 4; }
+  if (bioWrapped.length){ drawSectionTitle("📜 النبذة التاريخية"); bioWrapped.forEach(drawFieldRow); y += 4; }
 
   const svgText = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
@@ -1454,6 +1533,11 @@ async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margi
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(srcImg, 0, sy, srcImg.width, sh, 0, 0, srcImg.width, sh);
     pdf.addImage(c.toDataURL("image/png"), "PNG", x, curY, W, sliceHpt);
+    // إطار ذهبي حول كل شريحة/صفحة على حدة (إطار الصورة الأصلي يُقصّ مع
+    // التقسيم، فنرسم إطارًا جديدًا مباشرة بالـPDF نفسه لكل صفحة تبقى مكتملة).
+    pdf.setDrawColor(184, 134, 11); pdf.setLineWidth(1.2);
+    if (typeof pdf.roundedRect === "function") pdf.roundedRect(x, curY, W, sliceHpt, 10, 10, "S");
+    else pdf.rect(x, curY, W, sliceHpt, "S");
     drawnPt += sliceHpt;
     lastY = curY + sliceHpt;
   }
@@ -1461,13 +1545,130 @@ async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margi
 }
 // ===== PDF MULTI-PAGE SLICING END =====
 
+// تذييل موحّد لكل صفحات ملف PDF: رقم الصفحة + تاريخ التصدير + اسم الموقع.
+// يُرسم كصورة (canvas بخط Tajawal) وليس نص jsPDF مباشر، لأن خطوط jsPDF
+// المدمجة (helvetica) لا تدعم الحروف العربية إطلاقًا وتظهر رموزًا غير مقروءة.
+function addPdfFooterToAllPages(pdf, PAGE_W, PAGE_H, margin){
+  const total = pdf.internal.getNumberOfPages();
+  const dateStr = new Date().toLocaleDateString("ar-SA-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const footerH = 16, scale = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = (PAGE_W - margin*2) * scale; canvas.height = footerH * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.font = "9px Tajawal, sans-serif";
+  ctx.fillStyle = "#8B745A";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  ctx.fillText(`شجرة بني أسمل الحكمي — ${dateStr}`, PAGE_W - margin*2, footerH/2);
+  const baseDataUrl = canvas.toDataURL("image/png");
+  for (let i = 1; i <= total; i++){
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width; pageCanvas.height = canvas.height;
+    const pctx = pageCanvas.getContext("2d");
+    pctx.drawImage(canvas, 0, 0);
+    pctx.scale(scale, scale);
+    pctx.font = "9px Tajawal, sans-serif";
+    pctx.fillStyle = "#8B745A";
+    pctx.textBaseline = "middle";
+    pctx.textAlign = "left";
+    pctx.fillText(`${i} / ${total}`, 0, footerH/2);
+    pdf.setPage(i);
+    pdf.addImage(pageCanvas.toDataURL("image/png"), "PNG", margin, PAGE_H - margin/2 - footerH/2, PAGE_W - margin*2, footerH);
+  }
+}
+
 async function exportPersonPdf(personNode, preloadedData){
   const PAGE_W = 595, PAGE_H = 842, margin = 40;
   const { imgData, fiveName, W, H } = await buildPersonBlockDataUrl(personNode, preloadedData, PAGE_W - margin*2);
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
   await addTallImagePaginated(pdf, imgData, margin, margin, W, H, PAGE_H, margin);
+  addPdfFooterToAllPages(pdf, PAGE_W, PAGE_H, margin);
   pdf.save(`${fiveName}.pdf`);
+}
+
+// يبني صفحة/صفحات غلاف وفهرس (العنوان + التاريخ + قائمة الأسماء وأرقام صفحاتهم)
+// بأول ملف "تصدير الكل" — بنفس أسلوب SVG→صورة المستخدم بباقي التصدير (لدعم
+// العربية، لأن خطوط jsPDF المدمجة لا تدعمها). يُعيد عدد الصفحات التي استخدمها.
+async function addIndexPages(pdf, entries, dateStr, PAGE_W, PAGE_H, margin){
+  const W = PAGE_W - margin * 2;
+  const rowH = 22, headerH = 86;
+  const H = headerH + entries.length * rowH + 16;
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("xmlns", svgNS);
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const styleEl = document.createElementNS(svgNS, "style");
+  styleEl.textContent = "text{font-family:'Tajawal',sans-serif;}";
+  svg.appendChild(styleEl);
+
+  const bg = document.createElementNS(svgNS, "rect");
+  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("fill", "#FFFDF6");
+  svg.appendChild(bg);
+
+  const title = document.createElementNS(svgNS, "text");
+  title.setAttribute("x", W/2); title.setAttribute("y", 34);
+  title.setAttribute("text-anchor", "middle"); title.setAttribute("font-size", "20"); title.setAttribute("font-weight", "700");
+  title.setAttribute("fill", "#0B3D2E");
+  title.textContent = "🌳 سجل بيانات عائلة بني أسمل الحكمي";
+  svg.appendChild(title);
+
+  const sub = document.createElementNS(svgNS, "text");
+  sub.setAttribute("x", W/2); sub.setAttribute("y", 55);
+  sub.setAttribute("text-anchor", "middle"); sub.setAttribute("font-size", "12"); sub.setAttribute("fill", "#8a7a5a");
+  sub.textContent = `تاريخ التصدير: ${dateStr}  —  عدد السجلات: ${entries.length}`;
+  svg.appendChild(sub);
+
+  const sep = document.createElementNS(svgNS, "line");
+  sep.setAttribute("x1", 16); sep.setAttribute("x2", W-16); sep.setAttribute("y1", headerH-12); sep.setAttribute("y2", headerH-12);
+  sep.setAttribute("stroke", "#C9A227"); sep.setAttribute("stroke-width", 1.5);
+  svg.appendChild(sep);
+
+  let y = headerH + 12;
+  entries.forEach((e, idx) => {
+    if (idx % 2 === 1){
+      const rowBg = document.createElementNS(svgNS, "rect");
+      rowBg.setAttribute("x", 10); rowBg.setAttribute("y", y - 15); rowBg.setAttribute("width", W-20); rowBg.setAttribute("height", rowH);
+      rowBg.setAttribute("fill", "#F5EFDD");
+      svg.appendChild(rowBg);
+    }
+    const nameT = document.createElementNS(svgNS, "text");
+    nameT.setAttribute("x", W - 16); nameT.setAttribute("y", y);
+    nameT.setAttribute("text-anchor", "end"); nameT.setAttribute("font-size", "12"); nameT.setAttribute("fill", "#333");
+    nameT.textContent = e.name;
+    svg.appendChild(nameT);
+    const pageT = document.createElementNS(svgNS, "text");
+    pageT.setAttribute("x", 16); pageT.setAttribute("y", y);
+    pageT.setAttribute("text-anchor", "start"); pageT.setAttribute("font-size", "12"); pageT.setAttribute("font-weight", "700"); pageT.setAttribute("fill", "#8B4A1E");
+    pageT.textContent = String(e.page);
+    svg.appendChild(pageT);
+    y += rowH;
+  });
+
+  const svgText = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const imgData = await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function(){
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = W * scale; canvas.height = H * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = url;
+  });
+
+  await addTallImagePaginated(pdf, imgData, margin, margin, W, H, PAGE_H, margin);
+  return pdf.internal.getNumberOfPages(); // عدد صفحات الفهرس (أول محتوى بملف جديد)
 }
 
 async function exportAllRecordsPdf(){
@@ -1486,31 +1687,81 @@ async function exportAllRecordsPdf(){
   }
   const PAGE_W = 595, PAGE_H = 842, margin = 30, gap = 12;
   const blockWidth = PAGE_W - margin * 2;
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-  let y = margin;
-  let firstBlock = true;
+  const usableH = PAGE_H - margin * 2;
+
+  // ---------- المرحلة 1: بناء كل البطاقات مسبقًا، ومحاكاة توضّعها لحساب رقم صفحة كل شخص ----------
+  const blocks = [];
   for (let i = 0; i < filled.length; i++){
     btn.textContent = `جارِ التجهيز… (${i+1}/${filled.length})`;
-    const { imgData, W, H } = await buildPersonBlockDataUrl(filled[i].node, filled[i].data, blockWidth);
-    const usableH = PAGE_H - margin * 2;
+    blocks.push(await buildPersonBlockDataUrl(filled[i].node, filled[i].data, blockWidth));
+  }
+  let simPage = 1, simY = margin, simFirst = true;
+  const startPageOf = [];
+  blocks.forEach(({ H }) => {
     if (H > usableH){
-      // كتلة أطول من صفحة كاملة: ابدأها بصفحة جديدة (إن لزم) ثم قسّمها على عدة صفحات
+      if (!simFirst) simPage++;
+      let remaining = H, pageCount = 0, firstSlice = true;
+      const sliceGap = 20;
+      while (remaining > 0.5){
+        const maxSlice = firstSlice ? (PAGE_H - margin - (firstSlice ? simY : margin) - sliceGap) : (PAGE_H - margin*2 - sliceGap*2);
+        remaining -= Math.min(maxSlice, remaining);
+        pageCount++; firstSlice = false;
+      }
+      startPageOf.push(simPage);
+      simPage += pageCount;
+      simY = margin;
+    } else {
+      if (simY + H > PAGE_H - margin){ simPage++; simY = margin; }
+      else if (!simFirst){ simY += gap; }
+      startPageOf.push(simPage);
+      simY += H;
+    }
+    simFirst = false;
+  });
+
+  // ---------- المرحلة 2: صفحة/صفحات الغلاف والفهرس أولًا (بأرقام صفحات صحيحة من أول مرة) ----------
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+  const dateStr = new Date().toLocaleDateString("ar-SA-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
+  // نحسب عدد صفحات الفهرس مسبقًا (بلا رسم فعلي) — يعتمد فقط على عدد الأسماء،
+  // فنعرف الإزاحة الصحيحة لأرقام الصفحات قبل رسم الفهرس مرة واحدة فقط بالنهاية.
+  const INDEX_ROW_H = 22, INDEX_HEADER_H = 86;
+  const indexH = INDEX_HEADER_H + filled.length * INDEX_ROW_H + 16;
+  const indexUsableFirst = PAGE_H - margin - margin - 20;
+  let indexPagesUsed = 1;
+  if (indexH > indexUsableFirst){
+    let remaining = indexH, pageCount = 0, firstSlice = true;
+    while (remaining > 0.5){
+      const maxSlice = firstSlice ? indexUsableFirst : (PAGE_H - margin*2 - 40);
+      remaining -= Math.min(maxSlice, remaining);
+      pageCount++; firstSlice = false;
+    }
+    indexPagesUsed = pageCount;
+  }
+  const finalEntries = filled.map((f, i) => ({ name: chainNames(f.node).slice(0, 4).join(" "), page: startPageOf[i] + indexPagesUsed }));
+  await addIndexPages(pdf, finalEntries, dateStr, PAGE_W, PAGE_H, margin);
+
+  // ---------- المرحلة 3: المحتوى الفعلي بعد صفحات الفهرس ----------
+  pdf.addPage();
+  let y = margin, firstBlock = true;
+  for (let i = 0; i < blocks.length; i++){
+    const { imgData, W, H } = blocks[i];
+    if (H > usableH){
       if (!firstBlock){ pdf.addPage(); y = margin; }
       await addTallImagePaginated(pdf, imgData, margin, y, W, H, PAGE_H, margin);
-      pdf.addPage(); y = margin;   // ابدأ الكتلة التالية بصفحة نظيفة
+      pdf.addPage(); y = margin;
     } else {
-      if (y + H > PAGE_H - margin){
-        pdf.addPage();
-        y = margin;
-      } else if (!firstBlock){
-        y += gap;
+      if (!firstBlock){
+        if (y + H > PAGE_H - margin){ pdf.addPage(); y = margin; }
+        else y += gap;
       }
       pdf.addImage(imgData, "PNG", margin, y, W, H);
       y += H;
     }
     firstBlock = false;
   }
+
+  addPdfFooterToAllPages(pdf, PAGE_W, PAGE_H, margin);
   pdf.save("كل_الملفات_المسجّلة.pdf");
   btn.disabled = false; btn.textContent = original;
 }
