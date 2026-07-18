@@ -587,7 +587,7 @@ function applyLayoutStyle(layoutStyle){
       if (aiInput) aiInput.focus();
     } else {
       document.documentElement.classList.remove("asmal-ai-mode");
-      // نُعيد صف المساعد الذكي ورسائله لمكانهما الأصلي أولًا (قبل لمس الحاوية)
+      if (searchbar && searchbar.parentElement !== searchHost) searchHost.appendChild(searchbar);
       if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
         aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
       }
@@ -595,11 +595,6 @@ function applyLayoutStyle(layoutStyle){
       if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
         aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
       }
-      // دفاعي بالكامل: نُفرغ حاوية شريط البحث من أي محتوى متبقٍ بها الآن (مهما
-      // كان السبب) قبل إعادة حقل البحث إليها — يستحيل هيكليًا بعدها تعايش
-      // عنصرين معًا بنفس الحاوية.
-      while (searchHost.firstChild) searchHost.removeChild(searchHost.firstChild);
-      if (searchbar) searchHost.appendChild(searchbar);
       if (chipAssistant) chipAssistant.classList.remove("active");
       if (chipPrompt) chipPrompt.classList.add("active");
     }
