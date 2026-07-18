@@ -62,3 +62,22 @@ body{
 
 .stat-loading{ color:#8a7a5a; font-size:13px; text-align:center; padding:10px; }
 .stat-empty{ color:#8a7a5a; font-size:13px; text-align:center; padding:10px; }
+
+.name-edit-btn{
+  border:none; background:transparent; cursor:pointer; font-size:15px; padding:2px 6px;
+  border-radius:8px; flex-shrink:0;
+}
+.name-edit-btn:active{ background:#F0EAD8; }
+.name-edit-row{ list-style:none; background:#FBF8EC; border-radius:10px; padding:8px 10px; margin-top:2px; }
+.ner-preview-btn, .ner-confirm-btn{
+  padding:0 14px; border:none; border-radius:11px; background:linear-gradient(135deg,#8B4A1E,#5c2f10);
+  color:#fff; font-weight:700; cursor:pointer; font-family:'Tajawal',sans-serif; font-size:13px;
+}
+.ner-cancel-btn{
+  padding:0 14px; border:1px solid #E6E1D5; border-radius:11px; background:#fff;
+  color:#3b2a1a; cursor:pointer; font-family:'Tajawal',sans-serif; font-size:13px; margin-inline-start:6px;
+}
+.stat-preview-box{
+  margin-top:8px; padding:10px 12px; background:#FFF6E0; border:1px solid #E8D9AE; border-radius:10px;
+  font-size:13px; line-height:2;
+}

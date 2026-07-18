@@ -89,17 +89,162 @@ async function loadAllData(){
 
 function personInfo(id){ return personInfoById.get(id) || {}; }
 
+// سلسلة أسماء شخص (من نفسه حتى الجذر)، مع إمكانية استبدال اسم شخص واحد بالسلسلة
+// باسم بديل (بلا تعديل أي بيانات فعلية) — تُستخدم لحساب "قبل/بعد" تغيير الاسم.
+function chainNamesWithOverride(startId, overrideId, overrideName){
+  const names = [];
+  let cur = personsById.get(startId);
+  while (cur){
+    names.push((overrideId && cur.id === overrideId) ? overrideName : cur.name);
+    cur = cur.parentId ? personsById.get(cur.parentId) : null;
+  }
+  return names;
+}
+function rawChainOf(startId, overrideId, overrideName){
+  return chainNamesWithOverride(startId, overrideId || null, overrideName || null).join("/");
+}
+function displayChainOf(startId, overrideId, overrideName){
+  return chainNamesWithOverride(startId, overrideId || null, overrideName || null).join(" بن ");
+}
+
+// كل ذرية شخص (أبناؤه وأحفاده... بلا حد للعمق)، شاملةً الشخص نفسه
+function collectWithDescendants(personDbId){
+  const result = [];
+  (function walk(pid){
+    result.push(pid);
+    (childrenByParent.get(pid) || []).forEach(c => walk(c.id));
+  })(personDbId);
+  return result;
+}
+
 // ============ أداة عرض قائمة أسماء قابلة للضغط (تفتح نموذج التعديل الحقيقي) ============
-function renderNameList(container, ids){
+// opts.editable = true: يضيف زر ✏️ بجانب كل اسم لتعديله (خاص بوحدة بحث تطابق الأسماء فقط)
+function renderNameList(container, ids, opts){
+  opts = opts || {};
   const ul = document.createElement("ul");
   ul.className = "stat-name-list";
   ids.forEach(id => {
     const li = document.createElement("li");
-    li.textContent = fullChainById.get(id) || personsById.get(id)?.name || id;
-    li.onclick = () => { location.href = "index.html?openInfo=" + encodeURIComponent(id); };
+    li.style.display = "flex"; li.style.alignItems = "center"; li.style.justifyContent = "space-between"; li.style.gap = "8px";
+    const nameSpan = document.createElement("span");
+    nameSpan.style.flex = "1"; nameSpan.style.cursor = "pointer";
+    nameSpan.textContent = fullChainById.get(id) || personsById.get(id)?.name || id;
+    nameSpan.onclick = () => { location.href = "index.html?openInfo=" + encodeURIComponent(id); };
+    li.appendChild(nameSpan);
+    if (opts.editable){
+      const editBtn = document.createElement("button");
+      editBtn.className = "name-edit-btn";
+      editBtn.type = "button";
+      editBtn.title = "تعديل الاسم (أدمن)";
+      editBtn.textContent = "✏️";
+      editBtn.onclick = (e) => { e.stopPropagation(); toggleNameEditRow(li, id); };
+      li.appendChild(editBtn);
+    }
     ul.appendChild(li);
   });
   container.appendChild(ul);
+}
+
+// ============ تعديل الاسم: صفّ التعديل المضغوط أسفل كل اسم ============
+function toggleNameEditRow(li, personDbId){
+  const existing = li.nextElementSibling;
+  if (existing && existing.classList.contains("name-edit-row")){ existing.remove(); return; }
+  document.querySelectorAll(".name-edit-row").forEach(r => r.remove());
+
+  const row = document.createElement("li");
+  row.className = "name-edit-row";
+  const currentName = personsById.get(personDbId)?.name || "";
+  row.innerHTML = `
+    <div class="stat-input-row" style="margin-top:6px;">
+      <input type="text" class="ner-input" value="${currentName}" placeholder="الاسم الجديد">
+      <button type="button" class="ner-preview-btn">معاينة التغيير</button>
+    </div>
+    <div class="ner-preview-result"></div>`;
+  li.after(row);
+  row.querySelector(".ner-preview-btn").onclick = () => runNamePreview(personDbId, row);
+}
+
+function runNamePreview(personDbId, row){
+  const input = row.querySelector(".ner-input");
+  const resultBox = row.querySelector(".ner-preview-result");
+  const newName = input.value.trim();
+  const oldName = personsById.get(personDbId)?.name || "";
+  if (!newName){ resultBox.textContent = "اكتب اسمًا جديدًا أولًا."; return; }
+  if (newName === oldName){ resultBox.textContent = "الاسم الجديد مطابق للاسم الحالي."; return; }
+
+  const affected = collectWithDescendants(personDbId);
+  const affectedSet = new Set(affected);
+  const inlawAffected = [];
+  personsById.forEach((p, pid) => {
+    if (!isFemale(p)) return;
+    const info = personInfo(pid);
+    if (info.husbandId && affectedSet.has(info.husbandId)) inlawAffected.push(pid);
+  });
+
+  resultBox.innerHTML = `
+    <div class="stat-preview-box">
+      سيتأثر بهذا التغيير:<br>
+      • ${affected.length} شخصًا (هو وذريته) — سيُعاد ربط بياناتهم بالكامل<br>
+      • ${inlawAffected.length} سجل "صهر" بمكان آخر بالشجرة — سيُحدَّث اسمه هناك<br>
+      <button type="button" class="ner-confirm-btn">✅ تأكيد التنفيذ</button>
+      <button type="button" class="ner-cancel-btn">إلغاء</button>
+    </div>`;
+  resultBox.querySelector(".ner-cancel-btn").onclick = () => { resultBox.innerHTML = ""; };
+  resultBox.querySelector(".ner-confirm-btn").onclick = () =>
+    executeNameChange(personDbId, newName, affected, inlawAffected, resultBox);
+}
+
+async function executeNameChange(personDbId, newName, affected, inlawAffected, resultBox){
+  resultBox.innerHTML = '<div class="stat-loading">جارِ التنفيذ…</div>';
+  try{
+    let batch = db.batch();
+    let opCount = 0;
+    async function flushIfNeeded(force){
+      if (opCount > 0 && (opCount >= 450 || force)){
+        await batch.commit();
+        batch = db.batch();
+        opCount = 0;
+      }
+    }
+
+    // 1) اسم الشخص نفسه بمجموعة persons
+    batch.update(db.collection("persons").doc(personDbId), { name: newName });
+    opCount++;
+
+    // 2) نقل بيانات personInfo لكل شخص متأثر (هو وكل ذريته) من مفتاحه القديم للجديد
+    for (const pid of affected){
+      const oldKey = rawChainOf(pid).replace(/\//g, "__");
+      const newKey = rawChainOf(pid, personDbId, newName).replace(/\//g, "__");
+      if (oldKey !== newKey){
+        const oldDoc = await db.collection("personInfo").doc(oldKey).get();
+        if (oldDoc.exists){
+          batch.set(db.collection("personInfo").doc(newKey), oldDoc.data());
+          batch.delete(db.collection("personInfo").doc(oldKey));
+          opCount += 2;
+        }
+      }
+      await flushIfNeeded(false);
+    }
+
+    // 3) تحديث husbandChain لأي سجل "صهر" متأثر بمكان آخر
+    for (const dgtId of inlawAffected){
+      const dgtInfo = personInfo(dgtId);
+      const newHusbandChain = displayChainOf(dgtInfo.husbandId, personDbId, newName);
+      const dgtKey = rawChainOf(dgtId).replace(/\//g, "__");
+      batch.update(db.collection("personInfo").doc(dgtKey), { husbandChain: newHusbandChain });
+      opCount++;
+      await flushIfNeeded(false);
+    }
+
+    await flushIfNeeded(true);
+
+    resultBox.innerHTML = `<div class="stat-result-count">✅ تم تحديث ${affected.length + inlawAffected.length} سجلًا بنجاح. جارِ تحديث الصفحة…</div>`;
+    await loadAllData();
+    renderAllModules();
+  }catch(e){
+    console.error(e);
+    resultBox.innerHTML = `<div class="stat-empty">تعذّر التنفيذ: ${e.message || e.code}</div>`;
+  }
 }
 
 // ============ الوحدة 1: بحث السلاسل بطول متغيّر ============
@@ -134,7 +279,7 @@ const modNameChainSearch = {
       countEl.className = "stat-result-count";
       countEl.textContent = `🔢 العدد: ${matches.length}`;
       resultBox.appendChild(countEl);
-      if (matches.length) renderNameList(resultBox, matches);
+      if (matches.length) renderNameList(resultBox, matches, { editable: true });
     }
     document.getElementById("ncsBtn").onclick = runSearch;
     document.getElementById("ncsInput").addEventListener("keydown", e => { if (e.key === "Enter") runSearch(); });
