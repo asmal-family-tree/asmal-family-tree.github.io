@@ -564,19 +564,18 @@ function applyLayoutStyle(layoutStyle){
   const chatMessagesHost = document.getElementById("asmalChatMessagesHost");
 
   function setAsmalAiMode(active){
-    // دفاعي بالكامل: نُفرغ حاوية شريط البحث من أي محتوى حاليًا أولًا (بلا أي
-    // شرط)، فيستحيل بقاء عنصرين معًا بالخطأ داخلها مهما كان السبب (ضغط
-    // سريع متكرر، أو أثناء انتظار رد المساعد الذكي، إلخ).
-    while (searchHost.firstChild) searchHost.removeChild(searchHost.firstChild);
-
     const searchbar = document.querySelector(".searchbar");
     if (active){
       document.documentElement.classList.add("asmal-ai-mode");
-      if (searchbar && searchbarHome) searchbarHome.appendChild(searchbar); // إعادته لموطنه الأصلي احتياطًا
-      if (aiRowHost) searchHost.appendChild(aiRowHost);
+      // نُزيل حقل البحث بالاسم من الغلاف أولًا (لغرفة الأصلية) حتى لا
+      // يتراكب مع صف إدخال المساعد الذكي داخل نفس الغلاف الصغير.
+      if (searchbar && searchbarHome && searchbar.parentElement === searchHost){
+        searchbarHome.appendChild(searchbar);
+      }
+      if (aiRowHost && aiRowHost.parentElement !== searchHost) searchHost.appendChild(aiRowHost);
       if (chatMessagesHost){
         const msgs = document.getElementById("aiChatMessages");
-        if (msgs) chatMessagesHost.appendChild(msgs);
+        if (msgs && msgs.parentElement !== chatMessagesHost) chatMessagesHost.appendChild(msgs);
       }
       fabWrapper.classList.remove("open");
       menuToggle.classList.remove("active");
@@ -588,10 +587,14 @@ function applyLayoutStyle(layoutStyle){
       if (aiInput) aiInput.focus();
     } else {
       document.documentElement.classList.remove("asmal-ai-mode");
-      if (aiRowHost && aiMessagesHome) aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
+      if (searchbar && searchbar.parentElement !== searchHost) searchHost.appendChild(searchbar);
+      if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
+        aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
+      }
       const msgs = document.getElementById("aiChatMessages");
-      if (msgs && aiMessagesHome) aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
-      if (searchbar) searchHost.appendChild(searchbar);
+      if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
+        aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
+      }
       if (chipAssistant) chipAssistant.classList.remove("active");
       if (chipPrompt) chipPrompt.classList.add("active");
     }
