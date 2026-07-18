@@ -346,6 +346,10 @@
 .asmal-ic{ display:none; }
 :root[data-style="5"] #aiChatSend .ai-send-text{ display:none; }
 :root[data-style="5"] #aiChatSend .asmal-ic{ display:inline-flex !important; }
+/* ===== DIAGNOSTIC TEMP START — احذف هذا القسم بعد انتهاء التشخيص ===== */
+:root[data-style="5"] #asmalSearchHost .searchbar{ outline:3px solid red !important; }
+:root[data-style="5"] #asmalSearchHost #aiChatInputRow{ outline:3px solid blue !important; }
+/* ===== DIAGNOSTIC TEMP END ===== */
 :root[data-style="5"] #aiChatInputRow{ width:100%; }
 /* التبديل بين حقل البحث وصف المساعد الذكي: إظهار/إخفاء بحت بالـCSS فقط،
    بلا أي نقل DOM متكرر (كلا العنصرين مقيمان دائمًا بنفس الغلاف). */
