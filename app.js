@@ -587,7 +587,7 @@ function applyLayoutStyle(layoutStyle){
       if (aiInput) aiInput.focus();
     } else {
       document.documentElement.classList.remove("asmal-ai-mode");
-      if (searchbar && searchbar.parentElement !== searchHost) searchHost.appendChild(searchbar);
+      // نُعيد صف المساعد الذكي ورسائله لمكانهما الأصلي أولًا (قبل لمس الحاوية)
       if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
         aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
       }
@@ -595,6 +595,11 @@ function applyLayoutStyle(layoutStyle){
       if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
         aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
       }
+      // دفاعي بالكامل: نُفرغ حاوية شريط البحث من أي محتوى متبقٍ بها الآن (مهما
+      // كان السبب) قبل إعادة حقل البحث إليها — يستحيل هيكليًا بعدها تعايش
+      // عنصرين معًا بنفس الحاوية.
+      while (searchHost.firstChild) searchHost.removeChild(searchHost.firstChild);
+      if (searchbar) searchHost.appendChild(searchbar);
       if (chipAssistant) chipAssistant.classList.remove("active");
       if (chipPrompt) chipPrompt.classList.add("active");
     }
@@ -1327,9 +1332,24 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
     return out.length ? out : [""];
   }
 
+  // النبذة التاريخية تحديدًا: نحترم فواصل الأسطر الأصلية (كل فقرة على حدة) قبل
+  // لفّ كل فقرة على حدة — بخلاف باقي الحقول، حتى يبقى كل تصنيف (قصة/رواية/...)
+  // في بداية سطره الخاص دائمًا، بدل أن يندمج بمنتصف سطر آخر.
+  function wrapBioText(text, maxChars){
+    const paragraphs = String(text).split(/\n+/);
+    let out = [];
+    paragraphs.forEach(p => { if (p.trim()) out = out.concat(wrapText(p, maxChars)); });
+    return out.length ? out : [""];
+  }
+
   const W = blockWidth || 515, margin = 18, rowH = 34, subLineH = 20;
   const MAX_CHARS_PER_LINE = 56;
-  const wrappedLines = lines.map(l => ({ label: l.label, valueLines: wrapText(l.value, MAX_CHARS_PER_LINE) }));
+  const MAX_CHARS_PER_LINE_BIO = 84; // النبذة التاريخية فقط: تمتد لنهاية العرض المتاح، بلا توقف مبكر
+  const BIO_TAGS = ["قصة", "رواية", "حادثة", "معلومة", "نبذة تاريخية", "أدب"];
+  const wrappedLines = lines.map(l => ({
+    label: l.label,
+    valueLines: l.label === "نبذة" ? wrapBioText(l.value, MAX_CHARS_PER_LINE_BIO) : wrapText(l.value, MAX_CHARS_PER_LINE)
+  }));
   const totalSubLines = wrappedLines.reduce((sum, l) => sum + l.valueLines.length, 0);
   const H = 56 + (wrappedLines.length * (20 + 8)) + (totalSubLines * subLineH) + 14;
 
@@ -1371,7 +1391,21 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
       const v = document.createElementNS(svgNS, "text");
       v.setAttribute("x", W - margin); v.setAttribute("y", y);
       v.setAttribute("text-anchor", "end"); v.setAttribute("font-size", "12.5"); v.setAttribute("fill", "#333");
-      v.textContent = vline;
+      let matchedTag = (l.label === "نبذة") ? BIO_TAGS.find(tag => vline.startsWith(tag + ":") || vline.startsWith(tag + " :")) : null;
+      if (matchedTag){
+        const cut = vline.indexOf(":") + 1;
+        const tagPart = vline.slice(0, cut);
+        const restPart = vline.slice(cut);
+        const tspanTag = document.createElementNS(svgNS, "tspan");
+        tspanTag.setAttribute("fill", "#8B1E1E"); tspanTag.setAttribute("font-weight", "700");
+        tspanTag.textContent = tagPart;
+        const tspanRest = document.createElementNS(svgNS, "tspan");
+        tspanRest.textContent = restPart;
+        v.appendChild(tspanTag);
+        v.appendChild(tspanRest);
+      } else {
+        v.textContent = vline;
+      }
       svg.appendChild(v);
       y += subLineH;
     });
@@ -1403,8 +1437,8 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
 // يرسم صورة الكتلة (imgData بأبعاد W×H نقطة) موزّعةً على صفحات A4 متتالية إن تجاوزت ارتفاع الصفحة.
 // يقصّ الصورة أفقيًا لشرائح، كل شريحة بارتفاع صفحة، ويضعها بصفحات منفصلة — بلا فقد أي محتوى.
 async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margin, addPageIfNeeded){
-  const usableH = pageH - margin * 2;      // ارتفاع المساحة المتاحة بكل صفحة
-  if (H <= (pageH - margin - yStart)){
+  const gap = 20; // فراغ بصري (سطر واحد تقريبًا) قبل حد الصفحة السفلي وبعد العلوي عند القطع
+  if (H <= (pageH - margin - yStart - gap)){
     // الكتلة تسع بالمساحة المتبقية بالصفحة الحالية — أضفها مباشرة
     pdf.addImage(imgData, "PNG", x, yStart, W, H);
     return yStart + H;
@@ -1414,10 +1448,19 @@ async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margi
   const pxPerPt = srcImg.height / H;        // نسبة بكسل الصورة لكل نقطة PDF
   let drawnPt = 0;                          // كم نقطة رُسمت من ارتفاع الكتلة
   let first = true;
+  let lastY = yStart;
   while (drawnPt < H - 0.5){
-    if (!first){ pdf.addPage(); }
+    let curY, maxSliceH;
+    if (first){
+      curY = yStart;
+      maxSliceH = pageH - margin - yStart - gap; // ينتهي بفراغ سطر قبل حد الصفحة السفلي
+    } else {
+      pdf.addPage();
+      curY = margin + gap; // يبدأ بفراغ سطر بعد حد الصفحة العلوي
+      maxSliceH = pageH - margin * 2 - gap * 2; // وينتهي أيضًا بفراغ سطر قبل السفلي
+    }
     first = false;
-    const sliceHpt = Math.min(usableH, H - drawnPt);         // ارتفاع الشريحة بالنقاط
+    const sliceHpt = Math.min(maxSliceH, H - drawnPt);         // ارتفاع الشريحة بالنقاط
     const sy = Math.round(drawnPt * pxPerPt);                 // بداية القصّ بالبكسل
     const sh = Math.round(sliceHpt * pxPerPt);               // ارتفاع القصّ بالبكسل
     const c = document.createElement("canvas");
@@ -1425,10 +1468,11 @@ async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margi
     const ctx = c.getContext("2d");
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(srcImg, 0, sy, srcImg.width, sh, 0, 0, srcImg.width, sh);
-    pdf.addImage(c.toDataURL("image/png"), "PNG", x, margin, W, sliceHpt);
+    pdf.addImage(c.toDataURL("image/png"), "PNG", x, curY, W, sliceHpt);
     drawnPt += sliceHpt;
+    lastY = curY + sliceHpt;
   }
-  return pageH - margin; // انتهينا بأسفل آخر صفحة
+  return lastY;
 }
 // ===== PDF MULTI-PAGE SLICING END =====
 
