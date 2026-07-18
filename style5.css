@@ -347,6 +347,11 @@
 :root[data-style="5"] #aiChatSend .ai-send-text{ display:none; }
 :root[data-style="5"] #aiChatSend .asmal-ic{ display:inline-flex !important; }
 :root[data-style="5"] #aiChatInputRow{ width:100%; }
+/* التبديل بين حقل البحث وصف المساعد الذكي: إظهار/إخفاء بحت بالـCSS فقط،
+   بلا أي نقل DOM متكرر (كلا العنصرين مقيمان دائمًا بنفس الغلاف). */
+:root[data-style="5"] #asmalSearchHost #aiChatInputRow{ display:none; }
+:root[data-style="5"].asmal-ai-mode #asmalSearchHost #aiChatInputRow{ display:flex !important; }
+:root[data-style="5"].asmal-ai-mode #asmalSearchHost .searchbar{ display:none !important; }
 /* رفع كل قوائم الاقتراحات (بحث، خيوط النسب، شجرتي، أي حقل آخر) فوق كل شيء */
 :root[data-style="5"] .autocomplete-dropdown{ z-index:1000 !important; }
 

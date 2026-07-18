@@ -556,47 +556,37 @@ function applyLayoutStyle(layoutStyle){
   });
 
   // نقل عنصري البحث الحقيقي (.searchbar) وصف إدخال المساعد الذكي الحقيقي
-  // (aiChatInput/aiChatSend) بين مكانهما الأصليَين وغلاف البحث المشترك،
-  // حسب الوضع النشط (بحث بالاسم / المساعد الذكي).
+  // (aiChatInput/aiChatSend) — مرة واحدة فقط، بشكل دائم، لغلاف البحث المشترك.
+  // بعدها، التبديل بين "بحث بالاسم" و"المساعد الذكي" يصبح CSS بحتًا (إظهار/
+  // إخفاء فقط)، بلا أي نقل DOM متكرر — هذا يمنع تكرار مشكلة التراكب التي
+  // كانت تحدث سابقًا عند نقل العناصر ذهابًا وإيابًا بكل ضغطة.
   const searchbarHome = document.getElementById("searchPanel");
   const aiRowHost = document.getElementById("aiChatInput") ? document.getElementById("aiChatInput").parentElement : null;
   const aiMessagesHome = document.getElementById("aiChatMessages") ? document.getElementById("aiChatMessages").parentElement : null;
   const chatMessagesHost = document.getElementById("asmalChatMessagesHost");
 
-  function setAsmalAiMode(active){
+  function ensureAsmalHomes(){
     const searchbar = document.querySelector(".searchbar");
+    if (searchbar && searchbar.parentElement !== searchHost) searchHost.appendChild(searchbar);
+    if (aiRowHost && aiRowHost.parentElement !== searchHost) searchHost.appendChild(aiRowHost);
+    const msgs = document.getElementById("aiChatMessages");
+    if (msgs && chatMessagesHost && msgs.parentElement !== chatMessagesHost) chatMessagesHost.appendChild(msgs);
+  }
+
+  function setAsmalAiMode(active){
+    ensureAsmalHomes(); // يضمن أن العناصر بمكانها الدائم؛ لا نقل إضافي بعد ذلك
     if (active){
       document.documentElement.classList.add("asmal-ai-mode");
-      // نُزيل حقل البحث بالاسم من الغلاف أولًا (لغرفة الأصلية) حتى لا
-      // يتراكب مع صف إدخال المساعد الذكي داخل نفس الغلاف الصغير.
-      if (searchbar && searchbarHome && searchbar.parentElement === searchHost){
-        searchbarHome.appendChild(searchbar);
-      }
-      if (aiRowHost && aiRowHost.parentElement !== searchHost) searchHost.appendChild(aiRowHost);
-      if (chatMessagesHost){
-        const msgs = document.getElementById("aiChatMessages");
-        if (msgs && msgs.parentElement !== chatMessagesHost) chatMessagesHost.appendChild(msgs);
-      }
       fabWrapper.classList.remove("open");
       menuToggle.classList.remove("active");
       if (flCard) flCard.classList.add("collapsed");
       if (flToggle) flToggle.textContent = "›";
-      if (chipPrompt) chipPrompt.classList.remove("active");
       if (chipAssistant) chipAssistant.classList.add("active");
       const aiInput = document.getElementById("aiChatInput");
       if (aiInput) aiInput.focus();
     } else {
       document.documentElement.classList.remove("asmal-ai-mode");
-      if (searchbar && searchbar.parentElement !== searchHost) searchHost.appendChild(searchbar);
-      if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
-        aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
-      }
-      const msgs = document.getElementById("aiChatMessages");
-      if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
-        aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
-      }
       if (chipAssistant) chipAssistant.classList.remove("active");
-      if (chipPrompt) chipPrompt.classList.add("active");
     }
   }
 
