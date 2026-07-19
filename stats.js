@@ -433,6 +433,14 @@ function buildYearDuplicatesModule(fieldKey, id, title, icon, statusFilter){
     id, title: `${icon} ${title}`,
     desc: `كل سنة هجرية يشترك بها أكثر من شخص واحد بهذا التاريخ، مع أسمائهم.`,
     render(container){
+      const exportBtn = document.createElement("button");
+      exportBtn.type = "button";
+      exportBtn.className = "ner-preview-btn";
+      exportBtn.style.marginBottom = "10px";
+      exportBtn.textContent = "⬇️ تصدير PDF (الميلاد والوفاة معًا)";
+      exportBtn.onclick = () => exportYearMatchesPdf();
+      container.appendChild(exportBtn);
+
       const byYear = new Map();
       personsById.forEach((p, pid) => {
         const info = personInfo(pid);
@@ -461,6 +469,181 @@ function buildYearDuplicatesModule(fieldKey, id, title, icon, statusFilter){
     }
   };
 }
+// ============ تصدير PDF: تقرير موحّد لتطابق سنوات الميلاد والوفاة معًا ============
+// (منظَّم حسب السنة، وليس حسب النوع — لكل سنة: من وُلد فيها ومن توفي فيها معًا)
+async function addTallImagePaginatedStats(pdf, imgData, x, yStart, W, H, pageH, margin){
+  const gap = 20;
+  if (H <= (pageH - margin - yStart - gap)){
+    pdf.addImage(imgData, "PNG", x, yStart, W, H);
+    return;
+  }
+  const pad = 12;
+  const srcImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = imgData; });
+  const pxPerPt = srcImg.height / H;
+  let drawnPt = 0, first = true;
+  while (drawnPt < H - 0.5){
+    let curY, maxContentH;
+    if (first){ curY = yStart; maxContentH = pageH - margin - yStart - gap - pad*2; }
+    else { pdf.addPage(); curY = margin + gap; maxContentH = pageH - margin * 2 - gap * 2 - pad*2; }
+    first = false;
+    const contentH = Math.min(maxContentH, H - drawnPt);
+    const sy = Math.round(drawnPt * pxPerPt), sh = Math.round(contentH * pxPerPt);
+    const c = document.createElement("canvas");
+    c.width = srcImg.width; c.height = sh;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(srcImg, 0, sy, srcImg.width, sh, 0, 0, srcImg.width, sh);
+    pdf.addImage(c.toDataURL("image/png"), "PNG", x, curY + pad, W, contentH);
+    const frameH = contentH + pad*2;
+    pdf.setDrawColor(184, 134, 11); pdf.setLineWidth(1.2);
+    if (typeof pdf.roundedRect === "function") pdf.roundedRect(x, curY, W, frameH, 10, 10, "S");
+    else pdf.rect(x, curY, W, frameH, "S");
+    drawnPt += contentH;
+  }
+}
+
+function addPdfFooterToAllPagesStats(pdf, PAGE_W, PAGE_H, margin){
+  const total = pdf.internal.getNumberOfPages();
+  const dateStr = new Date().toLocaleDateString("ar-SA-u-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const footerH = 16, scale = 2;
+  const base = document.createElement("canvas");
+  base.width = (PAGE_W - margin*2) * scale; base.height = footerH * scale;
+  const bctx = base.getContext("2d");
+  bctx.scale(scale, scale);
+  bctx.font = "9px Tajawal, sans-serif"; bctx.fillStyle = "#8B745A"; bctx.textBaseline = "middle"; bctx.textAlign = "right";
+  bctx.fillText(`شجرة بني أسمل الحكمي — ${dateStr}`, PAGE_W - margin*2, footerH/2);
+  for (let i = 1; i <= total; i++){
+    const pc = document.createElement("canvas");
+    pc.width = base.width; pc.height = base.height;
+    const pctx = pc.getContext("2d");
+    pctx.drawImage(base, 0, 0);
+    pctx.scale(scale, scale);
+    pctx.font = "9px Tajawal, sans-serif"; pctx.fillStyle = "#8B745A"; pctx.textBaseline = "middle"; pctx.textAlign = "left";
+    pctx.fillText(`${i} / ${total}`, 0, footerH/2);
+    pdf.setPage(i);
+    pdf.addImage(pc.toDataURL("image/png"), "PNG", margin, PAGE_H - margin/2 - footerH/2, PAGE_W - margin*2, footerH);
+  }
+}
+
+async function exportYearMatchesPdf(){
+  // نبني خريطة سنة → {born:[...], died:[...]}
+  const byYear = new Map();
+  personsById.forEach((p, pid) => {
+    const info = personInfo(pid);
+    const by = (info.birthYear || "").trim();
+    if (by){
+      if (!byYear.has(by)) byYear.set(by, { born: [], died: [] });
+      byYear.get(by).born.push(pid);
+    }
+    if (info.deathStatus === "deceased"){
+      const dy = (info.deathYear || "").trim();
+      if (dy){
+        if (!byYear.has(dy)) byYear.set(dy, { born: [], died: [] });
+        byYear.get(dy).died.push(pid);
+      }
+    }
+  });
+  const years = [...byYear.entries()]
+    .filter(([, v]) => v.born.length > 1 || v.died.length > 1)
+    .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  if (!years.length){
+    alert("لا يوجد أي تطابق حاليًا بسنوات الميلاد أو الوفاة.");
+    return;
+  }
+
+  const PAGE_W = 595, PAGE_H = 842, margin = 40;
+  const W = PAGE_W - margin * 2;
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+  function measureW(text, fontSize, weight){
+    measureCtx.font = `${weight || 400} ${fontSize}px Tajawal, sans-serif`;
+    return measureCtx.measureText(text).width;
+  }
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("xmlns", svgNS);
+  const styleEl = document.createElementNS(svgNS, "style");
+  styleEl.textContent = "text{font-family:'Tajawal',sans-serif;}";
+  svg.appendChild(styleEl);
+
+  let y = 46;
+  const els = [];
+  function addText(x, yy, text, size, weight, color, anchor){
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", x); t.setAttribute("y", yy);
+    t.setAttribute("font-size", size); t.setAttribute("font-weight", weight || 400);
+    t.setAttribute("fill", color); t.setAttribute("text-anchor", anchor || "end");
+    t.textContent = text;
+    els.push(t);
+  }
+
+  addText(W/2, 30, "🌳 تقرير تطابق سنوات الميلاد والوفاة — بني أسمل الحكمي", 16, 700, "#0B3D2E", "middle");
+  y = 56;
+
+  years.forEach(([year, v]) => {
+    // عنوان السنة
+    addText(W/2, y, `العام ${year}هـ`, 15, 700, "#0B3D2E", "middle");
+    const lw = measureW(`العام ${year}هـ`, 15, 700);
+    const ln1 = document.createElementNS(svgNS, "line");
+    ln1.setAttribute("x1", 18); ln1.setAttribute("x2", W/2 - lw/2 - 10); ln1.setAttribute("y1", y-4); ln1.setAttribute("y2", y-4); ln1.setAttribute("stroke", "#E6D9B8");
+    els.push(ln1);
+    const ln2 = document.createElementNS(svgNS, "line");
+    ln2.setAttribute("x1", W/2 + lw/2 + 10); ln2.setAttribute("x2", W-18); ln2.setAttribute("y1", y-4); ln2.setAttribute("y2", y-4); ln2.setAttribute("stroke", "#E6D9B8");
+    els.push(ln2);
+    y += 24;
+
+    if (v.born.length > 1){
+      addText(W-18, y, `👶 المولودون (${v.born.length}):`, 12.5, 700, "#8B4A1E");
+      y += 20;
+      v.born.forEach(pid => { addText(W-18, y, "• " + (fullChainById.get(pid) || personsById.get(pid)?.name || pid), 12, 400, "#333"); y += 19; });
+      y += 4;
+    }
+    if (v.died.length > 1){
+      addText(W-18, y, `🕊️ المتوفَّون (${v.died.length}):`, 12.5, 700, "#8B4A1E");
+      y += 20;
+      v.died.forEach(pid => { addText(W-18, y, "• " + (fullChainById.get(pid) || personsById.get(pid)?.name || pid), 12, 400, "#333"); y += 19; });
+      y += 4;
+    }
+    y += 14;
+  });
+
+  const H = y + 10;
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const bg = document.createElementNS(svgNS, "rect");
+  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("rx", 12); bg.setAttribute("fill", "#FFFDF6");
+  bg.setAttribute("stroke", "#B8860B"); bg.setAttribute("stroke-width", 1.4);
+  svg.insertBefore(bg, svg.firstChild.nextSibling);
+  els.forEach(el => svg.appendChild(el));
+
+  const svgText = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const imgData = await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function(){
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = W * scale; canvas.height = H * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = url;
+  });
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
+  await addTallImagePaginatedStats(pdf, imgData, margin, margin, W, H, PAGE_H, margin);
+  addPdfFooterToAllPagesStats(pdf, PAGE_W, PAGE_H, margin);
+  pdf.save("تطابق_سنوات_الميلاد_والوفاة.pdf");
+}
+
 const modBirthYearDup = buildYearDuplicatesModule("birthYear", "birthYearDup", "تطابق سنوات الميلاد", "📅", null);
 const modDeathYearDup = buildYearDuplicatesModule("deathYear", "deathYearDup", "تطابق سنوات الوفاة", "📅", "deceased");
 

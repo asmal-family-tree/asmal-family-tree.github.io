@@ -385,7 +385,7 @@
     color:#fff; font-family:'Tajawal',sans-serif; font-weight:700; cursor:pointer;
   }
   #authOverlay{
-    position:fixed; inset:0; z-index:200; background:linear-gradient(180deg, var(--emerald) 0%, var(--emerald-2) 100%);
+    position:fixed; inset:0; z-index:9999; background:linear-gradient(180deg, var(--emerald) 0%, var(--emerald-2) 100%);
     display:flex; align-items:center; justify-content:center; padding:20px;
   }
   #authOverlay.hidden{ display:none; }
@@ -461,6 +461,11 @@
     box-shadow:0 3px 10px rgba(139,62,16,.25); transition:transform .1s;
   }
   .f-btn-sm:active{ transform:scale(.96); }
+  /* أزرار تصنيف النبذة التاريخية (قصة/رواية/حادثة/معلومة/نبذة تاريخية/أدب) — حمراء دومًا */
+  .bio-tag-btn{
+    background:#fff !important; color:#8B1E1E !important; border:1.3px solid #8B1E1E !important;
+    box-shadow:none !important;
+  }
   .theme-btn.active{ outline:3px solid var(--gold-bright); outline-offset:2px; }
   .chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
   .chip{
@@ -605,7 +610,7 @@
   position:fixed; top:78px; right:20px; z-index:60; background:var(--card-bg); border:1px solid rgba(47,227,166,.18);
   border-radius:20px; box-shadow:var(--card-shadow); padding:16px 18px; min-width:190px; display:none;
 }:root[data-style="3"] #myTreeInfoPanel.show{ display:block; animation:glowIn_s3 .25s; }:root[data-style="3"] #myTreeInfoPanel h4{ margin:0 0 8px 0; font-size:16px; color:var(--glow); text-align:center; }:root[data-style="3"] #myTreeInfoPanel .mti-row{ font-size:14px; color:#c9d4ce; margin:4px 0; display:flex; justify-content:space-between; gap:12px; }:root[data-style="3"] #myTreeInfoPanel button{ width:100%; margin-top:10px; padding:9px; border:none; border-radius:14px; background:linear-gradient(135deg,var(--glow-2),var(--glow)); color:#0d1410; font-weight:700; cursor:pointer; }:root[data-style="3"] #mtiClose{ position:absolute; top:8px; left:12px; cursor:pointer; font-size:15px; color:#5a6a60; }:root[data-style="3"] #mtiClose:hover{ color:var(--maroon); }:root[data-style="3"] #authOverlay{
-  position:fixed; inset:0; z-index:200; background:radial-gradient(circle at 30% 20%, rgba(47,227,166,.12), transparent 55%), linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
+  position:fixed; inset:0; z-index:9999; background:radial-gradient(circle at 30% 20%, rgba(47,227,166,.12), transparent 55%), linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
   display:flex; align-items:center; justify-content:center; padding:20px;
 }:root[data-style="3"] #authOverlay.hidden{ display:none; }:root[data-style="3"] #authCard{
   background:var(--card-bg); border-radius:28px; padding:34px 28px; width:100%; max-width:360px;

@@ -472,6 +472,23 @@ document.getElementById("guestEnterLink").onclick = (e) => {
 // عند التحميل: نقرأ العام، ثم إن وُجد اختيار شخصي فهو الذي يُطبَّق.
 async function loadAndApplySiteTheme(){
   let theme = "royal-green", layoutStyle = ""; // الافتراضي: الأخضر الملكي بشكل الواجهة الأصلي، ما لم يُحدَّد غيره صراحة
+
+  // تطبيق فوري (بلا انتظار الشبكة) لتفضيل المستخدم غير الأدمن المحفوظ محليًا —
+  // يمنع "ومضة" التصميم الافتراضي أثناء انتظار استعلام Firestore أدناه، لأن
+  // المستخدم العائد يملك تفضيله جاهزًا فوريًا بلا حاجة لأي اتصال شبكة.
+  if (!isAdminUser()){
+    const myThemeEarly  = localStorage.getItem("myTheme");
+    const myLayoutEarly = localStorage.getItem("myLayout");
+    if (myThemeEarly !== null || myLayoutEarly !== null){
+      let earlyTheme = myThemeEarly !== null ? myThemeEarly : theme;
+      let earlyLayout = myLayoutEarly !== null ? myLayoutEarly : layoutStyle;
+      const isDesktopEarly = window.matchMedia("(min-width:1024px) and (hover:hover) and (pointer:fine)").matches;
+      if (isDesktopEarly && earlyLayout === "5") earlyLayout = "3";
+      applyTheme(earlyTheme);
+      applyLayoutStyle(earlyLayout);
+    }
+  }
+
   try{
     const snap = await db.collection("meta").doc("siteSettings").get();
     if (snap.exists){
@@ -1349,7 +1366,7 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   const bioWrapped = prepSection(bioFields, true);
 
   // ---------- حساب الارتفاع الكلي مسبقًا (يجب أن يطابق تمامًا حركة المؤشر أثناء الرسم أدناه) ----------
-  const HEADER_H = data.photo ? 118 : 74;
+  const HEADER_H = data.photo ? 132 : 78;
   function sectionHeight(wrapped){
     if (!wrapped.length) return 0;
     let h = 22; // عنوان القسم
@@ -1396,29 +1413,29 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   svg.appendChild(hdrLine);
 
   if (data.photo){
-    const photoSize = 78;
+    const photoSize = 78, photoY = 14;
     const pClip = document.createElementNS(svgNS, "clipPath");
     pClip.setAttribute("id", "photoclip" + uid);
     const pCircle = document.createElementNS(svgNS, "circle");
-    pCircle.setAttribute("cx", W/2); pCircle.setAttribute("cy", 20 + photoSize/2); pCircle.setAttribute("r", photoSize/2);
+    pCircle.setAttribute("cx", W/2); pCircle.setAttribute("cy", photoY + photoSize/2); pCircle.setAttribute("r", photoSize/2);
     pClip.appendChild(pCircle);
     svg.appendChild(pClip);
     const pImg = document.createElementNS(svgNS, "image");
     pImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", data.photo);
-    pImg.setAttribute("x", W/2 - photoSize/2); pImg.setAttribute("y", 20);
+    pImg.setAttribute("x", W/2 - photoSize/2); pImg.setAttribute("y", photoY);
     pImg.setAttribute("width", photoSize); pImg.setAttribute("height", photoSize);
     pImg.setAttribute("clip-path", `url(#photoclip${uid})`);
     pImg.setAttribute("preserveAspectRatio", "xMidYMid slice");
     svg.appendChild(pImg);
     const pRing = document.createElementNS(svgNS, "circle");
-    pRing.setAttribute("cx", W/2); pRing.setAttribute("cy", 20 + photoSize/2); pRing.setAttribute("r", photoSize/2);
+    pRing.setAttribute("cx", W/2); pRing.setAttribute("cy", photoY + photoSize/2); pRing.setAttribute("r", photoSize/2);
     pRing.setAttribute("fill", "none"); pRing.setAttribute("stroke", "#C9A227"); pRing.setAttribute("stroke-width", 2);
     svg.appendChild(pRing);
   }
 
   const title = document.createElementNS(svgNS, "text");
-  title.setAttribute("x", W/2); title.setAttribute("y", data.photo ? HEADER_H - 16 : HEADER_H/2 + 6);
-  title.setAttribute("text-anchor", "middle"); title.setAttribute("font-size", "16"); title.setAttribute("font-weight", "700");
+  title.setAttribute("x", W/2); title.setAttribute("y", data.photo ? HEADER_H - 14 : HEADER_H/2 + 7);
+  title.setAttribute("text-anchor", "middle"); title.setAttribute("font-size", "19"); title.setAttribute("font-weight", "700");
   title.setAttribute("fill", "#FFFDF6");
   title.textContent = fiveName;
   svg.appendChild(title);
@@ -1503,43 +1520,46 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
 async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margin, addPageIfNeeded){
   const gap = 20; // فراغ بصري (سطر واحد تقريبًا) قبل حد الصفحة السفلي وبعد العلوي عند القطع
   if (H <= (pageH - margin - yStart - gap)){
-    // الكتلة تسع بالمساحة المتبقية بالصفحة الحالية — أضفها مباشرة
+    // الكتلة تسع بالمساحة المتبقية بالصفحة الحالية — أضفها مباشرة (إطارها
+    // الأصلي مرسوم داخل الصورة نفسها بالفعل، بلا حاجة لأي حشوة إضافية هنا)
     pdf.addImage(imgData, "PNG", x, yStart, W, H);
     return yStart + H;
   }
   // الكتلة أطول: نحمّلها كصورة مصدر، ونرسم شرائح منها بـcanvas مؤقت
+  const pad = 12; // حشوة داخلية عمودية بين خط الإطار والمحتوى بكل صفحة مقسَّمة
   const srcImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = imgData; });
   const pxPerPt = srcImg.height / H;        // نسبة بكسل الصورة لكل نقطة PDF
   let drawnPt = 0;                          // كم نقطة رُسمت من ارتفاع الكتلة
   let first = true;
   let lastY = yStart;
   while (drawnPt < H - 0.5){
-    let curY, maxSliceH;
+    let curY, maxContentH;
     if (first){
       curY = yStart;
-      maxSliceH = pageH - margin - yStart - gap; // ينتهي بفراغ سطر قبل حد الصفحة السفلي
+      maxContentH = pageH - margin - yStart - gap - pad * 2; // ينتهي المحتوى بحشوة قبل الإطار السفلي
     } else {
       pdf.addPage();
-      curY = margin + gap; // يبدأ بفراغ سطر بعد حد الصفحة العلوي
-      maxSliceH = pageH - margin * 2 - gap * 2; // وينتهي أيضًا بفراغ سطر قبل السفلي
+      curY = margin + gap; // يبدأ الإطار بفراغ سطر بعد حد الصفحة العلوي
+      maxContentH = pageH - margin * 2 - gap * 2 - pad * 2;
     }
     first = false;
-    const sliceHpt = Math.min(maxSliceH, H - drawnPt);         // ارتفاع الشريحة بالنقاط
+    const contentH = Math.min(maxContentH, H - drawnPt);       // ارتفاع محتوى هذه الصفحة (بلا الحشوة)
     const sy = Math.round(drawnPt * pxPerPt);                 // بداية القصّ بالبكسل
-    const sh = Math.round(sliceHpt * pxPerPt);               // ارتفاع القصّ بالبكسل
+    const sh = Math.round(contentH * pxPerPt);               // ارتفاع القصّ بالبكسل
     const c = document.createElement("canvas");
     c.width = srcImg.width; c.height = sh;
     const ctx = c.getContext("2d");
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(srcImg, 0, sy, srcImg.width, sh, 0, 0, srcImg.width, sh);
-    pdf.addImage(c.toDataURL("image/png"), "PNG", x, curY, W, sliceHpt);
-    // إطار ذهبي حول كل شريحة/صفحة على حدة (إطار الصورة الأصلي يُقصّ مع
-    // التقسيم، فنرسم إطارًا جديدًا مباشرة بالـPDF نفسه لكل صفحة تبقى مكتملة).
+    // المحتوى يُرسم بحشوة عمودية (pad) عن أعلى/أسفل الإطار، فلا يلامسه النص أبدًا
+    pdf.addImage(c.toDataURL("image/png"), "PNG", x, curY + pad, W, contentH);
+    // إطار ذهبي حول كل شريحة/صفحة على حدة (يشمل الحشوة، فيحيط بالمحتوى لا يلامسه)
+    const frameH = contentH + pad * 2;
     pdf.setDrawColor(184, 134, 11); pdf.setLineWidth(1.2);
-    if (typeof pdf.roundedRect === "function") pdf.roundedRect(x, curY, W, sliceHpt, 10, 10, "S");
-    else pdf.rect(x, curY, W, sliceHpt, "S");
-    drawnPt += sliceHpt;
-    lastY = curY + sliceHpt;
+    if (typeof pdf.roundedRect === "function") pdf.roundedRect(x, curY, W, frameH, 10, 10, "S");
+    else pdf.rect(x, curY, W, frameH, "S");
+    drawnPt += contentH;
+    lastY = curY + frameH;
   }
   return lastY;
 }
