@@ -1441,7 +1441,11 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   svg.appendChild(title);
 
   // ---------- رسم الأقسام (عنوان مزخرف بخطين جانبيين + حقوله) ----------
+  // نتتبّع "نقاط قطع آمنة" (فراغات بين الأسطر/الحقول) أثناء الرسم، ليُستخدَم
+  // القطع عندها لاحقًا عند تقسيم الصفحات، بدل قطع أي سطر من منتصفه.
+  const safeCuts = [];
   let y = HEADER_H + TOP_GAP;
+  safeCuts.push(y - 10); // فوق أول قسم مباشرة (داخل فراغ TOP_GAP)
   function drawSectionTitle(text){
     const tw = measureW(text, 13, 700);
     const t = document.createElementNS(svgNS, "text");
@@ -1461,6 +1465,7 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
     y += 22;
   }
   function drawFieldRow(f){
+    safeCuts.push(y - 14); // فوق تسمية الحقل مباشرة (فراغ آمن قبل بداية "حادثة:" مثلًا)
     const t = document.createElementNS(svgNS, "text");
     t.setAttribute("x", W - margin); t.setAttribute("y", y);
     t.setAttribute("text-anchor", "end"); t.setAttribute("font-size", "12.5"); t.setAttribute("font-weight", "700"); t.setAttribute("fill", "#8B4A1E");
@@ -1468,6 +1473,7 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
     svg.appendChild(t);
     y += 20;
     f.valueLines.forEach((vline) => {
+      safeCuts.push(y - 14); // فوق كل سطر قيمة (فراغ آمن قبل بداية هذا السطر)
       const v = document.createElementNS(svgNS, "text");
       v.setAttribute("x", W - margin); v.setAttribute("y", y);
       v.setAttribute("text-anchor", "end"); v.setAttribute("font-size", VALUE_FONT_SIZE); v.setAttribute("fill", "#333");
@@ -1492,6 +1498,8 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
   if (basicWrapped.length){ drawSectionTitle("📋 معلومات أساسية"); basicWrapped.forEach(drawFieldRow); y += 4; }
   if (familyWrapped.length){ drawSectionTitle("👪 العائلة والأبناء"); familyWrapped.forEach(drawFieldRow); y += 4; }
   if (bioWrapped.length){ drawSectionTitle("📜 النبذة التاريخية"); bioWrapped.forEach(drawFieldRow); y += 4; }
+  safeCuts.push(y - 2); // أسفل آخر عنصر مباشرة
+  safeCuts.sort((a, b) => a - b);
 
   const svgText = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
@@ -1511,13 +1519,13 @@ async function buildPersonBlockDataUrl(personNode, preloadedData, blockWidth){
     };
     img.src = url;
   });
-  return { imgData, fiveName, W, H };
+  return { imgData, fiveName, W, H, safeCuts };
 }
 
 // ===== PDF MULTI-PAGE SLICING START (معزول — يقسّم الكتلة الطويلة على عدة صفحات بدل قصها) =====
 // يرسم صورة الكتلة (imgData بأبعاد W×H نقطة) موزّعةً على صفحات A4 متتالية إن تجاوزت ارتفاع الصفحة.
 // يقصّ الصورة أفقيًا لشرائح، كل شريحة بارتفاع صفحة، ويضعها بصفحات منفصلة — بلا فقد أي محتوى.
-async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margin, addPageIfNeeded){
+async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margin, addPageIfNeeded, safeCuts){
   const gap = 20; // فراغ بصري (سطر واحد تقريبًا) قبل حد الصفحة السفلي وبعد العلوي عند القطع
   if (H <= (pageH - margin - yStart - gap)){
     // الكتلة تسع بالمساحة المتبقية بالصفحة الحالية — أضفها مباشرة (إطارها
@@ -1527,6 +1535,17 @@ async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margi
   }
   // الكتلة أطول: نحمّلها كصورة مصدر، ونرسم شرائح منها بـcanvas مؤقت
   const pad = 12; // حشوة داخلية عمودية بين خط الإطار والمحتوى بكل صفحة مقسَّمة
+  // أقرب نقطة قطع آمنة (مسجَّلة أثناء البناء) لا تتجاوز الحد الأقصى المسموح —
+  // فيقع القطع دومًا بفراغ بين سطرين، لا في منتصف أي سطر نص.
+  function nearestSafeCut(maxAllowed, minAllowed){
+    if (!safeCuts || !safeCuts.length) return maxAllowed;
+    let best = null;
+    for (const c of safeCuts){
+      if (c <= maxAllowed && c >= (minAllowed || 0)) best = c; // آخر واحد أصغر أو يساوي الحد (مُرتَّبة تصاعديًا)
+      else if (c > maxAllowed) break;
+    }
+    return best !== null ? best : maxAllowed;
+  }
   const srcImg = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = imgData; });
   const pxPerPt = srcImg.height / H;        // نسبة بكسل الصورة لكل نقطة PDF
   let drawnPt = 0;                          // كم نقطة رُسمت من ارتفاع الكتلة
@@ -1543,7 +1562,11 @@ async function addTallImagePaginated(pdf, imgData, x, yStart, W, H, pageH, margi
       maxContentH = pageH - margin * 2 - gap * 2 - pad * 2;
     }
     first = false;
-    const contentH = Math.min(maxContentH, H - drawnPt);       // ارتفاع محتوى هذه الصفحة (بلا الحشوة)
+    // نبحث عن أقرب نقطة قطع آمنة لا تتجاوز الحد الأقصى المتاح (نسبةً لبداية الكتلة الكلية = drawnPt)
+    const idealEndAbs = drawnPt + Math.min(maxContentH, H - drawnPt); // نهاية القطع المثالية (بلا وعي بالأسطر) بمقياس الكتلة الكاملة
+    const isLastChunk = (H - drawnPt) <= maxContentH + 0.5;
+    const safeEndAbs = isLastChunk ? idealEndAbs : nearestSafeCut(idealEndAbs, drawnPt + 20);
+    const contentH = Math.max(20, safeEndAbs - drawnPt); // ارتفاع محتوى هذه الصفحة (بلا الحشوة)
     const sy = Math.round(drawnPt * pxPerPt);                 // بداية القصّ بالبكسل
     const sh = Math.round(contentH * pxPerPt);               // ارتفاع القصّ بالبكسل
     const c = document.createElement("canvas");
@@ -1600,10 +1623,10 @@ function addPdfFooterToAllPages(pdf, PAGE_W, PAGE_H, margin){
 
 async function exportPersonPdf(personNode, preloadedData){
   const PAGE_W = 595, PAGE_H = 842, margin = 40;
-  const { imgData, fiveName, W, H } = await buildPersonBlockDataUrl(personNode, preloadedData, PAGE_W - margin*2);
+  const { imgData, fiveName, W, H, safeCuts } = await buildPersonBlockDataUrl(personNode, preloadedData, PAGE_W - margin*2);
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-  await addTallImagePaginated(pdf, imgData, margin, margin, W, H, PAGE_H, margin);
+  await addTallImagePaginated(pdf, imgData, margin, margin, W, H, PAGE_H, margin, null, safeCuts);
   addPdfFooterToAllPages(pdf, PAGE_W, PAGE_H, margin);
   pdf.save(`${fiveName}.pdf`);
 }
@@ -1717,14 +1740,27 @@ async function exportAllRecordsPdf(){
   }
   let simPage = 1, simY = margin, simFirst = true;
   const startPageOf = [];
-  blocks.forEach(({ H }) => {
+  function simNearestSafeCut(cuts, maxAllowed, minAllowed){
+    if (!cuts || !cuts.length) return maxAllowed;
+    let best = null;
+    for (const c of cuts){
+      if (c <= maxAllowed && c >= minAllowed) best = c;
+      else if (c > maxAllowed) break;
+    }
+    return best !== null ? best : maxAllowed;
+  }
+  blocks.forEach(({ H, safeCuts }) => {
     if (H > usableH){
       if (!simFirst) simPage++;
-      let remaining = H, pageCount = 0, firstSlice = true;
-      const sliceGap = 20;
-      while (remaining > 0.5){
-        const maxSlice = firstSlice ? (PAGE_H - margin - (firstSlice ? simY : margin) - sliceGap) : (PAGE_H - margin*2 - sliceGap*2);
-        remaining -= Math.min(maxSlice, remaining);
+      let drawnPt = 0, pageCount = 0, firstSlice = true;
+      const sliceGap = 20, pad = 12;
+      while (drawnPt < H - 0.5){
+        const maxContentH = firstSlice ? (PAGE_H - margin - simY - sliceGap - pad*2) : (PAGE_H - margin*2 - sliceGap*2 - pad*2);
+        const idealEndAbs = drawnPt + Math.min(maxContentH, H - drawnPt);
+        const isLastChunk = (H - drawnPt) <= maxContentH + 0.5;
+        const safeEndAbs = isLastChunk ? idealEndAbs : simNearestSafeCut(safeCuts, idealEndAbs, drawnPt + 20);
+        const contentH = Math.max(20, safeEndAbs - drawnPt);
+        drawnPt += contentH;
         pageCount++; firstSlice = false;
       }
       startPageOf.push(simPage);
@@ -1765,10 +1801,10 @@ async function exportAllRecordsPdf(){
   pdf.addPage();
   let y = margin, firstBlock = true;
   for (let i = 0; i < blocks.length; i++){
-    const { imgData, W, H } = blocks[i];
+    const { imgData, W, H, safeCuts } = blocks[i];
     if (H > usableH){
       if (!firstBlock){ pdf.addPage(); y = margin; }
-      await addTallImagePaginated(pdf, imgData, margin, y, W, H, PAGE_H, margin);
+      await addTallImagePaginated(pdf, imgData, margin, y, W, H, PAGE_H, margin, null, safeCuts);
       pdf.addPage(); y = margin;
     } else {
       if (!firstBlock){
