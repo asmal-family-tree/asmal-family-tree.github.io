@@ -312,28 +312,64 @@ async function afterSignIn(fbUser){
 // ===== ONBOARDING TOUR START (معزول تمامًا — احذف هذا القسم بأمان لإلغاء الميزة) =====
 const TOUR_STEPS = [
   { id: "currentUserBadge", title: "حسابك", desc: "اسمك وزر الخروج من حسابك.", always: true },
-  { id: "newsNavBtn", title: "الأخبار", desc: "آخر أخبار وتحديثات العائلة.", page: "news", action: "view" },
+  { id: "newsNavBtn", asmalId: "asmalFab_newsNavBtn", title: "الأخبار", desc: "آخر أخبار وتحديثات العائلة.", page: "news", action: "view" },
   { id: "uiScaleControls", title: "حجم الخط", desc: "تكبير أو تصغير حجم النص بكل الصفحة.", always: true },
-  { id: "searchToggle", title: "البحث", desc: "ابحث عن أي شخص بالشجرة بالاسم.", page: "search", action: "view" },
-  { id: "myTreeToggle", title: "شجرتي", desc: "تعرض فرعك الخاص من الشجرة فقط.", page: "myTree", action: "view" },
-  { id: "relToggle", title: "خيوط النسب", desc: "احسب صلة القرابة بينك وبين أي شخص.", page: "relation", action: "view" },
-  { id: "bgToggle", title: "المظهر", desc: "تغيير خلفية عرض الشجرة (أدمن فقط).", adminOnly: true },
-  { id: "designToggle", title: "تصميم الموقع", desc: "اختر الثيم وشكل الواجهة اللي يناسبك.", page: "design", action: "view" },
-  { id: "usersToggle", title: "المستخدمون", desc: "إدارة الحسابات والصلاحيات (أدمن فقط).", adminOnly: true },
-  { id: "aiChatToggle", title: "المساعد الذكي", desc: "اسأل المساعد عن أي شخص أو معلومة بالشجرة.", page: "ai", action: "view" },
-  { id: "recordsToggle", title: "السجلات", desc: "استعرض وصدّر السجلات المعبّأة.", page: "records", action: "view" },
-  { id: "ioToggle", title: "استيراد وتصدير", desc: "تصدير أو استيراد بيانات الشجرة (أدمن فقط).", adminOnly: true },
-  { id: "attachmentsToggle", title: "المرفقات", desc: "مرفقات ومصادر إضافية (أدمن فقط).", adminOnly: true },
-  { id: "deleteBadgeToggle", title: "علامات الحذف", desc: "إظهار/إخفاء علامات الحذف بالشجرة (أدمن فقط).", adminOnly: true }
+  { id: "searchToggle", asmalId: "asmalSearchHost", title: "البحث", desc: "ابحث عن أي شخص بالشجرة بالاسم.", page: "search", action: "view" },
+  { id: "myTreeToggle", asmalId: "asmalFab_myTreeToggle", title: "شجرتي", desc: "تعرض فرعك الخاص من الشجرة فقط.", page: "myTree", action: "view" },
+  { id: "relToggle", asmalId: "asmalFab_relToggle", title: "خيوط النسب", desc: "احسب صلة القرابة بينك وبين أي شخص.", page: "relation", action: "view" },
+  { id: "bgToggle", asmalId: "asmalFab_bgToggle", title: "المظهر", desc: "تغيير خلفية عرض الشجرة (أدمن فقط).", adminOnly: true },
+  { id: "designToggle", asmalId: "asmalFab_designToggle", title: "تصميم الموقع", desc: "اختر الثيم وشكل الواجهة اللي يناسبك.", page: "design", action: "view" },
+  { id: "usersToggle", asmalId: "asmalFab_usersToggle", title: "المستخدمون", desc: "إدارة الحسابات والصلاحيات (أدمن فقط).", adminOnly: true },
+  { id: "aiChatToggle", asmalId: "asmalChipAssistantDemo", title: "المساعد الذكي", desc: "اسأل المساعد عن أي شخص أو معلومة بالشجرة.", page: "ai", action: "view" },
+  { id: "recordsToggle", asmalId: "asmalFab_recordsToggle", title: "السجلات", desc: "استعرض وصدّر السجلات المعبّأة.", page: "records", action: "view" },
+  { id: "ioToggle", asmalId: "asmalFab_ioToggle", title: "استيراد وتصدير", desc: "تصدير أو استيراد بيانات الشجرة (أدمن فقط).", adminOnly: true },
+  { id: "attachmentsToggle", asmalId: "asmalFab_attachmentsToggle", title: "المرفقات", desc: "مرفقات ومصادر إضافية (أدمن فقط).", adminOnly: true },
+  { id: "deleteBadgeToggle", asmalId: "asmalFlDelete", title: "علامات الحذف", desc: "إظهار/إخفاء علامات الحذف بالشجرة (أدمن فقط).", adminOnly: true }
 ];
+
+// يُرجع معرّف العنصر الصحيح الواجب تظليله بالخطوة الحالية، حسب التصميم النشط
+function tourStepElementId(step){
+  const isAsmal = document.documentElement.getAttribute("data-style") === "5";
+  return (isAsmal && step.asmalId) ? step.asmalId : step.id;
+}
+// عنصر "موجود بالـDOM لكن مخفيًا" (display:none، أو بلا مساحة معروضة) لا يصلح لتظليل الجولة
+function isTourElementVisible(el){
+  if (!el) return false;
+  if (el.offsetParent === null && getComputedStyle(el).position !== "fixed") return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+}
+// قبل تظليل عنصر بأسمل، نفتح حاويته (القائمة العائمة اليسرى أو البطاقة اليمنى)
+// إن كانت مطوية، حتى يكون الزر المستهدَف ظاهرًا وواضحًا فعليًا أثناء الجولة.
+function ensureAsmalTourTargetOpen(elId){
+  if (document.documentElement.getAttribute("data-style") !== "5") return;
+  const fabWrapper = document.getElementById("asmalFabWrapper");
+  const menuToggle = document.getElementById("asmalMenuToggleDemo");
+  const flCard = document.getElementById("asmalFlCard");
+  const flToggle = document.getElementById("asmalFlToggle");
+  // إغلاق أي حاوية مفتوحة من خطوة سابقة أولًا
+  if (fabWrapper) fabWrapper.classList.remove("open");
+  if (menuToggle) menuToggle.classList.remove("active");
+  if (flCard) flCard.classList.add("collapsed");
+  if (flToggle) flToggle.textContent = "›";
+  // ثم فتح الحاوية التي تخص الخطوة الحالية فقط
+  if (elId && elId.startsWith("asmalFab_") && fabWrapper){
+    fabWrapper.classList.add("open");
+    if (menuToggle) menuToggle.classList.add("active");
+  }
+  if (elId === "asmalFlDelete" && flCard){
+    flCard.classList.remove("collapsed");
+    if (flToggle) flToggle.textContent = "‹";
+  }
+}
 
 let _tourActiveSteps = [];
 let _tourIndex = 0;
 
 function getFilteredTourSteps(){
   return TOUR_STEPS.filter(s => {
-    const el = document.getElementById(s.id);
-    if (!el) return false;
+    const el = document.getElementById(tourStepElementId(s));
+    if (!el || !isTourElementVisible(el)) return false;
     if (s.always) return true;
     if (s.adminOnly) return isAdminUser();
     return can(s.page, s.action);
@@ -342,9 +378,6 @@ function getFilteredTourSteps(){
 
 async function checkAndMaybeStartTour(){
   if (!window.authUser || window.authUser.isGuest) return;
-  // الجولة غير متوافقة حاليًا مع تصميم أسمل (عناصرها بمواضع/حالات مختلفة تمامًا)
-  // فتُؤجَّل بصمت حتى يتصفح المستخدم بتصميم آخر، دون تعليم الجولة كمشاهَدة.
-  if (document.documentElement.getAttribute("data-style") === "5") return;
   try{
     const metaSnap = await db.collection("meta").doc("tourSettings").get();
     const currentVersion = metaSnap.exists ? (metaSnap.data().tourVersion || 1) : 1;
@@ -355,12 +388,6 @@ async function checkAndMaybeStartTour(){
 }
 
 function startTour(versionToMark){
-  // الجولة غير متوافقة حاليًا مع تصميم أسمل — تُمنع من هذا المدخل أيضًا
-  // (يغطي زر "معاينة الجولة الآن" اليدوي، وليس فقط البدء التلقائي).
-  if (document.documentElement.getAttribute("data-style") === "5"){
-    alert("الجولة التفاعلية غير متاحة حاليًا بتصميم أسمل. بدّل لتصميم آخر لعرضها.");
-    return;
-  }
   _tourActiveSteps = getFilteredTourSteps();
   _tourIndex = 0;
   if (!_tourActiveSteps.length) return;
@@ -374,7 +401,9 @@ function startTour(versionToMark){
 
 function showTourStep(i, versionToMark){
   const step = _tourActiveSteps[i];
-  const el = document.getElementById(step.id);
+  const elId = tourStepElementId(step);
+  ensureAsmalTourTargetOpen(elId);
+  const el = document.getElementById(elId);
   if (!el){ nextTourStep(i, versionToMark); return; }
   const rect = el.getBoundingClientRect();
   const pad = 8;
@@ -410,6 +439,7 @@ function nextTourStep(i, versionToMark){
 
 async function endTour(versionToMark){
   document.getElementById("tourOverlay").style.display = "none";
+  ensureAsmalTourTargetOpen(null); // يُغلق أي حاوية أسمل مفتوحة من آخر خطوة
   const _tourWrapper = document.getElementById("appScaleWrapper");
   if (_tourWrapper) _tourWrapper.style.transform = window._tourSavedScale || "";
   if (versionToMark){

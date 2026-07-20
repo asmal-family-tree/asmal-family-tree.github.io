@@ -451,15 +451,15 @@
      احذف هذا القسم بأمان لإلغاء تصميم أسمل بالكامل ===== -->
 <div class="asmal-fab-wrapper transition-slide mode-icons" id="asmalFabWrapper">
   <div class="asmal-fab-menu">
-    <button class="asmal-fab-item" data-label="المظهر"><i class="ri-palette-line"></i><span>المظهر</span></button>
-    <button class="asmal-fab-item" data-label="المرفقات"><i class="ri-attachment-2"></i><span>المرفقات</span></button>
-    <button class="asmal-fab-item" data-label="التصدير"><i class="ri-download-2-line"></i><span>التصدير</span></button>
-    <button class="asmal-fab-item" data-label="النمط"><i class="ri-brush-line"></i><span>النمط</span></button>
-    <button class="asmal-fab-item" data-label="المستخدمون"><i class="ri-group-line"></i><span>المستخدمون</span></button>
-    <button class="asmal-fab-item" data-label="السجل"><i class="ri-file-list-3-line"></i><span>السجل</span></button>
-    <button class="asmal-fab-item" data-label="شجرتي"><i class="ri-tree-line"></i><span>شجرتي</span></button>
-    <button class="asmal-fab-item" data-label="خيوط النسب"><i class="ri-git-branch-line"></i><span>خيوط النسب</span></button>
-    <button class="asmal-fab-item" data-label="الأخبار"><i class="ri-newspaper-line"></i><span>الأخبار</span></button>
+    <button class="asmal-fab-item" id="asmalFab_bgToggle" data-label="المظهر"><i class="ri-palette-line"></i><span>المظهر</span></button>
+    <button class="asmal-fab-item" id="asmalFab_attachmentsToggle" data-label="المرفقات"><i class="ri-attachment-2"></i><span>المرفقات</span></button>
+    <button class="asmal-fab-item" id="asmalFab_ioToggle" data-label="التصدير"><i class="ri-download-2-line"></i><span>التصدير</span></button>
+    <button class="asmal-fab-item" id="asmalFab_designToggle" data-label="النمط"><i class="ri-brush-line"></i><span>النمط</span></button>
+    <button class="asmal-fab-item" id="asmalFab_usersToggle" data-label="المستخدمون"><i class="ri-group-line"></i><span>المستخدمون</span></button>
+    <button class="asmal-fab-item" id="asmalFab_recordsToggle" data-label="السجل"><i class="ri-file-list-3-line"></i><span>السجل</span></button>
+    <button class="asmal-fab-item" id="asmalFab_myTreeToggle" data-label="شجرتي"><i class="ri-tree-line"></i><span>شجرتي</span></button>
+    <button class="asmal-fab-item" id="asmalFab_relToggle" data-label="خيوط النسب"><i class="ri-git-branch-line"></i><span>خيوط النسب</span></button>
+    <button class="asmal-fab-item" id="asmalFab_newsNavBtn" data-label="الأخبار"><i class="ri-newspaper-line"></i><span>الأخبار</span></button>
   </div>
 </div>
 
@@ -670,7 +670,7 @@
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=64"></script>
+<script src="app.js?v=65"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {
