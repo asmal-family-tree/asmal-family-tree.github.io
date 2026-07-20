@@ -947,7 +947,6 @@ document.getElementById("cpSaveBtn").onclick = async () => {
     await user.updatePassword(newPass);
     document.getElementById("changePasswordOverlay").style.display = "none";
     if (typeof customAlert === "function") customAlert("تم تغيير كلمة المرور بنجاح ✓");
-    else alert("تم تغيير كلمة المرور بنجاح ✓");
   }catch(e){
     if (e.code === "auth/wrong-password" || e.code === "auth/invalid-credential"){
       errEl.textContent = "كلمة المرور الحالية غير صحيحة";
@@ -1279,6 +1278,7 @@ async function refreshRecordsList(){
   const ownScopeId = (!admin && window.authUser) ? window.authUser.scopePersonId : null;
   const filled = [];
   for (const n of root.descendants()){
+    if (n.data.type === "female") continue; // العنصر النسائي لا يظهر كسجل/ملف مستقل
     if (!admin && personId(n) !== ownScopeId) continue;
     const data = await loadPersonData(personId(n));
     if (isPersonDataFilled(data)) filled.push({ node: n, data });
@@ -1750,6 +1750,7 @@ async function exportAllRecordsPdf(){
   btn.disabled = true;
   const filled = [];
   for (const n of root.descendants()){
+    if (n.data.type === "female") continue; // العنصر النسائي لا يُصدَّر كملف مستقل
     const data = await loadPersonData(personId(n));
     if (isPersonDataFilled(data)) filled.push({ node: n, data });
   }
@@ -7978,11 +7979,18 @@ document.getElementById("f-photo").addEventListener("change", (e) => {
       canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
       photoDataUrl = canvas.toDataURL("image/jpeg", 0.75);
       document.getElementById("photoPreviewWrap").innerHTML = `<img src="${photoDataUrl}">`;
+      document.getElementById("f-photoRemove").style.display = "inline-block";
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 });
+document.getElementById("f-photoRemove").onclick = () => {
+  photoDataUrl = "";
+  document.getElementById("photoPreviewWrap").innerHTML = "";
+  document.getElementById("f-photo").value = "";
+  document.getElementById("f-photoRemove").style.display = "none";
+};
 
 async function confirmDeletePerson(d){
   const name = d.data.name;
@@ -8179,6 +8187,7 @@ async function openInfoModal(d){
   document.getElementById("f-bio").value = data.bio || "";
   photoDataUrl = data.photo || "";
   document.getElementById("photoPreviewWrap").innerHTML = photoDataUrl ? `<img src="${photoDataUrl}">` : "";
+  document.getElementById("f-photoRemove").style.display = photoDataUrl ? "inline-block" : "none";
   wivesState = (data.wives || []).map(w => ({ ...w, children: [...(w.children||[])], inlaws: (w.inlaws || []).map(x => ({ ...x, sonNames: [...(x.sonNames||[])] })) }));
   renderWives();
   updateAgeDisplay();

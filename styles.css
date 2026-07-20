@@ -1725,7 +1725,7 @@ body:not(.authed) #artBackground{
    + كل دوال/متغيرات JS الخاصة بالجولة بـ app.js.
    ============================================================ */
 #tourOverlay{
-  position:fixed; inset:0; z-index:500;
+  position:fixed; inset:0; z-index:9500;
 }
 #tourSpotlight{
   position:fixed; border-radius:14px;
@@ -1735,7 +1735,7 @@ body:not(.authed) #artBackground{
   border:2px solid var(--gold, #C08A2E);
 }
 #tourCard{
-  position:fixed; z-index:501; background:#fff; border-radius:16px; padding:16px 18px;
+  position:fixed; z-index:9501; background:#fff; border-radius:16px; padding:16px 18px;
   max-width:280px; box-shadow:0 10px 30px rgba(0,0,0,.35);
   font-family:'Tajawal',sans-serif; transition:top .3s ease, left .3s ease;
 }

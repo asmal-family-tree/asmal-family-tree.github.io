@@ -30,6 +30,23 @@ let rootId = null;
 
 function isFemale(p){ return p && p.type === "female"; }
 
+// تنبيه بسيط داخل الصفحة (بلا نافذة نظام منبثقة، فلا يُظهر المتصفح رابط
+// الموقع فوقه كما يحدث تلقائيًا مع alert() الأصلية).
+function statsAlert(message){
+  let box = document.getElementById("statsAlertBox");
+  if (!box){
+    box = document.createElement("div");
+    box.id = "statsAlertBox";
+    box.style.cssText = "position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#0B3D2E; color:#fff; padding:12px 20px; border-radius:12px; font-family:'Tajawal',sans-serif; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,.3); z-index:9999; max-width:88vw; text-align:center; transition:opacity .25s;";
+    document.body.appendChild(box);
+  }
+  box.textContent = message;
+  box.style.opacity = "1";
+  box.style.display = "block";
+  clearTimeout(box._hideTimer);
+  box._hideTimer = setTimeout(() => { box.style.opacity = "0"; setTimeout(() => box.style.display = "none", 250); }, 3200);
+}
+
 async function loadAllData(){
   const [personsSnap, infoSnap] = await Promise.all([
     db.collection("persons").get(),
@@ -548,7 +565,7 @@ async function exportYearMatchesPdf(){
     .sort((a, b) => Number(a[0]) - Number(b[0]));
 
   if (!years.length){
-    alert("لا يوجد أي تطابق حاليًا بسنوات الميلاد أو الوفاة.");
+    statsAlert("لا يوجد أي تطابق حاليًا بسنوات الميلاد أو الوفاة.");
     return;
   }
 

@@ -24,7 +24,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=82">
+<link rel="stylesheet" href="styles.css?v=83">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
 <link rel="stylesheet" href="style5.css?v=18">
 </head>
@@ -655,6 +655,7 @@
     <label class="f-label">صورة</label>
     <input type="file" id="f-photo" accept="image/*">
     <div id="photoPreviewWrap"></div>
+    <button type="button" id="f-photoRemove" class="f-btn-sm" style="display:none; background:#8B1E1E; margin-top:6px;">🗑️ إزالة الصورة</button>
 
     <div id="wifeLockNotice" style="display:none; background:#FDF3E3; border:1px solid #E0C88A; border-radius:12px; padding:12px 14px; margin:8px 0 14px; font-size:13.5px; color:#7a5a20; line-height:1.7;">
       🔒 <b>هذا الملف غير قابل للتحرير.</b><br>
@@ -670,7 +671,7 @@
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=8"></script>
-<script src="app.js?v=65"></script>
+<script src="app.js?v=66"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {
