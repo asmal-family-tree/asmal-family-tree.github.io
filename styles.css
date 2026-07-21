@@ -275,6 +275,13 @@
   #ip-card .ip-sadaha-item{ background:#F7F2E7; border-radius:8px; padding:6px 10px; font-size:13px; color:#4a3f2a; }
   #ip-card .ip-sadaha-item b{ color:#8B4A1E; }
   .name-chip{ color:#0B3D2E; text-decoration:underline dotted; cursor:pointer; }
+  .husband-link{ color:#0B3D2E; text-decoration:underline dotted; cursor:pointer; }
+  .ip-rel-suffix{ color:#8a7a5a; font-size:12px; font-weight:400; }
+  .ip-uncles-toggle{ margin:4px 0 2px; }
+  .ip-uncles-toggle button{
+    background:#F1E9D8; border:1px solid #D8C9A3; border-radius:14px; padding:5px 12px;
+    font-size:12px; color:#5a4a2a; cursor:pointer; font-family:'Tajawal',sans-serif;
+  }
   #nameTooltip{
     position:fixed; z-index:100; background:#241a10; color:#fff; padding:8px 12px; border-radius:10px;
     font-family:'Tajawal',sans-serif; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.3); display:none;

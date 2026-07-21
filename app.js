@@ -5511,6 +5511,23 @@ function nameChip(name, node){
   return chain ? `<span class="name-chip" data-chain="${escapeHtml(chain)}">${escapeHtml(name)}</span>` : escapeHtml(name);
 }
 
+// علاقة b بصاحب الملف a، مختصرة إلى إحدى 6 كلمات فقط (لا تتجاوزها إطلاقًا):
+// أخ / أخ لأم / عم / خال / ابن عم / ابن خال — أو نص فارغ إن لم تنطبق أي منها.
+async function shortKinshipLabel(a, b){
+  if (!b || a === b) return "";
+  if (a.parent && b.parent){
+    if (a.parent === b.parent) return "أخ";
+    if (a.parent.parent && a.parent.parent === b.parent) return "عم";
+    if (a.parent.parent && b.parent.parent && a.parent !== b.parent && a.parent.parent === b.parent.parent) return "ابن عم";
+  }
+  const infoA = await findMotherInfo(a);
+  const infoB = await findMotherInfo(b);
+  if (infoA && infoB && infoA.wifeId && infoB.wifeId && infoA.wifeId === infoB.wifeId && a.parent !== b.parent) return "أخ لأم";
+  if (infoA && infoA.grandfatherNode && b.parent === infoA.grandfatherNode) return "خال";
+  if (infoA && infoA.grandfatherNode && b.parent && b.parent.parent === infoA.grandfatherNode) return "ابن خال";
+  return "";
+}
+
 async function findSameMotherSiblings(personNode){
   const myInfo = await findMotherInfo(personNode);
   if (!myInfo || !myInfo.wifeId) return { siblings: [], grandfatherNode: null };
@@ -5582,6 +5599,21 @@ function showInfo(d){
         if (uncles.length) unclesHtml = `<div class="ip-row"><span class="ip-label">الأخوال</span><span class="ip-value">${uncles.map(c => nameChip(c.data.name, c)).join("، ")}</span></div>`;
       }
     }
+    // الأعمام: إخوة الأب — بنفس منطق الأخوال تمامًا لكن بجهة الوالد
+    let paternalUnclesHtml = "";
+    if (d.parent && d.parent.parent){
+      const pUncles = (d.parent.parent.children || []).filter(c => c.data.type !== "female" && c !== d.parent);
+      if (pUncles.length) paternalUnclesHtml = `<div class="ip-row"><span class="ip-label">الأعمام</span><span class="ip-value">${pUncles.map(c => nameChip(c.data.name, c)).join("، ")}</span></div>`;
+    }
+    // زر تبديل بين "الأخوال" و"الأعمام" — يظهر فقط إن وُجد كلاهما فعليًا
+    let unclesToggleHtml = "";
+    if (unclesHtml && paternalUnclesHtml){
+      unclesToggleHtml = `<div class="ip-uncles-toggle"><button type="button" id="ip-unclesToggleBtn" data-mode="maternal">🔄 عرض الأعمام بدلًا من الأخوال</button></div>` +
+        `<div id="ip-unclesMaternal">${unclesHtml}</div>` +
+        `<div id="ip-unclesPaternal" style="display:none;">${paternalUnclesHtml}</div>`;
+      unclesHtml = unclesToggleHtml; // يحل محل ما كان سيُدرَج مباشرة أدناه
+      paternalUnclesHtml = ""; // مدمج أصلًا بالأعلى
+    }
 
     let samMotherHtml = "";
     if (sameMother.siblings.length){
@@ -5625,7 +5657,7 @@ function showInfo(d){
       const nm = norm(name);
       if (!nm || isSelf(name) || adeelSeen.has(nm)) return; // لا العديل لنفسه، ولا تكرار
       adeelSeen.add(nm);
-      sadahaList.push({ label: "نسيب (العديل)", name, node: node || null });
+      sadahaList.push({ label: "النسيب(العديل)", name, node: node || null });
     };
     let wifeIdx = 0;
     for (const w of insideWives){
@@ -5664,9 +5696,15 @@ function showInfo(d){
       pushAdeel(nm, srcNode);
     }
 
+    for (const s of sadahaList){
+      if (s.node){
+        const rel = await shortKinshipLabel(d, s.node);
+        if (rel) s.relSuffix = " / " + rel;
+      }
+    }
     const sadahaHtml = sadahaList.length
       ? `<div class="ip-row"><span class="ip-label">الأصهار</span></div>` +
-        `<div class="ip-sadaha">${sadahaList.map(s => `<div class="ip-sadaha-item"><b>${s.label}:</b> ${nameChip(s.name, s.node)}</div>`).join("")}</div>`
+        `<div class="ip-sadaha">${sadahaList.map(s => `<div class="ip-sadaha-item"><b>${s.label}:</b> ${nameChip(s.name, s.node)}${s.relSuffix ? `<span class="ip-rel-suffix">${escapeHtml(s.relSuffix)}</span>` : ""}</div>`).join("")}</div>`
       : "";
 
     const hasAny = data.birthYear || data.job || data.nickname || data.bio || data.photo || data.deathStatus === "dead" || sonsInTree || unclesHtml || sadahaHtml || samMotherHtml || data.husband || (data.sons && data.sons.length);
@@ -5685,7 +5723,12 @@ function showInfo(d){
     if (data.job) html += `<div class="ip-row"><span class="ip-label">الوظيفة</span><span class="ip-value">${escapeHtml(data.job)}</span></div>`;
     if (data.nickname) html += `<div class="ip-row"><span class="ip-label">اللقب/الشهرة</span><span class="ip-value">${escapeHtml(data.nickname)}</span></div>`;
     html += `<div class="ip-row"><span class="ip-label">عدد الأبناء بالمشجرة</span><span class="ip-value">${sonsInTree}</span></div>`;
+    const sonNamesForCard = (d.children || []).filter(c => c.data.type !== "female").map(c => escapeHtml(c.data.name));
+    if (sonNamesForCard.length){
+      html += `<div class="ip-row"><span class="ip-label">أسماء الأبناء</span><span class="ip-value">${sonNamesForCard.join("، ")}</span></div>`;
+    }
     html += unclesHtml;
+    html += paternalUnclesHtml;
     html += samMotherHtml;
     html += sadahaHtml;
 
@@ -5693,7 +5736,11 @@ function showInfo(d){
     if (d.data.type === "female"){
       if (data.husbandChain || data.husband){
         const hLabel = data.husbandDivorced ? "طليقها" : "زوجها";
-        html += `<div class="ip-row"><span class="ip-label">${hLabel}</span><span class="ip-value">${escapeHtml(data.husbandChain || data.husband)}</span></div>`;
+        const hName = escapeHtml(data.husbandChain || data.husband);
+        const hValue = data.husbandId
+          ? `<span class="husband-link" data-husband-id="${escapeHtml(data.husbandId)}">${hName}</span>`
+          : hName;
+        html += `<div class="ip-row"><span class="ip-label">${hLabel}</span><span class="ip-value">${hValue}</span></div>`;
       }
       if (data.sons && data.sons.length){
         html += `<div class="ip-row"><span class="ip-label">أبناؤها</span></div>`;
@@ -5707,6 +5754,31 @@ function showInfo(d){
 
 const nameTooltip = document.getElementById("nameTooltip");
 document.getElementById("ip-card").addEventListener("click", (e) => {
+  const husbandLink = e.target.closest(".husband-link");
+  if (husbandLink){
+    e.stopPropagation();
+    const hId = husbandLink.dataset.husbandId;
+    const hNode = hId ? root.descendants().find(n => personId(n) === hId) : null;
+    if (hNode) openInfoModal(hNode);
+    return;
+  }
+  const toggleBtn = e.target.closest("#ip-unclesToggleBtn");
+  if (toggleBtn){
+    e.stopPropagation();
+    const maternalEl = document.getElementById("ip-unclesMaternal");
+    const paternalEl = document.getElementById("ip-unclesPaternal");
+    const showingMaternal = toggleBtn.dataset.mode === "maternal";
+    if (showingMaternal){
+      maternalEl.style.display = "none"; paternalEl.style.display = "";
+      toggleBtn.dataset.mode = "paternal";
+      toggleBtn.textContent = "🔄 عرض الأخوال بدلًا من الأعمام";
+    } else {
+      maternalEl.style.display = ""; paternalEl.style.display = "none";
+      toggleBtn.dataset.mode = "maternal";
+      toggleBtn.textContent = "🔄 عرض الأعمام بدلًا من الأخوال";
+    }
+    return;
+  }
   const chip = e.target.closest(".name-chip");
   if (!chip){ nameTooltip.classList.remove("show"); return; }
   e.stopPropagation();
