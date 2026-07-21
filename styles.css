@@ -276,11 +276,17 @@
   #ip-card .ip-sadaha-item b{ color:#8B4A1E; }
   .name-chip{ color:#0B3D2E; text-decoration:underline dotted; cursor:pointer; }
   .husband-link{ color:#0B3D2E; text-decoration:underline dotted; cursor:pointer; }
-  .ip-rel-suffix{ color:#8a7a5a; font-size:12px; font-weight:400; }
-  .ip-uncles-toggle{ margin:4px 0 2px; }
-  .ip-uncles-toggle button{
-    background:#F1E9D8; border:1px solid #D8C9A3; border-radius:14px; padding:5px 12px;
-    font-size:12px; color:#5a4a2a; cursor:pointer; font-family:'Tajawal',sans-serif;
+  .ip-rel-suffix{ color:#fff; background:#8B1E1E; font-size:12.5px; font-weight:700; padding:2px 9px; border-radius:10px; margin-inline-start:4px; display:inline-block; }
+  .ip-uncles-toggle{
+    display:inline-flex; margin:4px 0 2px; background:#EFE6D3; border-radius:16px; padding:3px; gap:2px;
+  }
+  .ip-uncles-toggle .ip-uncles-opt{
+    background:transparent; border:none; border-radius:13px; padding:6px 16px;
+    font-size:12.5px; color:#8a7550; cursor:pointer; font-family:'Tajawal',sans-serif; font-weight:600;
+    transition:background .15s, color .15s;
+  }
+  .ip-uncles-toggle .ip-uncles-opt.active{
+    background:#0B3D2E; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2);
   }
   #nameTooltip{
     position:fixed; z-index:100; background:#241a10; color:#fff; padding:8px 12px; border-radius:10px;

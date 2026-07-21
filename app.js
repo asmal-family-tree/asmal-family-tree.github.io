@@ -5608,7 +5608,10 @@ function showInfo(d){
     // زر تبديل بين "الأخوال" و"الأعمام" — يظهر فقط إن وُجد كلاهما فعليًا
     let unclesToggleHtml = "";
     if (unclesHtml && paternalUnclesHtml){
-      unclesToggleHtml = `<div class="ip-uncles-toggle"><button type="button" id="ip-unclesToggleBtn" data-mode="maternal">🔄 عرض الأعمام بدلًا من الأخوال</button></div>` +
+      unclesToggleHtml = `<div class="ip-uncles-toggle" id="ip-unclesToggle" data-mode="maternal">
+          <button type="button" class="ip-uncles-opt active" data-choose="maternal">الأخوال</button>
+          <button type="button" class="ip-uncles-opt" data-choose="paternal">الأعمام</button>
+        </div>` +
         `<div id="ip-unclesMaternal">${unclesHtml}</div>` +
         `<div id="ip-unclesPaternal" style="display:none;">${paternalUnclesHtml}</div>`;
       unclesHtml = unclesToggleHtml; // يحل محل ما كان سيُدرَج مباشرة أدناه
@@ -5673,7 +5676,8 @@ function showInfo(d){
       for (const sis of sisters){
         const sisData = await loadPersonData(personId(sis));
         if (sisData.husband && !sisData.husbandDivorced){
-          pushAdeel(sisData.husbandChain || sisData.husband, null);
+          const sisHusbandNode = sisData.husbandId ? root.descendants().find(n => personId(n) === sisData.husbandId) : null;
+          pushAdeel(sisData.husbandChain || sisData.husband, sisHusbandNode);
         }
       }
     }
@@ -5762,21 +5766,17 @@ document.getElementById("ip-card").addEventListener("click", (e) => {
     if (hNode) openInfoModal(hNode);
     return;
   }
-  const toggleBtn = e.target.closest("#ip-unclesToggleBtn");
-  if (toggleBtn){
+  const toggleOpt = e.target.closest(".ip-uncles-opt");
+  if (toggleOpt){
     e.stopPropagation();
+    const wrap = document.getElementById("ip-unclesToggle");
     const maternalEl = document.getElementById("ip-unclesMaternal");
     const paternalEl = document.getElementById("ip-unclesPaternal");
-    const showingMaternal = toggleBtn.dataset.mode === "maternal";
-    if (showingMaternal){
-      maternalEl.style.display = "none"; paternalEl.style.display = "";
-      toggleBtn.dataset.mode = "paternal";
-      toggleBtn.textContent = "🔄 عرض الأخوال بدلًا من الأعمام";
-    } else {
-      maternalEl.style.display = ""; paternalEl.style.display = "none";
-      toggleBtn.dataset.mode = "maternal";
-      toggleBtn.textContent = "🔄 عرض الأعمام بدلًا من الأخوال";
-    }
+    const choice = toggleOpt.dataset.choose;
+    wrap.dataset.mode = choice;
+    wrap.querySelectorAll(".ip-uncles-opt").forEach(b => b.classList.toggle("active", b.dataset.choose === choice));
+    maternalEl.style.display = choice === "maternal" ? "" : "none";
+    paternalEl.style.display = choice === "paternal" ? "" : "none";
     return;
   }
   const chip = e.target.closest(".name-chip");
