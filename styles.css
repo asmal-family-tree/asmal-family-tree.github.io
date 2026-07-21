@@ -668,7 +668,7 @@
 #dtHeader{ display:none; }
 #dtChatDock{ display:none; }
 
-@media (min-width:1024px){
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
   :root{ --dt-header-h:92px; --barh:0px; }
 
   /* ---------- الهيدر بتبويبات أفقية (رمز + نص) ---------- */
