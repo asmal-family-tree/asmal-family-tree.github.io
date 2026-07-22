@@ -82,7 +82,7 @@ async function buildShareableCardCanvas(){
   const { node, data, sonNames, uncleNames, pUncleNames, sadahaList, bio, photo } = sd;
   const fiveName = chainNames(node).slice(0, 5).join(" ");
   const fullChain = chainNames(node).join(" بن ");
-  const qrDataUrl = await fetchQrDataUrl(node.data.id, 300);
+  const qrDataUrl = await fetchQrDataUrl(node.data.id, 400);
 
   const measureCanvas = document.createElement("canvas");
   const mctx = measureCanvas.getContext("2d");
@@ -204,13 +204,11 @@ async function buildShareableCardCanvas(){
 
   // ---------- صف QR (إن توفّر) ----------
   let y = HEADER_H + 14;
+  let qrX = 0, qrY = 0, qrSize = 0;
   if (qrDataUrl){
     addRect(margin, y, contentW, QR_ROW_H - 10, "#F5EFDD", 12);
-    const qrSize = QR_ROW_H - 26;
-    const img = document.createElementNS(svgNS, "image");
-    img.setAttributeNS("http://www.w3.org/1999/xlink", "href", qrDataUrl);
-    img.setAttribute("x", W - margin - 8 - qrSize); img.setAttribute("y", y + 8); img.setAttribute("width", qrSize); img.setAttribute("height", qrSize);
-    svg.appendChild(img);
+    qrSize = QR_ROW_H - 26;
+    qrX = W - margin - 8 - qrSize; qrY = y + 8;
     addText(W - margin - 20 - qrSize, y + QR_ROW_H/2 - 16, "امسح الرمز", 12.5, 700, "#0B3D2E", "end");
     addText(W - margin - 20 - qrSize, y + QR_ROW_H/2 + 2, "لفتح ملفه الحي بالموقع", 10.5, 400, "#6b5c3a", "end");
     y += QR_ROW_H;
@@ -279,7 +277,17 @@ async function buildShareableCardCanvas(){
       ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
       URL.revokeObjectURL(url);
-      canvas.toBlob((b) => resolve({ blob: b, fiveName }), "image/png");
+      if (qrDataUrl && qrSize){
+        const qrImgEl = new Image();
+        qrImgEl.onload = () => {
+          ctx.imageSmoothingEnabled = false; // حاسم: يمنع تنعيم الحواف الذي يُفسد وضوح مربعات QR
+          ctx.drawImage(qrImgEl, qrX, qrY, qrSize, qrSize);
+          canvas.toBlob((b) => resolve({ blob: b, fiveName }), "image/png");
+        };
+        qrImgEl.src = qrDataUrl;
+      } else {
+        canvas.toBlob((b) => resolve({ blob: b, fiveName }), "image/png");
+      }
     };
     img.src = url;
   });
@@ -311,7 +319,7 @@ async function buildWalletCardImage(node){
   const parts = fiveName.split(" ");
   const line1 = parts.slice(0, 3).join(" ");
   const line2 = parts.slice(3).join(" ");
-  const qrDataUrl = await fetchQrDataUrl(node.data.id, 300);
+  const qrDataUrl = await fetchQrDataUrl(node.data.id, 400); // دقة عالية؛ تُرسَم لاحقًا بحجمها الحقيقي بلا تصغير يُفسد الوضوح
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -322,13 +330,9 @@ async function buildWalletCardImage(node){
   bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("rx", 16); bg.setAttribute("fill", "#FFFDF6");
   bg.setAttribute("stroke", "#C9A227"); bg.setAttribute("stroke-width", 2.2);
   svg.appendChild(bg);
-  const innerBorder = document.createElementNS(svgNS, "rect");
-  innerBorder.setAttribute("x", 5); innerBorder.setAttribute("y", 5); innerBorder.setAttribute("width", W-10); innerBorder.setAttribute("height", H-10);
-  innerBorder.setAttribute("rx", 11); innerBorder.setAttribute("fill", "none"); innerBorder.setAttribute("stroke", "#E6D9B8"); innerBorder.setAttribute("stroke-width", 1);
-  svg.appendChild(innerBorder);
 
   const uid = Math.random().toString(36).slice(2);
-  const HEADER_H = 52;
+  const HEADER_H = 56;
   const defs = document.createElementNS(svgNS, "defs");
   const grad = document.createElementNS(svgNS, "linearGradient"); grad.setAttribute("id", "wcgrad"+uid);
   grad.setAttribute("x1","0"); grad.setAttribute("y1","0"); grad.setAttribute("x2","1"); grad.setAttribute("y2","1");
@@ -337,13 +341,13 @@ async function buildWalletCardImage(node){
   grad.appendChild(s1); grad.appendChild(s2); defs.appendChild(grad); svg.appendChild(defs);
   const clip = document.createElementNS(svgNS, "clipPath"); clip.setAttribute("id", "wc"+uid);
   const clipPath = document.createElementNS(svgNS, "path");
-  clipPath.setAttribute("d", `M5,5 H${W-5} V${HEADER_H-8} Q${W-5},${HEADER_H} ${W-16},${HEADER_H} H16 Q5,${HEADER_H} 5,${HEADER_H-8} Z`);
+  clipPath.setAttribute("d", `M0,0 H${W} V${HEADER_H-16} Q${W},${HEADER_H} ${W-16},${HEADER_H} H16 Q0,${HEADER_H} 0,${HEADER_H-16} Z`);
   clip.appendChild(clipPath); svg.appendChild(clip);
   const hbg = document.createElementNS(svgNS, "rect");
-  hbg.setAttribute("x",5); hbg.setAttribute("y",5); hbg.setAttribute("width", W-10); hbg.setAttribute("height", HEADER_H); hbg.setAttribute("fill", "url(#wcgrad"+uid+")"); hbg.setAttribute("clip-path", `url(#wc${uid})`);
+  hbg.setAttribute("width", W); hbg.setAttribute("height", HEADER_H); hbg.setAttribute("fill", "url(#wcgrad"+uid+")"); hbg.setAttribute("clip-path", `url(#wc${uid})`);
   svg.appendChild(hbg);
   const hline = document.createElementNS(svgNS, "rect");
-  hline.setAttribute("x",5); hline.setAttribute("y",HEADER_H+3); hline.setAttribute("width",W-10); hline.setAttribute("height",2); hline.setAttribute("fill","#C9A227");
+  hline.setAttribute("x",0); hline.setAttribute("y",HEADER_H-3); hline.setAttribute("width",W); hline.setAttribute("height",3); hline.setAttribute("fill","#C9A227");
   svg.appendChild(hline);
 
   function addText(x, yy, txt, size, weight, color, anchor){
@@ -352,33 +356,28 @@ async function buildWalletCardImage(node){
     t.setAttribute("font-weight", weight||400); t.setAttribute("fill", color); t.setAttribute("text-anchor", anchor||"end");
     t.textContent = txt; svg.appendChild(t);
   }
-  addText(margin, 27, "🌳 شجرة بني أسمل الحكمي", 12.5, 700, "#fff", "start");
-  addText(W-margin, 32, "بطاقة نسب", 10.5, 400, "#cfe6da", "end");
+  addText(margin, 32, "🌳 شجرة بني أسمل الحكمي", 12.5, 700, "#fff", "start");
+  addText(W-margin, 36, "بطاقة نسب", 10.5, 400, "#cfe6da", "end");
 
-  addText(W-margin, 100, "الاسم الكامل", 9, 700, "#a8925a", "end");
-  addText(W-margin, 128, line1, 20, 700, "#0B3D2E", "end");
-  if (line2) addText(W-margin, 150, line2, 14.5, 400, "#6b5c3a", "end");
+  addText(W-margin, 104, "الاسم الكامل", 9, 700, "#a8925a", "end");
+  addText(W-margin, 132, line1, 20, 700, "#0B3D2E", "end");
+  if (line2) addText(W-margin, 154, line2, 14.5, 400, "#6b5c3a", "end");
   const sepLine = document.createElementNS(svgNS, "line");
-  sepLine.setAttribute("x1", margin); sepLine.setAttribute("x2", W-margin-108); sepLine.setAttribute("y1", 168); sepLine.setAttribute("y2", 168);
+  sepLine.setAttribute("x1", margin); sepLine.setAttribute("x2", W-margin-108); sepLine.setAttribute("y1", 170); sepLine.setAttribute("y2", 170);
   sepLine.setAttribute("stroke", "#E6D9B8");
   svg.appendChild(sepLine);
-  addText(W-margin, 188, "بطاقة تعريف نسب رسمية", 9.5, 400, "#8a7550", "end");
 
+  // مكان القرص الأبيض خلف QR فقط (الرمز نفسه يُرسم لاحقًا مباشرة على الـcanvas النهائي)
+  const qrSize = 96, qrX = margin, qrY = 84;
   if (qrDataUrl){
-    const qrSize = 92;
-    const qrX = margin, qrY = 82;
     const qrBg = document.createElementNS(svgNS, "rect");
     qrBg.setAttribute("x", qrX-5); qrBg.setAttribute("y", qrY-5); qrBg.setAttribute("width", qrSize+10); qrBg.setAttribute("height", qrSize+10);
     qrBg.setAttribute("fill", "#fff"); qrBg.setAttribute("rx", 8); qrBg.setAttribute("stroke", "#E6D9B8");
     svg.appendChild(qrBg);
-    const qrImg = document.createElementNS(svgNS, "image");
-    qrImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", qrDataUrl);
-    qrImg.setAttribute("x", qrX); qrImg.setAttribute("y", qrY); qrImg.setAttribute("width", qrSize); qrImg.setAttribute("height", qrSize);
-    svg.appendChild(qrImg);
   }
 
   const footerLine = document.createElementNS(svgNS, "rect");
-  footerLine.setAttribute("x",5); footerLine.setAttribute("y",H-19); footerLine.setAttribute("width",W-10); footerLine.setAttribute("height",10); footerLine.setAttribute("fill","#F5EFDD");
+  footerLine.setAttribute("x",0); footerLine.setAttribute("y",H-14); footerLine.setAttribute("width",W); footerLine.setAttribute("height",14); footerLine.setAttribute("fill","#F5EFDD");
   svg.appendChild(footerLine);
 
   const svgText = new XMLSerializer().serializeToString(svg);
@@ -394,7 +393,17 @@ async function buildWalletCardImage(node){
       ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
       URL.revokeObjectURL(url);
-      resolve({ dataUrl: canvas.toDataURL("image/png"), fiveName });
+      if (qrDataUrl){
+        const qrImgEl = new Image();
+        qrImgEl.onload = () => {
+          ctx.imageSmoothingEnabled = false; // حاسم: يمنع تنعيم الحواف الذي يُفسد وضوح مربعات QR
+          ctx.drawImage(qrImgEl, qrX, qrY, qrSize, qrSize);
+          resolve({ dataUrl: canvas.toDataURL("image/png"), fiveName });
+        };
+        qrImgEl.src = qrDataUrl;
+      } else {
+        resolve({ dataUrl: canvas.toDataURL("image/png"), fiveName });
+      }
     };
     img.src = url;
   });
@@ -425,6 +434,11 @@ async function toggleWalletCard(){
   modal.style.display = "flex";
 }
 document.getElementById("currentUserName").addEventListener("click", (e) => { e.stopPropagation(); toggleWalletCard(); });
+{
+  const _unEl = document.getElementById("currentUserName");
+  _unEl.addEventListener("selectstart", (e) => e.preventDefault());
+  _unEl.addEventListener("contextmenu", (e) => e.preventDefault());
+}
 // ===== WALLET CARD FEATURE END =====
 
 // ============ أمان: تعقيم أي نص يدخله المستخدم قبل إدراجه بالصفحة (منع XSS) ============
