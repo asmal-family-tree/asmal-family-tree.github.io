@@ -316,10 +316,15 @@ async function shareCardViaWhatsapp(){
 async function buildWalletCardImage(node){
   const W = 380, H = 232, margin = 20;
   const fiveName = chainNames(node).slice(0, 5).join(" ");
-  const parts = fiveName.split(" ");
-  const line1 = parts.slice(0, 3).join(" ");
-  const line2 = parts.slice(3).join(" ");
   const qrDataUrl = await fetchQrDataUrl(node.data.id, 400); // دقة عالية؛ تُرسَم لاحقًا بحجمها الحقيقي بلا تصغير يُفسد الوضوح
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  function measureW(text, size, weight){ mctx.font = `${weight||400} ${size}px Tajawal, sans-serif`; return mctx.measureText(text).width; }
+  // الاسم الكامل بسطر واحد دومًا: نبدأ بخط كبير، ونُصغِّره تدريجيًا فقط إن لزم ليتسع بالعرض المتاح
+  const nameMaxWidth = W - margin*2;
+  let nameSize = 20;
+  while (nameSize > 12 && measureW(fiveName, nameSize, 700) > nameMaxWidth) nameSize -= 1;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -356,12 +361,10 @@ async function buildWalletCardImage(node){
     t.setAttribute("font-weight", weight||400); t.setAttribute("fill", color); t.setAttribute("text-anchor", anchor||"end");
     t.textContent = txt; svg.appendChild(t);
   }
-  addText(margin, 32, "🌳 شجرة بني أسمل الحكمي", 12.5, 700, "#fff", "start");
-  addText(W-margin, 36, "بطاقة نسب", 10.5, 400, "#cfe6da", "end");
+  addText(W/2, 35, "🌳 عضو شجرة بني أسمل الحكمي", 15.5, 700, "#fff", "middle");
 
   addText(W-margin, 104, "الاسم الكامل", 9, 700, "#a8925a", "end");
-  addText(W-margin, 132, line1, 20, 700, "#0B3D2E", "end");
-  if (line2) addText(W-margin, 154, line2, 14.5, 400, "#6b5c3a", "end");
+  addText(W-margin, 132, fiveName, nameSize, 700, "#0B3D2E", "end");
   const sepLine = document.createElementNS(svgNS, "line");
   sepLine.setAttribute("x1", margin); sepLine.setAttribute("x2", W-margin-108); sepLine.setAttribute("y1", 170); sepLine.setAttribute("y2", 170);
   sepLine.setAttribute("stroke", "#E6D9B8");
@@ -7837,8 +7840,8 @@ async function handleScannedQrData(text, myNode){
   if (shared.length){
     sharedHtml = `<div class="rel-title" style="margin-top:16px; font-size:15px;">🔗 أسماء مشتركة بينكما</div>` +
       shared.map(s => {
-        const partA = s.phraseA ? `<span class="rel-shared-badge">${escapeHtml(s.phraseA)}</span>` : "";
-        const partB = s.phraseB ? `<span class="rel-shared-badge">${escapeHtml(s.phraseB)}</span>` : "";
+        const partA = s.phraseA ? `<span class="rel-shared-word">${escapeHtml(s.phraseA)}</span>` : "";
+        const partB = s.phraseB ? `<span class="rel-shared-word">${escapeHtml(s.phraseB)}</span>` : "";
         const sep = (partA && partB) ? " و" : "";
         return `<div class="rel-shared-item"><b>${escapeHtml(s.name)}</b> هو ${partA}${sep}${partB}.</div>`;
       }).join("");
