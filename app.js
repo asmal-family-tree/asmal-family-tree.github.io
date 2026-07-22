@@ -19,7 +19,7 @@ function canShareThisCard(targetNode){
   const u = window.authUser;
   if (!u || u.isGuest || !u.scopePersonId || !targetNode) return false;
   if (can("share", "all")) return true;
-  const myNode = root.descendants().find(n => personId(n) === u.scopePersonId);
+  const myNode = root.descendants().find(n => n.data.id === u.scopePersonId);
   if (!myNode) return false;
   if (can("share", "myNode")){
     return _isDescendantOrSelf(targetNode, myNode) || _isDescendantOrSelf(myNode, targetNode);
@@ -33,7 +33,7 @@ function canShareThisCard(targetNode){
 // نافذة بسيطة تعرض رمز QR بحجم أكبر + زر تنزيله كصورة
 function openQrViewModal(node){
   if (!node) return;
-  const pid = personId(node);
+  const pid = node.data.id;
   const url = qrImageUrl(pid, 260);
   let modal = document.getElementById("qrViewModal");
   if (!modal){
@@ -224,7 +224,7 @@ async function buildWalletCardImage(node){
   const parts = fiveName.split(" ");
   const line1 = parts.slice(0, 3).join(" ");
   const line2 = parts.slice(3).join(" ");
-  const pid = personId(node);
+  const pid = node.data.id;
 
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
@@ -306,7 +306,7 @@ async function toggleWalletCard(){
   if (modal && modal.style.display === "flex"){ modal.style.display = "none"; return; }
   const u = window.authUser;
   if (!u || !u.scopePersonId) return;
-  const node = root.descendants().find(n => personId(n) === u.scopePersonId);
+  const node = root.descendants().find(n => n.data.id === u.scopePersonId);
   if (!node) return;
   const result = await buildWalletCardImage(node);
   if (!modal){
@@ -984,11 +984,16 @@ function applyLayoutStyle(layoutStyle){
       const searchbar = document.querySelector(".searchbar");
       if (searchbar && searchbarHome && searchbar.parentElement !== searchbarHome) searchbarHome.appendChild(searchbar);
       if (aiRowHost && aiMessagesHome && aiRowHost.parentElement !== aiMessagesHome){
-        aiMessagesHome.insertBefore(aiRowHost, aiMessagesHome.querySelector("#aiChatStatus"));
+        // insertBefore يتطلب أن يكون المرجع ابنًا مباشرًا للحاوية فعليًا — querySelector
+        // قد يُرجع حفيدًا أعمق فيفشل الإدراج، فنتحقق أولًا ونُلحق بالنهاية كحل آمن بديل.
+        const statusEl = aiMessagesHome.querySelector("#aiChatStatus");
+        if (statusEl && statusEl.parentElement === aiMessagesHome) aiMessagesHome.insertBefore(aiRowHost, statusEl);
+        else aiMessagesHome.appendChild(aiRowHost);
       }
       const msgs = document.getElementById("aiChatMessages");
       if (msgs && aiMessagesHome && msgs.parentElement !== aiMessagesHome){
-        aiMessagesHome.insertBefore(msgs, aiRowHost || aiMessagesHome.firstChild);
+        if (aiRowHost && aiRowHost.parentElement === aiMessagesHome) aiMessagesHome.insertBefore(msgs, aiRowHost);
+        else aiMessagesHome.appendChild(msgs);
       }
     }
   };
@@ -7556,7 +7561,7 @@ async function findSharedNames(nodeA, nodeB){
 async function openQrScanForRelation(){
   const u = window.authUser;
   if (!u || !u.scopePersonId){ customAlert("يجب أن يكون حسابك مرتبطًا بعقدة بالشجرة لاستخدام هذه الميزة."); return; }
-  const myNode = root.descendants().find(n => personId(n) === u.scopePersonId);
+  const myNode = root.descendants().find(n => n.data.id === u.scopePersonId);
   if (!myNode){ customAlert("تعذّر تحديد عقدتك بالشجرة."); return; }
 
   let modal = document.getElementById("qrScanModal");
@@ -7617,7 +7622,7 @@ async function handleScannedQrData(text, myNode){
     scannedId = u.searchParams.get("openInfo");
   }catch(e){ /* ليس رابطًا صالحًا */ }
   if (!scannedId){ customAlert("الرمز الممسوح ليس رمز شخص صالحًا بهذا الموقع."); return; }
-  const pb = root.descendants().find(n => personId(n) === scannedId);
+  const pb = root.descendants().find(n => n.data.id === scannedId);
   if (!pb){ customAlert("تعذّر إيجاد هذا الشخص بالشجرة الحالية."); return; }
 
   document.getElementById("relA").value = chainNames(myNode).join(" ");
