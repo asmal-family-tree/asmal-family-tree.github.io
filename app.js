@@ -7437,7 +7437,7 @@ function attachChainAutocomplete(inputEl, dropdownEl){
       item.className = "autocomplete-item";
       item.innerHTML = `${escapeHtml(m.data.name)}<span class="chain-sub">${chainNames(m).map(escapeHtml).join(" بن ")}</span>`;
       item.onclick = () => {
-        inputEl.value = chainNames(m).slice(0, 4).join(" ");
+        inputEl.value = chainNames(m).slice(0, 7).join(" ");
         dropdownEl.classList.remove("show");
         dropdownEl.innerHTML = "";
       };
@@ -7624,20 +7624,31 @@ document.getElementById("relCalc").onclick = async () => {
   const notes = pa !== pb ? await extraRelationNotes(pa, pb) : [];
   const notesHtml = notes.map(n => `<div class="rel-title" style="margin-top:8px">${escapeHtml(n)}</div>`).join("");
   const rep = buildReport(pa, pb);
+  let baseHtml;
   if (!rep){
-    resultBox.innerHTML = notes.length
+    baseHtml = notes.length
       ? notesHtml
       : `<div class="rel-note">لا توجد علاقة نسب مشتركة بين الاثنين في الشجرة الحالية.</div>`;
-    if (notes.length) highlightPath(pa, pb);
-    return;
+  } else if (rep.same){
+    baseHtml = `<div class="rel-title">نفس الشخص</div>`;
+  } else {
+    baseHtml = renderChainGrid(rep) + renderSimpleRelation(rep) + notesHtml;
   }
-  if (rep.same){
-    resultBox.innerHTML = `<div class="rel-title">نفس الشخص</div>`;
-    highlightPath(pa, pb);
-    return;
+  if (rep && !rep.same) highlightPath(pa, pb);
+  else if (notes.length) highlightPath(pa, pb);
+
+  const shared = pa !== pb ? await findSharedNames(pa, pb) : [];
+  let sharedHtml = "";
+  if (shared.length){
+    sharedHtml = `<div class="rel-title" style="margin-top:16px; font-size:15px;">🔗 أسماء مشتركة بينكما</div>` +
+      shared.map(s => {
+        const partA = s.phraseA ? `<span class="rel-shared-word">${escapeHtml(s.phraseA)}</span>` : "";
+        const partB = s.phraseB ? `<span class="rel-shared-word">${escapeHtml(s.phraseB)}</span>` : "";
+        const sep = (partA && partB) ? " و" : "";
+        return `<div class="rel-shared-item"><b>${escapeHtml(s.name)}</b> هو ${partA}${sep}${partB}.</div>`;
+      }).join("");
   }
-  resultBox.innerHTML = renderChainGrid(rep) + renderSimpleRelation(rep) + notesHtml;
-  highlightPath(pa, pb);
+  resultBox.innerHTML = baseHtml + sharedHtml;
 };
 
 // ===== QR SCAN RELATION FEATURE START (معزول — احذف بأمان لإلغاء الميزة) =====
@@ -7849,6 +7860,7 @@ async function handleScannedQrData(text, myNode){
 
   resultBox.innerHTML = baseHtml + sharedHtml;
   if (rep && !rep.same) highlightPath(myNode, pb);
+  else if (notes.length) highlightPath(myNode, pb);
 }
 
 // إظهار/إخفاء زر المسح حسب المفتاح العام (أدمن) + استبعاد الضيوف دومًا
