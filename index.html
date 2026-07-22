@@ -191,7 +191,7 @@
 </div>
 <!-- ===== SELF-REGISTER END ===== -->
 <div id="currentUserBadge">
-  <span id="currentUserName" style="cursor:pointer; text-decoration:underline dotted;" title="بطاقة النسب"></span>
+  <span id="currentUserName" style="cursor:pointer; text-decoration:underline dotted; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;" title="بطاقة النسب"></span>
   <button id="changePasswordBtn" title="تغيير كلمة المرور">🔑</button>
   <button id="logoutBtn">خروج</button>
 </div>
@@ -680,7 +680,7 @@
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
 <script src="auth.js?v=9"></script>
-<script src="app.js?v=71"></script>
+<script src="app.js?v=72"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {
