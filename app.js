@@ -2,7 +2,7 @@
 // ============ توليد رابط صورة QR لأي شخص (يحمل رابط ملفه الحقيقي داخله) ============
 // ===== QR FEATURE START (معزول — احذف بأمان لإلغاء كل ميزات QR) =====
 function qrImageUrl(personIdStr, size){
-  const targetUrl = location.origin + location.pathname.replace(/[^/]*$/, "") + "index.html?openInfo=" + encodeURIComponent(personIdStr);
+  const targetUrl = location.origin + location.pathname.replace(/[^/]*$/, "") + "index.html?viewInfo=" + encodeURIComponent(personIdStr);
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size || 200}x${size || 200}&data=${encodeURIComponent(targetUrl)}`;
 }
 // يحمّل صورة QR فعليًا كـ dataURL محلي (وليس رابطًا خارجيًا) — ضروري لأن المتصفحات
@@ -1563,6 +1563,15 @@ async function checkMigrationStatusAndLoad(){
     if (openInfoId && typeof root !== "undefined" && root){
       const d = root.descendants().find(n => n.data.id === openInfoId);
       if (d && typeof openInfoModal === "function") openInfoModal(d);
+      history.replaceState(null, "", location.pathname);
+    }
+    // ===== QR FEATURE: جسر منفصل تمامًا خاص برموز QR — يفتح بطاقة العرض
+    // الحقيقية (showInfo) بدل نموذج التعديل، لأن أي شخص قد يمسح الرمز
+    // (وليس الأدمن حصرًا كحالة openInfo أعلاه). لا تدمج مع openInfo بأي شكل.
+    const viewInfoId = new URLSearchParams(location.search).get("viewInfo");
+    if (viewInfoId && typeof root !== "undefined" && root){
+      const d2 = root.descendants().find(n => n.data.id === viewInfoId);
+      if (d2 && typeof showInfo === "function") showInfo(d2);
       history.replaceState(null, "", location.pathname);
     }
   }catch(e){
@@ -7672,6 +7681,10 @@ async function findSharedNames(nodeA, nodeB){
 
 // فتح الكاميرا وقراءة رمز QR، ثم حساب القرابة بينه وبين عقدة المستخدم الحالي
 async function openQrScanForRelation(){
+  if (typeof jsQR !== "function"){
+    customAlert("تعذّر تحميل مكتبة قراءة QR (jsQR) — تحقّق من اتصالك بالإنترنت وأعد المحاولة.");
+    return;
+  }
   const u = window.authUser;
   if (!u || !u.scopePersonId){ customAlert("يجب أن يكون حسابك مرتبطًا بعقدة بالشجرة لاستخدام هذه الميزة."); return; }
   const myNode = root.descendants().find(n => n.data.id === u.scopePersonId);
@@ -7768,7 +7781,7 @@ async function handleScannedQrData(text, myNode){
   let scannedId = null;
   try{
     const u = new URL(text);
-    scannedId = u.searchParams.get("openInfo");
+    scannedId = u.searchParams.get("viewInfo") || u.searchParams.get("openInfo");
   }catch(e){ /* ليس رابطًا صالحًا */ }
   if (!scannedId){ customAlert("الرمز الممسوح ليس رمز شخص صالحًا بهذا الموقع."); return; }
   const pb = root.descendants().find(n => n.data.id === scannedId);
