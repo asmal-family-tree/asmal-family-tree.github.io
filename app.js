@@ -7639,6 +7639,8 @@ document.getElementById("relCalc").onclick = async () => {
 
 // ===== QR SCAN RELATION FEATURE START (معزول — احذف بأمان لإلغاء الميزة) =====
 // يجمع قوائم أقارب شخص (أبناء/أعمام/أخوال/أصهار مبسَّطة) لاستخدامها باكتشاف الأسماء المشتركة
+// يجمع قوائم أقارب شخص (أبناء/أعمام/أخوال/أصهار) + خريطة تسمية كل صهر (لاستخدامها
+// حين لا توجد علاقة دم محسوبة، بدل الاكتفاء بكلمة "قريب" العامة).
 async function gatherRelativesForCompare(node){
   const sons = (node.children || []).filter(c => c.data.type !== "female");
   let uncles = [];
@@ -7652,17 +7654,39 @@ async function gatherRelativesForCompare(node){
     pUncles = (node.parent.parent.children || []).filter(c => c.data.type !== "female" && c !== node.parent);
   }
   const sadaha = [];
+  const sadahaLabels = new Map(); // node -> "والد الزوجة" | "أخ زوجة" | "النسيب"
   const insideWives = (data.wives || []).filter(w => w.type === "inside" && w.fatherId);
   for (const w of insideWives){
     const wifeFatherNode = root.descendants().find(n => personId(n) === w.fatherId);
     if (!wifeFatherNode) continue;
-    sadaha.push(wifeFatherNode);
-    (wifeFatherNode.children || []).filter(c => c.data.type !== "female").forEach(b => sadaha.push(b));
+    sadaha.push(wifeFatherNode); sadahaLabels.set(wifeFatherNode, "والد الزوجة");
+    (wifeFatherNode.children || []).filter(c => c.data.type !== "female").forEach(b => {
+      sadaha.push(b); sadahaLabels.set(b, "أخ زوجة");
+    });
   }
-  return { sons, uncles, pUncles, sadaha };
+  return { sons, uncles, pUncles, sadaha, sadahaLabels };
 }
 
-// يقارن قوائم أقارب شخصين، ويستخرج الأسماء المشتركة (بنفس العقدة الحقيقية) مع علاقة كل منهما بالطرفين
+// يحوّل كلمة القرابة المختصرة (أو تسمية الصهر) لصيغة عربية صحيحة:
+// mode="you" → صيغة المخاطَب ("عمك")، أو اسم — صيغة الغائب مضافة لاسمه ("عم فلان")
+function kinshipPhrase(word, mode){
+  const bloodMap = {
+    "أخ":        { you: "أخوك",        other: (n) => `أخو ${n}` },
+    "أخ لأم":    { you: "أخوك لأمك",   other: (n) => `أخو ${n} لأمه` },
+    "عم":        { you: "عمك",         other: (n) => `عم ${n}` },
+    "خال":       { you: "خالك",        other: (n) => `خال ${n}` },
+    "ابن عم":    { you: "ابن عمك",     other: (n) => `ابن عم ${n}` },
+    "ابن خال":   { you: "ابن خالك",    other: (n) => `ابن خال ${n}` },
+    "والد الزوجة": { you: "والد زوجتك", other: (n) => `والد زوجة ${n}` },
+    "أخ زوجة":   { you: "أخو زوجتك",   other: (n) => `أخو زوجة ${n}` }
+  };
+  const entry = bloodMap[word];
+  if (!entry) return "";
+  return mode === "you" ? entry.you : entry.other(mode);
+}
+
+// يقارن قوائم أقارب شخصين، ويستخرج الأسماء المشتركة (بنفس العقدة الحقيقية) مع
+// علاقة كل منهما بالطرفين — يفحص علاقات الدم أولًا، ثم الأصهار كاحتياط.
 async function findSharedNames(nodeA, nodeB){
   const [ra, rb] = await Promise.all([gatherRelativesForCompare(nodeA), gatherRelativesForCompare(nodeB)]);
   const allA = [...ra.sons, ...ra.uncles, ...ra.pUncles, ...ra.sadaha];
@@ -7670,11 +7694,16 @@ async function findSharedNames(nodeA, nodeB){
   const setB = new Set(allB);
   const shared = allA.filter(n => setB.has(n) && n !== nodeA && n !== nodeB);
   const uniqueShared = [...new Set(shared)];
+  const bName = chainNames(nodeB).slice(0, 2).join(" ");
   const out = [];
   for (const n of uniqueShared){
-    const relToA = await shortKinshipLabel(nodeA, n);
-    const relToB = await shortKinshipLabel(nodeB, n);
-    out.push({ name: chainNames(n).slice(0, 3).join(" بن "), relToA, relToB });
+    const bloodA = await shortKinshipLabel(nodeA, n);
+    const bloodB = await shortKinshipLabel(nodeB, n);
+    const wordA = bloodA || ra.sadahaLabels.get(n) || "";
+    const wordB = bloodB || rb.sadahaLabels.get(n) || "";
+    const phraseA = wordA ? kinshipPhrase(wordA, "you") : "";
+    const phraseB = wordB ? kinshipPhrase(wordB, bName) : "";
+    out.push({ name: chainNames(n).slice(0, 3).join(" بن "), phraseA, phraseB });
   }
   return out;
 }
@@ -7806,10 +7835,13 @@ async function handleScannedQrData(text, myNode){
   const shared = await findSharedNames(myNode, pb);
   let sharedHtml = "";
   if (shared.length){
-    sharedHtml = `<div class="rel-title" style="margin-top:14px;">🔗 أسماء مشتركة بينكما</div>` +
-      shared.map(s => `<div class="rel-note" style="margin-top:4px;">
-          <b>${escapeHtml(s.name)}</b> هو ${s.relToA ? escapeHtml(s.relToA) : "قريب"} لك${s.relToB ? "، و" + escapeHtml(s.relToB) + " للشخص الآخر" : ""}.
-        </div>`).join("");
+    sharedHtml = `<div class="rel-title" style="margin-top:16px; font-size:15px;">🔗 أسماء مشتركة بينكما</div>` +
+      shared.map(s => {
+        const partA = s.phraseA ? `<span class="rel-shared-badge">${escapeHtml(s.phraseA)}</span>` : "";
+        const partB = s.phraseB ? `<span class="rel-shared-badge">${escapeHtml(s.phraseB)}</span>` : "";
+        const sep = (partA && partB) ? " و" : "";
+        return `<div class="rel-shared-item"><b>${escapeHtml(s.name)}</b> هو ${partA}${sep}${partB}.</div>`;
+      }).join("");
   }
 
   resultBox.innerHTML = baseHtml + sharedHtml;
