@@ -288,6 +288,13 @@
   .ip-uncles-toggle .ip-uncles-opt.active{
     background:#0B3D2E; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2);
   }
+  .ip-share-row{ display:flex; align-items:center; justify-content:center; gap:14px; padding:14px 0 6px; margin-top:8px; border-top:1px dashed #E6D9B8; }
+  .ip-share-btn{
+    display:flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:50%;
+    border:1.5px solid #C9A227; background:#FFFDF6; color:#0B3D2E; font-size:20px; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.15);
+  }
+  .ip-share-btn--wa{ background:#25D366; color:#fff; border:none; }
   #nameTooltip{
     position:fixed; z-index:100; background:#241a10; color:#fff; padding:8px 12px; border-radius:10px;
     font-family:'Tajawal',sans-serif; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.3); display:none;

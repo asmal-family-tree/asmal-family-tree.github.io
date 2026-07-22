@@ -38,7 +38,8 @@ const PERM_PAGES = {
   trusted:        { label: "موثوق",            actions: ["view"] },
   trustedNews:    { label: "↳ الأخبار",        actions: ["edit"] },
   trustedAddSons: { label: "↳ إضافة الأبناء",  actions: ["edit"] },
-  trustedUsers:   { label: "↳ حظر مستخدمين",   actions: ["edit"] }
+  trustedUsers:   { label: "↳ حظر مستخدمين",   actions: ["edit"] },
+  share:          { label: "مشاركة بطاقة المعلومات", actions: ["myCard", "myNode", "all"] }
 };
 
 // التبويبات المقصورة على الأدمن — خارج المصفوفة تمامًا (لا تظهر بمحرر الصلاحيات ولا تُمنح لأحد):
@@ -60,7 +61,8 @@ const DEFAULT_PERMS = {
   trusted:        { view: false },
   trustedNews:    { edit: false },
   trustedAddSons: { edit: false },
-  trustedUsers:   { edit: false }
+  trustedUsers:   { edit: false },
+  share:          { myCard: true, myNode: false, all: false }
 };
 
 // ---------- صلاحيات الضيف (تُحدّد لاحقًا بعد اكتمال التبويبات) ----------
@@ -78,7 +80,8 @@ const GUEST_PERMS = {
   trusted:        { view: false },
   trustedNews:    { edit: false },
   trustedAddSons: { edit: false },
-  trustedUsers:   { edit: false }
+  trustedUsers:   { edit: false },
+  share:          { myCard: false, myNode: false, all: false }
 };
 
 // ---------- الحالة ----------

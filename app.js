@@ -1,4 +1,333 @@
 
+// ============ توليد رابط صورة QR لأي شخص (يحمل رابط ملفه الحقيقي داخله) ============
+// ===== QR FEATURE START (معزول — احذف بأمان لإلغاء كل ميزات QR) =====
+function qrImageUrl(personIdStr, size){
+  const targetUrl = location.origin + location.pathname.replace(/[^/]*$/, "") + "index.html?openInfo=" + encodeURIComponent(personIdStr);
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size || 200}x${size || 200}&data=${encodeURIComponent(targetUrl)}`;
+}
+
+// هل عقدة node تساوي ancestorCandidate أو أحد ذريته؟ (بالمشي صعودًا من node)
+function _isDescendantOrSelf(node, ancestorCandidate){
+  let t = node;
+  while (t){ if (t === ancestorCandidate) return true; t = t.parent; }
+  return false;
+}
+
+// هل يملك المستخدم الحالي صلاحية مشاركة بطاقة targetNode؟ (أدمن يتجاوز دومًا)
+function canShareThisCard(targetNode){
+  if (isAdminUser()) return true;
+  const u = window.authUser;
+  if (!u || u.isGuest || !u.scopePersonId || !targetNode) return false;
+  if (can("share", "all")) return true;
+  const myNode = root.descendants().find(n => personId(n) === u.scopePersonId);
+  if (!myNode) return false;
+  if (can("share", "myNode")){
+    return _isDescendantOrSelf(targetNode, myNode) || _isDescendantOrSelf(myNode, targetNode);
+  }
+  if (can("share", "myCard")){
+    return _isDescendantOrSelf(targetNode, myNode);
+  }
+  return false;
+}
+
+// نافذة بسيطة تعرض رمز QR بحجم أكبر + زر تنزيله كصورة
+function openQrViewModal(node){
+  if (!node) return;
+  const pid = personId(node);
+  const url = qrImageUrl(pid, 260);
+  let modal = document.getElementById("qrViewModal");
+  if (!modal){
+    modal = document.createElement("div");
+    modal.id = "qrViewModal";
+    modal.style.cssText = "position:fixed; inset:0; z-index:9600; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center;";
+    modal.innerHTML = `<div style="background:#FFFDF6; border-radius:18px; padding:22px; text-align:center; max-width:88vw;">
+        <img id="qrViewImg" style="width:220px; height:220px; border-radius:10px; border:1.5px solid #E6D9B8;">
+        <div style="margin-top:14px; display:flex; gap:10px; justify-content:center;">
+          <a id="qrDownloadLink" download="qr.png" style="background:linear-gradient(135deg,#8B4A1E,#5c2f10); color:#fff; text-decoration:none; padding:9px 18px; border-radius:12px; font-family:'Tajawal',sans-serif; font-size:13px; font-weight:700;">⬇️ تنزيل</a>
+          <button id="qrCloseBtn" style="background:#F1E9D8; border:none; padding:9px 18px; border-radius:12px; font-family:'Tajawal',sans-serif; font-size:13px; cursor:pointer;">إغلاق</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
+    modal.querySelector("#qrCloseBtn").onclick = () => { modal.style.display = "none"; };
+  }
+  modal.querySelector("#qrViewImg").src = url;
+  modal.querySelector("#qrDownloadLink").href = url;
+  modal.style.display = "flex";
+}
+
+// يبني صورة (canvas) شاملة لمشاركتها عبر واتساب — بنفس بيانات البطاقة المعروضة حاليًا
+async function buildShareableCardCanvas(){
+  const sd = window._shareCardData;
+  if (!sd) return null;
+  const { node, data, sonNames, uncleNames, pUncleNames, sadahaList, bio, photo } = sd;
+  const fiveName = chainNames(node).slice(0, 5).join(" ");
+  const fullChain = chainNames(node).join(" بن ");
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  function measureW(text, size, weight){ mctx.font = `${weight||400} ${size}px Tajawal, sans-serif`; return mctx.measureText(text).width; }
+  function wrapW(text, maxWidth, size){
+    const words = String(text).split(/\s+/); const out = []; let cur = "";
+    words.forEach(w => { const t = cur ? cur+" "+w : w; if (measureW(t,size) > maxWidth && cur){ out.push(cur); cur = w; } else cur = t; });
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  const W = 340, margin = 16;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  const style = document.createElementNS(svgNS, "style");
+  style.textContent = "text{font-family:'Tajawal',sans-serif;}";
+  svg.appendChild(style);
+
+  const HEADER_H = 96;
+  let y = HEADER_H + 22;
+  const els = [];
+  function addText(x, yy, txt, size, weight, color, anchor){
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", x); t.setAttribute("y", yy); t.setAttribute("font-size", size);
+    t.setAttribute("font-weight", weight||400); t.setAttribute("fill", color); t.setAttribute("text-anchor", anchor||"end");
+    t.textContent = txt; els.push(t);
+  }
+  function addRow(label, value){
+    addText(W-margin, y, value, 12, 500, "#222");
+    addText(margin, y, label, 12, 700, "#8B4A1E", "start");
+    y += 21;
+  }
+
+  addRow("الحالة", data.deathStatus === "dead" ? "متوفى" : "حي يرزق");
+  addRow("عدد الأبناء بالمشجرة", String((node.children||[]).filter(c=>c.data.type!=="female").length));
+  if (sonNames.length) addRow("أسماء الأبناء", sonNames.join("، "));
+  if (uncleNames.length) addRow("الأخوال", uncleNames.join("، "));
+  if (pUncleNames.length) addRow("الأعمام", pUncleNames.join("، "));
+
+  if (sadahaList && sadahaList.length){
+    y += 6;
+    addText(W/2, y, "الأصهار", 12, 700, "#0B3D2E", "middle");
+    y += 18;
+    for (const s of sadahaList){
+      const line = `${s.label}: ${s.name}${s.relSuffix || ""}`;
+      const wrapped = wrapW(line, W - margin*2, 11.5);
+      wrapped.forEach(l => { addText(W-margin, y, l, 11.5, 400, "#333"); y += 17; });
+      y += 3;
+    }
+  }
+
+  if (bio){
+    y += 8;
+    addText(W/2, y, "النبذة التاريخية", 12, 700, "#0B3D2E", "middle");
+    y += 18;
+    const bioLines = wrapW(bio.replace(/\n/g, " "), W - margin*2, 11).slice(0, 3);
+    bioLines.forEach(l => { addText(W-margin, y, l, 11, 400, "#444"); y += 17; });
+    y += 4;
+    addText(W/2, y, "↓ بقية التفاصيل بالموقع", 10, 700, "#8B4A1E", "middle");
+    y += 14;
+  }
+
+  const H = y + 34; // مساحة إضافية للتذييل
+  svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  const bg = document.createElementNS(svgNS, "rect");
+  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("rx", 16); bg.setAttribute("fill", "#FFFDF6");
+  bg.setAttribute("stroke", "#B8860B"); bg.setAttribute("stroke-width", 1.6);
+  svg.appendChild(bg);
+
+  // الهيدر
+  const uid = Math.random().toString(36).slice(2);
+  const clip = document.createElementNS(svgNS, "clipPath"); clip.setAttribute("id", "hc"+uid);
+  const clipPath = document.createElementNS(svgNS, "path");
+  clipPath.setAttribute("d", `M0,0 H${W} V${HEADER_H-14} Q${W},${HEADER_H} ${W-14},${HEADER_H} H14 Q0,${HEADER_H} 0,${HEADER_H-14} Z`);
+  clip.appendChild(clipPath); svg.appendChild(clip);
+  const hbg = document.createElementNS(svgNS, "rect");
+  hbg.setAttribute("width", W); hbg.setAttribute("height", HEADER_H); hbg.setAttribute("fill", "#0B3D2E"); hbg.setAttribute("clip-path", `url(#hc${uid})`);
+  svg.appendChild(hbg);
+
+  // دائرة الصورة (أو حرف بديل)
+  const avR = 26;
+  const avCx = W - margin - avR, avCy = 30;
+  if (photo){
+    const pclip = document.createElementNS(svgNS, "clipPath"); pclip.setAttribute("id", "pc"+uid);
+    const pcirc = document.createElementNS(svgNS, "circle");
+    pcirc.setAttribute("cx", avCx); pcirc.setAttribute("cy", avCy); pcirc.setAttribute("r", avR);
+    pclip.appendChild(pcirc); svg.appendChild(pclip);
+    const img = document.createElementNS(svgNS, "image");
+    img.setAttributeNS("http://www.w3.org/1999/xlink", "href", photo);
+    img.setAttribute("x", avCx-avR); img.setAttribute("y", avCy-avR); img.setAttribute("width", avR*2); img.setAttribute("height", avR*2);
+    img.setAttribute("clip-path", `url(#pc${uid})`); img.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    svg.appendChild(img);
+  } else {
+    const pcirc = document.createElementNS(svgNS, "circle");
+    pcirc.setAttribute("cx", avCx); pcirc.setAttribute("cy", avCy); pcirc.setAttribute("r", avR); pcirc.setAttribute("fill", "#12503C");
+    svg.appendChild(pcirc);
+  }
+  const ring = document.createElementNS(svgNS, "circle");
+  ring.setAttribute("cx", avCx); ring.setAttribute("cy", avCy); ring.setAttribute("r", avR);
+  ring.setAttribute("fill", "none"); ring.setAttribute("stroke", "#C9A227"); ring.setAttribute("stroke-width", 1.6);
+  svg.appendChild(ring);
+
+  addText(margin, 34, fiveName, 19, 700, "#fff", "start");
+  const chainWrapped = wrapW(fullChain, W - margin*2 - avR*2 - 14, 9.5);
+  let cy = 50;
+  chainWrapped.slice(0, 2).forEach(l => { addText(margin, cy, l, 9.5, 400, "#cfe6da", "start"); cy += 12; });
+
+  els.forEach(el => svg.appendChild(el));
+
+  const footer = document.createElementNS(svgNS, "text");
+  footer.setAttribute("x", W/2); footer.setAttribute("y", H-14); footer.setAttribute("text-anchor", "middle");
+  footer.setAttribute("font-size", "10"); footer.setAttribute("fill", "#8a7550"); footer.setAttribute("font-weight", "700");
+  footer.textContent = "🌳 شجرة بني أسمل الحكمي";
+  svg.appendChild(footer);
+
+  const svgText = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  return await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = W*scale; canvas.height = H*scale;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((b) => resolve({ blob: b, fiveName }), "image/png");
+    };
+    img.src = url;
+  });
+}
+
+async function shareCardViaWhatsapp(){
+  const result = await buildShareableCardCanvas();
+  if (!result || !result.blob){ customAlert("تعذّر تجهيز الصورة."); return; }
+  const file = new File([result.blob], `${result.fiveName}.png`, { type: "image/png" });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
+    try{
+      await navigator.share({ files: [file], title: result.fiveName });
+    }catch(e){ /* المستخدم ألغى المشاركة — لا حاجة لأي رسالة */ }
+  } else {
+    // لا تتوفر مشاركة الملفات بهذا المتصفح — نزّل الصورة بدلًا من ذلك
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(result.blob);
+    a.download = `${result.fiveName}.png`;
+    a.click();
+    customAlert("مشاركة الصور غير مدعومة بهذا المتصفح — تم تنزيل الصورة بدلًا من ذلك، يمكنك إرسالها يدويًا.");
+  }
+}
+// ===== QR FEATURE END =====
+
+// ===== WALLET CARD FEATURE START (معزول — احذف بأمان لإلغاء الميزة) =====
+async function buildWalletCardImage(node){
+  const W = 340, H = 210, margin = 14;
+  const fiveName = chainNames(node).slice(0, 5).join(" ");
+  const parts = fiveName.split(" ");
+  const line1 = parts.slice(0, 3).join(" ");
+  const line2 = parts.slice(3).join(" ");
+  const pid = personId(node);
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("xmlns", svgNS); svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const style = document.createElementNS(svgNS, "style"); style.textContent = "text{font-family:'Tajawal',sans-serif;}"; svg.appendChild(style);
+
+  const bg = document.createElementNS(svgNS, "rect");
+  bg.setAttribute("width", W); bg.setAttribute("height", H); bg.setAttribute("rx", 14); bg.setAttribute("fill", "#FFFDF6");
+  bg.setAttribute("stroke", "#C9A227"); bg.setAttribute("stroke-width", 2);
+  svg.appendChild(bg);
+
+  const uid = Math.random().toString(36).slice(2);
+  const HEADER_H = 46;
+  const defs = document.createElementNS(svgNS, "defs");
+  const grad = document.createElementNS(svgNS, "linearGradient"); grad.setAttribute("id", "wcgrad"+uid);
+  grad.setAttribute("x1","0"); grad.setAttribute("y1","0"); grad.setAttribute("x2","1"); grad.setAttribute("y2","1");
+  const s1 = document.createElementNS(svgNS, "stop"); s1.setAttribute("offset","0"); s1.setAttribute("stop-color","#0B3D2E");
+  const s2 = document.createElementNS(svgNS, "stop"); s2.setAttribute("offset","1"); s2.setAttribute("stop-color","#12503C");
+  grad.appendChild(s1); grad.appendChild(s2); defs.appendChild(grad); svg.appendChild(defs);
+  const clip = document.createElementNS(svgNS, "clipPath"); clip.setAttribute("id", "wc"+uid);
+  const clipPath = document.createElementNS(svgNS, "path");
+  clipPath.setAttribute("d", `M0,0 H${W} V${HEADER_H-12} Q${W},${HEADER_H} ${W-12},${HEADER_H} H12 Q0,${HEADER_H} 0,${HEADER_H-12} Z`);
+  clip.appendChild(clipPath); svg.appendChild(clip);
+  const hbg = document.createElementNS(svgNS, "rect");
+  hbg.setAttribute("width", W); hbg.setAttribute("height", HEADER_H); hbg.setAttribute("fill", "url(#wcgrad"+uid+")"); hbg.setAttribute("clip-path", `url(#wc${uid})`);
+  svg.appendChild(hbg);
+  const hline = document.createElementNS(svgNS, "rect");
+  hline.setAttribute("x",0); hline.setAttribute("y",HEADER_H-2); hline.setAttribute("width",W); hline.setAttribute("height",2); hline.setAttribute("fill","#C9A227");
+  svg.appendChild(hline);
+
+  function addText(x, yy, txt, size, weight, color, anchor){
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", x); t.setAttribute("y", yy); t.setAttribute("font-size", size);
+    t.setAttribute("font-weight", weight||400); t.setAttribute("fill", color); t.setAttribute("text-anchor", anchor||"end");
+    t.textContent = txt; svg.appendChild(t);
+  }
+  addText(margin, 20, "🌳 شجرة بني أسمل الحكمي", 11, 700, "#fff", "start");
+  addText(W-margin, 20, "بطاقة نسب", 9.5, 400, "#cfe6da", "end");
+
+  addText(W-margin, 96, "الاسم الكامل", 8.5, 700, "#a8925a", "end");
+  addText(W-margin, 122, line1, 18, 700, "#0B3D2E", "end");
+  if (line2) addText(W-margin, 142, line2, 13, 400, "#6b5c3a", "end");
+
+  const qrImg = document.createElementNS(svgNS, "image");
+  const qrSize = 82;
+  qrImg.setAttributeNS("http://www.w3.org/1999/xlink", "href", qrImageUrl(pid, 150));
+  qrImg.setAttribute("x", margin); qrImg.setAttribute("y", 76); qrImg.setAttribute("width", qrSize); qrImg.setAttribute("height", qrSize);
+  svg.appendChild(qrImg);
+  const qrBorder = document.createElementNS(svgNS, "rect");
+  qrBorder.setAttribute("x", margin); qrBorder.setAttribute("y", 76); qrBorder.setAttribute("width", qrSize); qrBorder.setAttribute("height", qrSize);
+  qrBorder.setAttribute("fill","none"); qrBorder.setAttribute("stroke","#E6D9B8"); qrBorder.setAttribute("rx",6);
+  svg.appendChild(qrBorder);
+
+  const footerLine = document.createElementNS(svgNS, "rect");
+  footerLine.setAttribute("x",0); footerLine.setAttribute("y",H-16); footerLine.setAttribute("width",W); footerLine.setAttribute("height",16); footerLine.setAttribute("fill","#F5EFDD");
+  svg.appendChild(footerLine);
+
+  const svgText = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  return await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = 3;
+      const canvas = document.createElement("canvas");
+      canvas.width = W*scale; canvas.height = H*scale;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      resolve({ dataUrl: canvas.toDataURL("image/png"), fiveName });
+    };
+    img.src = url;
+  });
+}
+
+async function toggleWalletCard(){
+  let modal = document.getElementById("walletCardModal");
+  if (modal && modal.style.display === "flex"){ modal.style.display = "none"; return; }
+  const u = window.authUser;
+  if (!u || !u.scopePersonId) return;
+  const node = root.descendants().find(n => personId(n) === u.scopePersonId);
+  if (!node) return;
+  const result = await buildWalletCardImage(node);
+  if (!modal){
+    modal = document.createElement("div");
+    modal.id = "walletCardModal";
+    modal.style.cssText = "position:fixed; inset:0; z-index:9600; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px;";
+    modal.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+        <img id="walletCardImg" style="max-width:340px; width:100%; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.3);">
+        <a id="walletDownloadLink" download="بطاقة_النسب.png" style="background:linear-gradient(135deg,#8B4A1E,#5c2f10); color:#fff; text-decoration:none; padding:10px 22px; border-radius:12px; font-family:'Tajawal',sans-serif; font-size:13.5px; font-weight:700;">⬇️ تحميل البطاقة</a>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
+  }
+  modal.querySelector("#walletCardImg").src = result.dataUrl;
+  modal.querySelector("#walletDownloadLink").href = result.dataUrl;
+  modal.querySelector("#walletDownloadLink").download = result.fiveName + ".png";
+  modal.style.display = "flex";
+}
+document.getElementById("currentUserName").addEventListener("click", (e) => { e.stopPropagation(); toggleWalletCard(); });
+// ===== WALLET CARD FEATURE END =====
+
 // ============ أمان: تعقيم أي نص يدخله المستخدم قبل إدراجه بالصفحة (منع XSS) ============
 function escapeHtml(str){
   if (str === null || str === undefined) return "";
@@ -306,6 +635,7 @@ async function afterSignIn(fbUser){
   loadAndApplySiteTheme();
   applyRolePermissions();
   refreshAdminNotificationBadges();
+  if (typeof refreshQrScanButtonVisibility === "function") refreshQrScanButtonVisibility();
   setTimeout(checkAndMaybeStartTour, 1200); // مهلة بسيطة لضمان استقرار الصفحة (الشجرة/الثيم) قبل الجولة
 }
 
@@ -1875,7 +2205,8 @@ let editingScope = null;   // { id, name, ancestorIds } — العقدة الم�
 
 const ACTION_LABELS = {
   view: "مشاهدة", edit: "تعديل", delete: "حذف",
-  exportOne: "تصدير فرد", exportAll: "تصدير الكل"
+  exportOne: "تصدير فرد", exportAll: "تصدير الكل",
+  myCard: "بطاقة معلوماتي", myNode: "بطاقة عقدتي", all: "جميع البطاقات"
 };
 
 function openPermsEditor(uid, userData){
@@ -1904,6 +2235,66 @@ function openPermsEditor(uid, userData){
   grid.appendChild(head);
 
   for (const [page, cfg] of Object.entries(PERM_PAGES)){
+    // ===== QR/SHARE FEATURE: صفحة "share" ليس لها view/edit/delete، فقط 3 مستويات
+    // هرمية (myCard/myNode/all) — تُعرَض كصفوف extras فقط، بلا صف الأعمدة الفارغ =====
+    if (page === "share"){
+      const shareTitle = document.createElement("div");
+      shareTitle.className = "perms-row";
+      const shareLabel = document.createElement("span");
+      shareLabel.className = "perms-row-label";
+      shareLabel.textContent = cfg.label;
+      shareTitle.appendChild(shareLabel);
+      shareTitle.appendChild(document.createElement("span"));
+      shareTitle.appendChild(document.createElement("span"));
+      shareTitle.appendChild(document.createElement("span"));
+      grid.appendChild(shareTitle);
+
+      const shareOrder = ["myCard", "myNode", "all"];
+      const shareCheckboxes = {};
+      shareOrder.forEach(action => {
+        const erow = document.createElement("div");
+        erow.className = "perms-row";
+        erow.style.paddingRight = "18px";
+        const elabel = document.createElement("span");
+        elabel.className = "perms-row-label";
+        elabel.style.color = "#6a5c42"; elabel.style.fontSize = "14.5px"; elabel.style.fontWeight = "700";
+        elabel.textContent = "↳ " + ACTION_LABELS[action];
+        erow.appendChild(elabel);
+        const cell = document.createElement("span");
+        cell.className = "perms-cell";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!(editingPerms.share && editingPerms.share[action]);
+        shareCheckboxes[action] = cb;
+        cb.onchange = () => {
+          editingPerms.share = editingPerms.share || {};
+          editingPerms.share[action] = cb.checked;
+          // هرمية تصاعدية: تفعيل "all" يفعّل "myNode" و"myCard"؛ تفعيل "myNode" يفعّل "myCard"
+          if (cb.checked){
+            const idx = shareOrder.indexOf(action);
+            for (let i = 0; i < idx; i++){
+              editingPerms.share[shareOrder[i]] = true;
+              shareCheckboxes[shareOrder[i]].checked = true;
+            }
+          } else {
+            // إلغاء مستوى يُلغي كل ما هو أعلى منه أيضًا (لا معنى لـ"all" بلا "myNode" مثلًا)
+            const idx = shareOrder.indexOf(action);
+            for (let i = idx + 1; i < shareOrder.length; i++){
+              editingPerms.share[shareOrder[i]] = false;
+              shareCheckboxes[shareOrder[i]].checked = false;
+            }
+          }
+        };
+        cell.appendChild(cb);
+        erow.appendChild(cell);
+        erow.appendChild(document.createElement("span"));
+        erow.appendChild(document.createElement("span"));
+        grid.appendChild(erow);
+      });
+      continue; // تخطَّ منطق الأعمدة الثلاثة العادي بالكامل لهذه الصفحة
+    }
+    // ===== END QR/SHARE FEATURE special-case =====
+
     const row = document.createElement("div");
     row.className = "perms-row";
     const isSub = cfg.label.trim().startsWith("↳");
@@ -2055,6 +2446,32 @@ async function refreshUsersAndPendingLists(){
   const _canManageUsers = isAdminUser() || can("trustedUsers", "edit");
   if (!_canManageUsers) return;
   if (isAdminUser()) refreshAdminNotificationBadges();
+
+  // ===== QR SCAN RELATION FEATURE: مفتاح التفعيل العام (أدمن فقط) =====
+  const qrToggleRow = document.getElementById("qrScanToggleRow");
+  if (qrToggleRow){
+    if (isAdminUser()){
+      qrToggleRow.style.display = "flex";
+      const qrCheckbox = document.getElementById("qrScanToggleCheckbox");
+      try{
+        const snap = await db.collection("meta").doc("siteSettings").get();
+        qrCheckbox.checked = !!(snap.exists && snap.data().qrScanEnabled === true);
+      }catch(e){ console.warn("تعذّر تحميل حالة مفتاح مسح QR:", e); }
+      qrCheckbox.onchange = async () => {
+        try{
+          await db.collection("meta").doc("siteSettings").set({ qrScanEnabled: qrCheckbox.checked }, { merge: true });
+          if (typeof refreshQrScanButtonVisibility === "function") refreshQrScanButtonVisibility();
+        }catch(e){
+          customAlert("تعذّر حفظ الإعداد: " + (e.message || e.code));
+          qrCheckbox.checked = !qrCheckbox.checked; // تراجع بصري عند فشل الحفظ
+        }
+      };
+    } else {
+      qrToggleRow.style.display = "none";
+    }
+  }
+  // ===== END QR SCAN RELATION FEATURE TOGGLE =====
+
   const usersListEl = document.getElementById("usersList");
   const pendingListEl = document.getElementById("pendingList");
   usersListEl.innerHTML = "جارِ التحميل…";
@@ -5592,17 +6009,21 @@ function showInfo(d){
     }
 
     let unclesHtml = "";
+    let uncleNamesForShare = [];
     if (data.mother && data.mother.fatherId){
       const mgf = root.descendants().find(n => personId(n) === data.mother.fatherId);
       if (mgf){
         const uncles = (mgf.children || []).filter(c => c.data.type !== "female");
+        uncleNamesForShare = uncles.map(c => c.data.name);
         if (uncles.length) unclesHtml = `<div class="ip-row"><span class="ip-label">الأخوال</span><span class="ip-value">${uncles.map(c => nameChip(c.data.name, c)).join("، ")}</span></div>`;
       }
     }
     // الأعمام: إخوة الأب — بنفس منطق الأخوال تمامًا لكن بجهة الوالد
     let paternalUnclesHtml = "";
+    let pUncleNamesForShare = [];
     if (d.parent && d.parent.parent){
       const pUncles = (d.parent.parent.children || []).filter(c => c.data.type !== "female" && c !== d.parent);
+      pUncleNamesForShare = pUncles.map(c => c.data.name);
       if (pUncles.length) paternalUnclesHtml = `<div class="ip-row"><span class="ip-label">الأعمام</span><span class="ip-value">${pUncles.map(c => nameChip(c.data.name, c)).join("، ")}</span></div>`;
     }
     // زر تبديل بين "الأخوال" و"الأعمام" — يظهر فقط إن وُجد كلاهما فعليًا
@@ -5752,12 +6173,30 @@ function showInfo(d){
       }
     }
     if (data.bio) html += `<div class="ip-bio">${escapeHtml(data.bio).replace(/\n/g, "<br>")}</div>`;
+
+    // ===== QR FEATURE START (معزول — احذف بأمان لإلغاء كل ميزات QR) =====
+    window._shareCardData = {
+      node: d, data, sonNames: sonNamesForCard, uncleNames: uncleNamesForShare,
+      pUncleNames: pUncleNamesForShare, sadahaList, bio: data.bio || "", photo: data.photo || ""
+    };
+    if (canShareThisCard(d)){
+      html += `<div class="ip-share-row">
+          <button type="button" class="ip-share-btn" id="ip-qrBtn" title="QR">▦</button>
+          <button type="button" class="ip-share-btn ip-share-btn--wa" id="ip-waBtn" title="مشاركة">📱</button>
+        </div>`;
+    }
+    // ===== QR FEATURE END =====
+
     card.innerHTML = html;
   });
 }
 
 const nameTooltip = document.getElementById("nameTooltip");
 document.getElementById("ip-card").addEventListener("click", (e) => {
+  const qrBtn = e.target.closest("#ip-qrBtn");
+  if (qrBtn){ e.stopPropagation(); openQrViewModal(window._shareCardData && window._shareCardData.node); return; }
+  const waBtn = e.target.closest("#ip-waBtn");
+  if (waBtn){ e.stopPropagation(); shareCardViaWhatsapp(); return; }
   const husbandLink = e.target.closest(".husband-link");
   if (husbandLink){
     e.stopPropagation();
@@ -7070,6 +7509,159 @@ document.getElementById("relCalc").onclick = async () => {
   resultBox.innerHTML = renderChainGrid(rep) + renderSimpleRelation(rep) + notesHtml;
   highlightPath(pa, pb);
 };
+
+// ===== QR SCAN RELATION FEATURE START (معزول — احذف بأمان لإلغاء الميزة) =====
+// يجمع قوائم أقارب شخص (أبناء/أعمام/أخوال/أصهار مبسَّطة) لاستخدامها باكتشاف الأسماء المشتركة
+async function gatherRelativesForCompare(node){
+  const sons = (node.children || []).filter(c => c.data.type !== "female");
+  let uncles = [];
+  const data = await loadPersonData(personId(node));
+  if (data.mother && data.mother.fatherId){
+    const mgf = root.descendants().find(n => personId(n) === data.mother.fatherId);
+    if (mgf) uncles = (mgf.children || []).filter(c => c.data.type !== "female");
+  }
+  let pUncles = [];
+  if (node.parent && node.parent.parent){
+    pUncles = (node.parent.parent.children || []).filter(c => c.data.type !== "female" && c !== node.parent);
+  }
+  const sadaha = [];
+  const insideWives = (data.wives || []).filter(w => w.type === "inside" && w.fatherId);
+  for (const w of insideWives){
+    const wifeFatherNode = root.descendants().find(n => personId(n) === w.fatherId);
+    if (!wifeFatherNode) continue;
+    sadaha.push(wifeFatherNode);
+    (wifeFatherNode.children || []).filter(c => c.data.type !== "female").forEach(b => sadaha.push(b));
+  }
+  return { sons, uncles, pUncles, sadaha };
+}
+
+// يقارن قوائم أقارب شخصين، ويستخرج الأسماء المشتركة (بنفس العقدة الحقيقية) مع علاقة كل منهما بالطرفين
+async function findSharedNames(nodeA, nodeB){
+  const [ra, rb] = await Promise.all([gatherRelativesForCompare(nodeA), gatherRelativesForCompare(nodeB)]);
+  const allA = [...ra.sons, ...ra.uncles, ...ra.pUncles, ...ra.sadaha];
+  const allB = [...rb.sons, ...rb.uncles, ...rb.pUncles, ...rb.sadaha];
+  const setB = new Set(allB);
+  const shared = allA.filter(n => setB.has(n) && n !== nodeA && n !== nodeB);
+  const uniqueShared = [...new Set(shared)];
+  const out = [];
+  for (const n of uniqueShared){
+    const relToA = await shortKinshipLabel(nodeA, n);
+    const relToB = await shortKinshipLabel(nodeB, n);
+    out.push({ name: chainNames(n).slice(0, 3).join(" بن "), relToA, relToB });
+  }
+  return out;
+}
+
+// فتح الكاميرا وقراءة رمز QR، ثم حساب القرابة بينه وبين عقدة المستخدم الحالي
+async function openQrScanForRelation(){
+  const u = window.authUser;
+  if (!u || !u.scopePersonId){ customAlert("يجب أن يكون حسابك مرتبطًا بعقدة بالشجرة لاستخدام هذه الميزة."); return; }
+  const myNode = root.descendants().find(n => personId(n) === u.scopePersonId);
+  if (!myNode){ customAlert("تعذّر تحديد عقدتك بالشجرة."); return; }
+
+  let modal = document.getElementById("qrScanModal");
+  if (!modal){
+    modal = document.createElement("div");
+    modal.id = "qrScanModal";
+    modal.style.cssText = "position:fixed; inset:0; z-index:9700; background:rgba(0,0,0,.85); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;";
+    modal.innerHTML = `<video id="qrScanVideo" style="width:min(320px,88vw); border-radius:14px;" playsinline muted></video>
+        <div style="color:#fff; font-family:'Tajawal',sans-serif; font-size:13px;">وجّه الكاميرا لرمز QR الخاص بالشخص</div>
+        <button id="qrScanCloseBtn" style="background:#8B1E1E; color:#fff; border:none; padding:9px 22px; border-radius:12px; font-family:'Tajawal',sans-serif; font-size:13px; cursor:pointer;">إلغاء</button>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = "flex";
+  const video = document.getElementById("qrScanVideo");
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  let stream = null, stopped = false;
+
+  function stopScan(){
+    stopped = true;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    modal.style.display = "none";
+  }
+  document.getElementById("qrScanCloseBtn").onclick = stopScan;
+
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  }catch(e){
+    customAlert("تعذّر تشغيل الكاميرا: " + (e.message || e.name));
+    modal.style.display = "none";
+    return;
+  }
+  video.srcObject = stream;
+  await video.play();
+
+  function tick(){
+    if (stopped) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA){
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = typeof jsQR === "function" ? jsQR(imageData.data, imageData.width, imageData.height) : null;
+      if (code && code.data){
+        stopScan();
+        handleScannedQrData(code.data, myNode);
+        return;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+async function handleScannedQrData(text, myNode){
+  let scannedId = null;
+  try{
+    const u = new URL(text);
+    scannedId = u.searchParams.get("openInfo");
+  }catch(e){ /* ليس رابطًا صالحًا */ }
+  if (!scannedId){ customAlert("الرمز الممسوح ليس رمز شخص صالحًا بهذا الموقع."); return; }
+  const pb = root.descendants().find(n => personId(n) === scannedId);
+  if (!pb){ customAlert("تعذّر إيجاد هذا الشخص بالشجرة الحالية."); return; }
+
+  document.getElementById("relA").value = chainNames(myNode).join(" ");
+  document.getElementById("relB").value = chainNames(pb).join(" ");
+  const resultBox = document.getElementById("relResult");
+
+  const notes = myNode !== pb ? await extraRelationNotes(myNode, pb) : [];
+  const notesHtml = notes.map(n => `<div class="rel-title" style="margin-top:8px">${escapeHtml(n)}</div>`).join("");
+  const rep = buildReport(myNode, pb);
+  let baseHtml;
+  if (!rep){
+    baseHtml = notes.length ? notesHtml : `<div class="rel-note">لا توجد علاقة نسب مشتركة بينكما بالشجرة الحالية.</div>`;
+  } else if (rep.same){
+    baseHtml = `<div class="rel-title">نفس الشخص</div>`;
+  } else {
+    baseHtml = renderChainGrid(rep) + renderSimpleRelation(rep) + notesHtml;
+  }
+
+  const shared = await findSharedNames(myNode, pb);
+  let sharedHtml = "";
+  if (shared.length){
+    sharedHtml = `<div class="rel-title" style="margin-top:14px;">🔗 أسماء مشتركة بينكما</div>` +
+      shared.map(s => `<div class="rel-note" style="margin-top:4px;">
+          <b>${escapeHtml(s.name)}</b> هو ${s.relToA ? escapeHtml(s.relToA) : "قريب"} لك${s.relToB ? "، و" + escapeHtml(s.relToB) + " للشخص الآخر" : ""}.
+        </div>`).join("");
+  }
+
+  resultBox.innerHTML = baseHtml + sharedHtml;
+  if (rep && !rep.same) highlightPath(myNode, pb);
+}
+
+// إظهار/إخفاء زر المسح حسب المفتاح العام (أدمن) + استبعاد الضيوف دومًا
+async function refreshQrScanButtonVisibility(){
+  const btn = document.getElementById("relQrScanBtn");
+  if (!btn) return;
+  if (!window.authUser || window.authUser.isGuest){ btn.style.display = "none"; return; }
+  try{
+    const snap = await db.collection("meta").doc("siteSettings").get();
+    const enabled = snap.exists && snap.data().qrScanEnabled === true;
+    btn.style.display = enabled ? "block" : "none";
+  }catch(e){ btn.style.display = "none"; }
+}
+document.getElementById("relQrScanBtn").onclick = openQrScanForRelation;
+// ===== QR SCAN RELATION FEATURE END =====
 
 // ============ نافذة "+" (شجرتي الخاصة / إضافة أبناء / إضافة معلومات) ============
 function personId(d){ return chainNames(d).join("/"); }

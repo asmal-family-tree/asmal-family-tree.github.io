@@ -19,12 +19,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
-<link rel="stylesheet" href="styles.css?v=86">
+<link rel="stylesheet" href="styles.css?v=87">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
 <link rel="stylesheet" href="style5.css?v=18">
 </head>
@@ -190,7 +191,7 @@
 </div>
 <!-- ===== SELF-REGISTER END ===== -->
 <div id="currentUserBadge">
-  <span id="currentUserName"></span>
+  <span id="currentUserName" style="cursor:pointer; text-decoration:underline dotted;" title="بطاقة النسب"></span>
   <button id="changePasswordBtn" title="تغيير كلمة المرور">🔑</button>
   <button id="logoutBtn">خروج</button>
 </div>
@@ -278,6 +279,7 @@
     <div id="relBDropdown" class="autocomplete-dropdown dropdown-up"></div>
   </div>
   <button id="relCalc">احسب العلاقة</button>
+  <button id="relQrScanBtn" type="button" style="display:none; background:#0B3D2E; color:#fff; margin-top:8px;">📷 مسح QR لحساب القرابة</button>
   <div id="relResult"></div>
 </div>
 
@@ -370,6 +372,13 @@
     <button id="newUserAddBtn" class="f-btn-sm" style="width:100%">➕ إضافة مستخدم</button>
     <div id="newUserStatus" style="font-size:12px; color:#666; text-align:center; margin-top:6px;"></div>
   </fieldset>
+
+  <div id="qrScanToggleRow" style="display:none; align-items:center; justify-content:space-between; background:#F1E9D8; border-radius:12px; padding:10px 12px; margin-top:10px;">
+    <span style="font-size:13px; color:#5a4a2a;">📷 إظهار زر مسح QR لحساب القرابة (لكل المستخدمين المسجَّلين)</span>
+    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+      <input type="checkbox" id="qrScanToggleCheckbox">
+    </label>
+  </div>
 
   <label class="f-label" style="margin-top:14px; display:block;">👥 المستخدمون الحاليون</label>
   <div id="usersList" style="max-height:260px; overflow-y:auto;"></div>
@@ -670,8 +679,8 @@
 </div>
 <!-- ===== APP SCALE WRAPPER END ===== -->
 
-<script src="auth.js?v=8"></script>
-<script src="app.js?v=68"></script>
+<script src="auth.js?v=9"></script>
+<script src="app.js?v=69"></script>
 <!-- ===== PWA START (المرحلة 8) — تسجيل Service Worker ===== -->
 <script>
 if ("serviceWorker" in navigator) {
