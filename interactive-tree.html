@@ -60,6 +60,7 @@
   circle.dot.kinship-picked{ stroke:#c0392b !important; stroke-width:4px !important; filter:drop-shadow(0 0 4px rgba(192,57,43,.7)); }
   /* ===== جدول سلاسل النسب الكامل (منقول من الموقع الرئيسي) ===== */
   .chain-grid{ direction:rtl; overflow-x:auto; margin-top:10px; padding-bottom:6px; }
+  .chain-divider{ height:2px; background:#d8c9a3; margin:8px 0 12px; border-radius:2px; }
   .chain-row{ display:flex; }
   .chain-cell{ flex:0 0 auto; min-width:52px; text-align:center; font-size:11.5px; padding:6px 3px; color:#3a2a1a; white-space:nowrap; }
   .chain-cell.dot{ color:#d8d0c0; }
@@ -2653,7 +2654,7 @@ async function buildReportByIds(pidA, pidB){
     lines.push({ name: nameMap.get(pid2), word: rel.word, literal: rel.literal });
   }
   const shallowPersonId = deepIsB ? pidA : pidB;
-  return { lca: nameMap.get(lcaId), lcaId, diff, lcaIndex: deepG, deepChain, shallowChain, refName: nameMap.get(shallowPersonId), lines };
+  return { lca: nameMap.get(lcaId), lcaId, diff, lcaIndex: deepG, deepChain, shallowChain, refName: nameMap.get(shallowPersonId), lines, aIsDeep: !deepIsB };
 }
 
 function lineSentence(ref, word, literal, names, isFirst){
@@ -2668,16 +2669,18 @@ function lineSentence(ref, word, literal, names, isFirst){
 
 function renderChainGrid(rep){
   const dots = Array.from({ length: rep.diff }, () => "·");
-  const rowTop = rep.deepChain;
-  const rowBottom = [...dots, ...rep.shallowChain];
+  // الشخص الأول (A) يظهر دومًا بالسطر العلوي — بغض النظر عن أيّهما أعمق بالشجرة
+  const aRow = rep.aIsDeep ? rep.deepChain : [...dots, ...rep.shallowChain];
+  const bRow = rep.aIsDeep ? [...dots, ...rep.shallowChain] : rep.deepChain;
+  const aLcaIndex = rep.aIsDeep ? rep.lcaIndex : rep.lcaIndex; // نفس الفهرس بكلتا الحالتين لأن الجد المشترك بنفس العمود دومًا
   const cell = (txt, i) => {
     const isDot = txt === "·";
     const isLca = i === rep.lcaIndex && !isDot;
     return `<div class="chain-cell ${isDot ? "dot" : ""} ${isLca ? "lca" : ""}">${txt}</div>`;
   };
-  const topHtml = rowTop.map((t, i) => cell(t, i)).join("");
-  const bottomHtml = rowBottom.map((t, i) => cell(t, i)).join("");
-  return `<div class="chain-grid"><div class="chain-row top">${topHtml}</div><div class="chain-row bottom">${bottomHtml}</div></div>`;
+  const topHtml = aRow.map((t, i) => cell(t, i)).join("");
+  const bottomHtml = bRow.map((t, i) => cell(t, i)).join("");
+  return `<div class="chain-grid"><div class="chain-row top">${topHtml}</div><div class="chain-row bottom">${bottomHtml}</div></div><div class="chain-divider"></div>`;
 }
 
 function renderSimpleRelation(rep){
