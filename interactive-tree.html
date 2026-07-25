@@ -37,6 +37,7 @@
     box-shadow:0 3px 10px rgba(0,0,0,.3); font-size:13px; font-weight:bold;
   }
   #kinshipBanner.show{ display:flex; }
+  .kinship-lines{ display:flex; flex-direction:column; gap:3px; }
   #kinshipCancelBtn{
     background:rgba(255,255,255,.2); color:#fff; border:none; border-radius:10px;
     padding:6px 12px; font-size:12px; cursor:pointer;
@@ -57,6 +58,22 @@
   #kinshipResultContent .kr-row{ font-size:13px; color:#3a2a1a; margin:4px 0; line-height:1.8; }
   #kinshipResultContent .kr-rel{ background:#8a6d1f; color:#fff; padding:2px 10px; border-radius:10px; font-weight:bold; }
   circle.dot.kinship-picked{ stroke:#c0392b !important; stroke-width:4px !important; filter:drop-shadow(0 0 4px rgba(192,57,43,.7)); }
+  /* ===== جدول سلاسل النسب الكامل (منقول من الموقع الرئيسي) ===== */
+  .chain-grid{ direction:rtl; overflow-x:auto; margin-top:10px; padding-bottom:6px; }
+  .chain-row{ display:flex; }
+  .chain-cell{ flex:0 0 auto; min-width:52px; text-align:center; font-size:11.5px; padding:6px 3px; color:#3a2a1a; white-space:nowrap; }
+  .chain-cell.dot{ color:#d8d0c0; }
+  /* الاسم المشترك: دائرة حقيقية (وليس شارة مستطيلة) لتمييزه بوضوح كما طُلب */
+  .chain-cell.lca{
+    font-weight:800; color:#fff; background:#8a6d1f;
+    border-radius:50%; width:44px; height:44px; min-width:44px;
+    display:flex; align-items:center; justify-content:center; margin:0 auto;
+    box-shadow:0 0 0 3px rgba(138,109,31,.25);
+  }
+  .rel-steps{ margin-top:14px; font-size:13.5px; line-height:2.1; color:#3a2a1a; }
+  .rel-steps .rel-title{ font-weight:700; color:#8a6d1f; font-size:15px; background:#f3ecd8; padding:8px 12px; border-radius:10px; display:inline-block; }
+  .rel-steps .final{ font-weight:700; color:#8a6d1f; margin-top:6px; background:#f3ecd8; padding:8px 12px; border-radius:10px; }
+  .kr-note{ font-size:12.5px; color:#5a4a2a; margin-top:6px; line-height:1.9; background:#f7f2e2; padding:8px 10px; border-radius:8px; }
   /* ===== KINSHIP MODE FEATURE END ===== */
 
   /* ---- اللوحة المنسدلة (أجمل: بطاقة عائمة بحركة سلسة) ---- */
@@ -184,7 +201,10 @@
 <!-- ===== KINSHIP MODE FEATURE START ===== -->
 <button id="kinshipModeBtn" title="وضع حساب القرابة">🔗</button>
 <div id="kinshipBanner">
-  <span id="kinshipBannerText">اختر أول شخص</span>
+  <div class="kinship-lines">
+    <span id="kinshipLine1">اختر الشخص الأول</span>
+    <span id="kinshipLine2" style="display:none;">اختر الشخص الثاني</span>
+  </div>
   <button id="kinshipCancelBtn">✕ إلغاء</button>
 </div>
 <div id="kinshipResultBox">
@@ -2589,6 +2609,181 @@ document.getElementById('mainsvg').addEventListener('click', (e) => {
 });
 
 // ===== KINSHIP CALCULATOR FEATURE START (اختيار مباشر من الخريطة) =====
+
+// ---------- منطق حساب العلاقة الكامل (منقول ومُكيَّف من الموقع الرئيسي) ----------
+function relationWord(gRef, depth){
+  if (gRef === 0) return { word: depth === 1 ? "أب" : "جد", literal: true };
+  const diff = depth - gRef;
+  const minLevel = Math.min(depth, gRef);
+  if (diff === 0) return minLevel === 1 ? { word: "أخ", literal: true } : { word: "ابن عم", literal: false };
+  if (diff === 1) return { word: "عم", literal: minLevel === 1 };
+  if (diff === -1) return { word: "ابن أخ", literal: minLevel === 1 };
+  if (diff >= 2) return { word: "جد", literal: true };
+  return { word: "حفيد", literal: true };
+}
+
+async function buildReportByIds(pidA, pidB){
+  if (pidA === pidB) return { same: true };
+  const personA = await fetchPerson(pidA), personB = await fetchPerson(pidB);
+  if (!personA || !personB) return null;
+  const upA = (personA.ancestorIds || [pidA]).slice().reverse();
+  const upB = (personB.ancestorIds || [pidB]).slice().reverse();
+  const mapA = new Map(upA.map((id,i) => [id,i]));
+  let lcaId = null, gA = -1, gB = -1;
+  for (let i=0;i<upB.length;i++){ if (mapA.has(upB[i])){ lcaId = upB[i]; gA = mapA.get(upB[i]); gB = i; break; } }
+  if (!lcaId) return null;
+  const deepIsB = gB >= gA;
+  const deepUpIds = deepIsB ? upB : upA, shallowUpIds = deepIsB ? upA : upB;
+  const deepG = Math.max(gA,gB), shallowG = Math.min(gA,gB);
+  const diff = deepG - shallowG;
+  const neededIds = new Set([...deepUpIds.slice(0, deepG+1), ...shallowUpIds.slice(0, shallowG+1)]);
+  const nameMap = new Map();
+  await Promise.all([...neededIds].map(async id => { const p = await fetchPerson(id); nameMap.set(id, p ? p.name : '؟'); }));
+  const deepChain = deepUpIds.slice(0, deepG+1).map(id => nameMap.get(id));
+  const shallowChain = shallowUpIds.slice(0, shallowG+1).map(id => nameMap.get(id));
+  const lines = [];
+  for (let depth=1; depth<=deepG; depth++){
+    const pid2 = deepUpIds[deepG-depth];
+    const rel = relationWord(shallowG, depth);
+    lines.push({ name: nameMap.get(pid2), word: rel.word, literal: rel.literal });
+  }
+  const shallowPersonId = deepIsB ? pidA : pidB;
+  return { lca: nameMap.get(lcaId), lcaId, diff, lcaIndex: deepG, deepChain, shallowChain, refName: nameMap.get(shallowPersonId), lines };
+}
+
+function lineSentence(ref, word, literal, names, isFirst){
+  const joined = names.length === 1 ? names[0] : names.join(" وابنه ");
+  if (literal){
+    if (isFirst && word === "أخ") return `${ref} و${joined} إخوة`;
+    return `${isFirst ? "" : "إذن "}${ref} هو ${word} لـ ${joined}`;
+  }
+  if (word === "ابن عم") return `${ref} و${joined} في درجة ابن عم`;
+  return `${isFirst ? "" : "إذن "}${ref} في درجة ${word} ${joined}`;
+}
+
+function renderChainGrid(rep){
+  const dots = Array.from({ length: rep.diff }, () => "·");
+  const rowTop = rep.deepChain;
+  const rowBottom = [...dots, ...rep.shallowChain];
+  const cell = (txt, i) => {
+    const isDot = txt === "·";
+    const isLca = i === rep.lcaIndex && !isDot;
+    return `<div class="chain-cell ${isDot ? "dot" : ""} ${isLca ? "lca" : ""}">${txt}</div>`;
+  };
+  const topHtml = rowTop.map((t, i) => cell(t, i)).join("");
+  const bottomHtml = rowBottom.map((t, i) => cell(t, i)).join("");
+  return `<div class="chain-grid"><div class="chain-row top">${topHtml}</div><div class="chain-row bottom">${bottomHtml}</div></div>`;
+}
+
+function renderSimpleRelation(rep){
+  const ref = rep.refName;
+  const last = rep.lines[rep.lines.length - 1];
+  const lastName = last.name;
+  let html = `<div class="rel-title">${rep.lca} هو أول اسم مشترك</div>`;
+  if (rep.lines.length === 1){
+    html += `<div class="final">${lineSentence(rep.refName, rep.lines[0].word, rep.lines[0].literal, [rep.lines[0].name], true)}</div>`;
+  } else {
+    const finalText = last.literal
+      ? `العلاقة: ${ref} ${last.word} ${lastName}`
+      : (last.word === "ابن عم" ? `العلاقة: ${ref} و${lastName} في درجة ابن عم` : `العلاقة: ${ref} في درجة ${last.word} ${lastName}`);
+    html += `<div class="final">${finalText}</div>`;
+  }
+  return `<div class="rel-steps">${html}</div>`;
+}
+
+// ---------- ملاحظات إضافية (زواج/أم مشتركة) — مُكيَّفة، بلا الاعتماد على
+// localStorage الخاص بالموقع الرئيسي (فهرس الزيجات) غير المتوفر بهذه الصفحة المستقلة ----------
+async function findMotherInfoById(pid, node){
+  node = node || await fetchPerson(pid);
+  if (!node || !node.parentId) return null;
+  const fatherNode = await fetchPerson(node.parentId);
+  if (!fatherNode) return null;
+  const fatherChain = (await buildChainNames(fatherNode)).join('/');
+  const fatherData = await fetchPersonInfo(fatherChain);
+  const wives = fatherData.wives || [];
+  for (const w of wives){
+    if (w.type === 'inside' && w.fatherId && (w.children || []).includes(node.name)){
+      return { wifeId: w.wifeId || null, fatherId: resolveMaybeChain(w.fatherId) };
+    }
+  }
+  return null;
+}
+
+async function maternalRelationNoteByIds(pidA, pidB){
+  const pa = await fetchPerson(pidA), pb = await fetchPerson(pidB);
+  const infoA = await findMotherInfoById(pidA, pa);
+  const infoB = await findMotherInfoById(pidB, pb);
+  const mgfA = infoA ? infoA.fatherId : null;
+  const mgfB = infoB ? infoB.fatherId : null;
+  if (infoA && infoB && infoA.wifeId && infoB.wifeId && infoA.wifeId === infoB.wifeId && pa.parentId !== pb.parentId){
+    const gf = mgfA ? await fetchPerson(mgfA) : null;
+    const gfChain = gf ? (await buildChainNames(gf)).join(' ') : '؟';
+    return `${pa.name} و${pb.name} إخوة من الأم (نفس الأم، بنت ${gfChain})`;
+  }
+  if (mgfA && pidB === mgfA) return `${pb.name} هو جد ${pa.name} من جهة الأم (والد والدة ${pa.name})`;
+  if (mgfB && pidA === mgfB) return `${pa.name} هو جد ${pb.name} من جهة الأم (والد والدة ${pb.name})`;
+  if (mgfA && pb.parentId === mgfA) return `${pb.name} هو خال ${pa.name} (أخو والدة ${pa.name})`;
+  if (mgfB && pa.parentId === mgfB) return `${pa.name} هو خال ${pb.name} (أخو والدة ${pb.name})`;
+  if (mgfA && mgfB && mgfA === mgfB && infoA.wifeId !== infoB.wifeId){
+    const gf = await fetchPerson(mgfA);
+    const gfChain = gf ? (await buildChainNames(gf)).join(' ') : '؟';
+    return `${pa.name} و${pb.name} أبناء خالة (أمّاهما أختان، بنات ${gfChain})`;
+  }
+  if (mgfA && pb.parentId){
+    const fatherOfB = await fetchPerson(pb.parentId);
+    if (fatherOfB && fatherOfB.parentId === mgfA) return `${pa.name} هو ابن عمة ${pb.name} (والدة ${pa.name} هي عمة ${pb.name})`;
+  }
+  if (mgfB && pa.parentId){
+    const fatherOfA = await fetchPerson(pa.parentId);
+    if (fatherOfA && fatherOfA.parentId === mgfB) return `${pa.name} هو ابن خال ${pb.name} (والد ${pa.name} هو خال ${pb.name})`;
+  }
+  return null;
+}
+
+async function fatherInLawNoteByIds(pidA, pidB){
+  const pa = await fetchPerson(pidA), pb = await fetchPerson(pidB);
+  const chainB = (await buildChainNames(pb)).join('/');
+  const dataB = await fetchPersonInfo(chainB);
+  for (const w of (dataB.wives || [])){
+    if (w.type === 'inside' && w.fatherId && resolveMaybeChain(w.fatherId) === pidA && !w.divorced) return `${pa.name} هو والد زوجة ${pb.name}`;
+  }
+  const chainA = (await buildChainNames(pa)).join('/');
+  const dataA = await fetchPersonInfo(chainA);
+  for (const w of (dataA.wives || [])){
+    if (w.type === 'inside' && w.fatherId && resolveMaybeChain(w.fatherId) === pidB && !w.divorced) return `${pb.name} هو والد زوجة ${pa.name}`;
+  }
+  return null;
+}
+
+async function maternalHalfSiblingUncleNoteByIds(pidA, pidB){
+  const pa = await fetchPerson(pidA), pb = await fetchPerson(pidB);
+  if (pb.parentId && pb.parentId !== pidA){
+    const fatherOfB = await fetchPerson(pb.parentId);
+    const infoFatherOfB = fatherOfB ? await findMotherInfoById(pb.parentId, fatherOfB) : null;
+    const infoPa = await findMotherInfoById(pidA, pa);
+    if (infoFatherOfB && infoPa && infoFatherOfB.wifeId && infoPa.wifeId && infoFatherOfB.wifeId === infoPa.wifeId && pa.parentId !== pb.parentId){
+      return `${pa.name} أخو ${fatherOfB.name} من الأم (نصف أخ)، لذلك هو بمنزلة عم لـ ${pb.name}، و${pb.name} بمنزلة ابن أخ من الأم لـ ${pa.name}`;
+    }
+  }
+  if (pa.parentId && pa.parentId !== pidB){
+    const fatherOfA = await fetchPerson(pa.parentId);
+    const infoFatherOfA = fatherOfA ? await findMotherInfoById(pa.parentId, fatherOfA) : null;
+    const infoPb = await findMotherInfoById(pidB, pb);
+    if (infoFatherOfA && infoPb && infoFatherOfA.wifeId && infoPb.wifeId && infoFatherOfA.wifeId === infoPb.wifeId && pb.parentId !== pa.parentId){
+      return `${pb.name} أخو ${fatherOfA.name} من الأم (نصف أخ)، لذلك هو بمنزلة عم لـ ${pa.name}، و${pa.name} بمنزلة ابن أخ من الأم لـ ${pb.name}`;
+    }
+  }
+  return null;
+}
+
+async function extraRelationNotesByIds(pidA, pidB){
+  const notes = [];
+  const n1 = await maternalRelationNoteByIds(pidA, pidB); if (n1) notes.push(n1);
+  const n2 = await fatherInLawNoteByIds(pidA, pidB); if (n2) notes.push(n2);
+  const n4 = await maternalHalfSiblingUncleNoteByIds(pidA, pidB); if (n4 && !notes.includes(n4)) notes.push(n4);
+  return notes;
+}
+
 let kinshipMode = false;
 let kinshipSelection = []; // [{pid, el}]
 
@@ -2603,7 +2798,7 @@ document.getElementById('kinshipModeBtn').addEventListener('click', () => {
   document.getElementById('kinshipModeBtn').classList.toggle('active', kinshipMode);
   document.getElementById('kinshipBanner').classList.toggle('show', kinshipMode);
   if (kinshipMode){
-    document.getElementById('kinshipBannerText').textContent = 'اختر أول شخص';
+    resetBannerLines();
   } else {
     resetKinshipSelection();
   }
@@ -2618,6 +2813,12 @@ document.getElementById('kinshipResultClose').addEventListener('click', () => {
   document.getElementById('kinshipResultBox').classList.remove('show');
 });
 
+function resetBannerLines(){
+  const l1 = document.getElementById('kinshipLine1'), l2 = document.getElementById('kinshipLine2');
+  l1.textContent = 'اختر الشخص الأول'; l1.style.display = '';
+  l2.textContent = 'اختر الشخص الثاني'; l2.style.display = 'none';
+}
+
 function resetKinshipSelection(){
   kinshipSelection.forEach(s => highlightSelected(s.el, false));
   kinshipSelection = [];
@@ -2628,13 +2829,18 @@ async function handleKinshipPick(pid, el){
   if (kinshipSelection.find(s => s.pid === pid)) return; // نفس الشخص مرتين
   kinshipSelection.push({ pid, el });
   highlightSelected(el, true);
+
+  const person = await fetchPerson(pid);
+  const threeNames = person ? (await buildChainNames(person)).slice(0, 3).join(' ') : '؟';
+
   if (kinshipSelection.length === 1){
-    document.getElementById('kinshipBannerText').textContent = 'اختر الشخص الثاني';
+    document.getElementById('kinshipLine1').textContent = threeNames;
+    document.getElementById('kinshipLine2').style.display = '';
     return;
   }
-  document.getElementById('kinshipBannerText').textContent = 'جارِ الحساب…';
+  document.getElementById('kinshipLine2').textContent = threeNames;
   await computeAndShowKinship(kinshipSelection[0].pid, kinshipSelection[1].pid);
-  document.getElementById('kinshipBannerText').textContent = 'اختر أول شخص';
+  resetBannerLines();
   resetSelectionOnly();
 }
 function resetSelectionOnly(){
@@ -2645,15 +2851,6 @@ function resetSelectionOnly(){
 function clearKinshipPath(){
   const old = document.getElementById('kinshipPathLine');
   if (old) old.remove();
-}
-
-// يبحث عن أقرب جد مشترك بين شخصين عبر تقاطع قوائم ancestorIds (بترتيب من الجذر للشخص)
-function findCommonAncestor(personA, personB){
-  const aIds = personA.ancestorIds || [personA.id];
-  const bSet = new Set(personB.ancestorIds || [personB.id]);
-  let common = null;
-  for (const id of aIds){ if (bSet.has(id)) common = id; } // آخر تطابق بترتيب الجذر←الشخص = الأقرب
-  return common;
 }
 
 // موضع نقطة على الخريطة (x,y) بمعرفها الرقمي nid وعمقها d، أو null لو غير معروضة كعقدة مرسومة
@@ -2667,12 +2864,9 @@ function nidPosition(nid, d){
 async function computeAndShowKinship(pidA, pidB){
   const personA = await fetchPerson(pidA), personB = await fetchPerson(pidB);
   if (!personA || !personB) return;
-  const commonId = findCommonAncestor(personA, personB);
-  const rel = await shortKinshipLabelByIds(pidA, pidB);
-  const chainA = await buildChainNames(personA);
-  const chainB = await buildChainNames(personB);
-  const commonPerson = commonId ? await fetchPerson(commonId) : null;
-  const commonChain = commonPerson ? await buildChainNames(commonPerson) : null;
+
+  const rep = await buildReportByIds(pidA, pidB);
+  const notes = await extraRelationNotesByIds(pidA, pidB);
 
   // ---------- رسم مسار مرئي على الخريطة (من الأول إلى الجد المشترك، ثم إلى الثاني) ----------
   clearKinshipPath();
@@ -2684,10 +2878,9 @@ async function computeAndShowKinship(pidA, pidB){
   const dB = elB ? parseInt(elB.getAttribute('data-d')) : null;
   const posA = nidA !== null ? nidPosition(nidA, dA) : null;
   const posB = nidB !== null ? nidPosition(nidB, dB) : null;
-  // نقطة الوسط: موضع الجد المشترك إن كان معروضًا كعقدة، وإلا مركز الخريطة (0,0) كتقريب معقول
   let mid = { x: 0, y: 0 };
-  if (commonId){
-    const commonEl = document.querySelector(`[data-pid="${commonId}"].dot`);
+  if (rep && rep.lcaId){
+    const commonEl = document.querySelector(`[data-pid="${rep.lcaId}"].dot`);
     if (commonEl){
       const midPos = nidPosition(commonEl.getAttribute('data-nid'), parseInt(commonEl.getAttribute('data-d')));
       if (midPos) mid = midPos;
@@ -2707,19 +2900,15 @@ async function computeAndShowKinship(pidA, pidB){
     document.getElementById('mainsvg').appendChild(path);
   }
 
-  // ---------- نتيجة مفصَّلة ----------
-  const nameA = chainA.slice(0,5).join(' ');
-  const nameB = chainB.slice(0,5).join(' ');
+  // ---------- نتيجة مفصَّلة كاملة (جدول السلسلتين + الوصف بالدرجة + الملاحظات) ----------
   let html = `<div class="kr-title">نتيجة حساب القرابة</div>`;
-  html += `<div class="kr-row"><b>الأول:</b> ${nameA}</div>`;
-  html += `<div class="kr-row"><b>الثاني:</b> ${nameB}</div>`;
-  if (commonChain){
-    html += `<div class="kr-row"><b>الجد المشترك:</b> ${commonChain[0]}</div>`;
-  }
-  if (rel){
-    html += `<div class="kr-row">العلاقة: <span class="kr-rel">${rel}</span> (الثاني هو ${rel} الأول)</div>`;
+  const notesHtml = notes.map(n => `<div class="kr-note">${n}</div>`).join('');
+  if (!rep){
+    html += notes.length ? notesHtml : `<div class="kr-row">لا توجد علاقة نسب مشتركة بين الاثنين ضمن هذا الفرع من الشجرة.</div>`;
+  } else if (rep.same){
+    html += `<div class="kr-row">نفس الشخص.</div>`;
   } else {
-    html += `<div class="kr-row">لم يُحدَّد نوع علاقة دم مباشرة ضمن الفئات الست المعتمَدة (قد تكون قرابة أبعد).</div>`;
+    html += renderChainGrid(rep) + renderSimpleRelation(rep) + notesHtml;
   }
   document.getElementById('kinshipResultContent').innerHTML = html;
   document.getElementById('kinshipResultBox').classList.add('show');
