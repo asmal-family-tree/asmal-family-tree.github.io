@@ -20,6 +20,45 @@
   #drawerToggle:hover{background:#a8863a}
   #drawerToggle.open{transform:rotate(90deg)}
 
+  /* ===== KINSHIP MODE FEATURE START ===== */
+  #kinshipModeBtn{
+    position:fixed; top:14px; left:70px; z-index:12;
+    background:#fffdf7; color:#8a6d1f; border:2px solid #8a6d1f; border-radius:50%;
+    width:46px; height:46px; font-size:19px; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.3);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .2s ease, color .2s ease;
+  }
+  #kinshipModeBtn.active{ background:#8a6d1f; color:#fff; }
+  #kinshipBanner{
+    display:none; position:fixed; top:14px; left:126px; right:14px; z-index:12;
+    background:#8a6d1f; color:#fff; border-radius:14px; padding:10px 16px;
+    align-items:center; justify-content:space-between; gap:10px;
+    box-shadow:0 3px 10px rgba(0,0,0,.3); font-size:13px; font-weight:bold;
+  }
+  #kinshipBanner.show{ display:flex; }
+  #kinshipCancelBtn{
+    background:rgba(255,255,255,.2); color:#fff; border:none; border-radius:10px;
+    padding:6px 12px; font-size:12px; cursor:pointer;
+  }
+  #kinshipResultBox{
+    display:none; position:fixed; bottom:16px; left:14px; right:14px; z-index:13;
+    max-width:520px; margin:0 auto;
+    background:#fffdf7; border:1.6px solid #8a6d1f; border-radius:16px;
+    padding:16px 18px; box-shadow:0 10px 40px rgba(0,0,0,.35);
+    max-height:70vh; overflow-y:auto; font-family:'Tajawal',Arial,sans-serif;
+  }
+  #kinshipResultBox.show{ display:block; }
+  #kinshipResultClose{
+    position:absolute; top:8px; left:12px; background:none; border:none;
+    font-size:16px; cursor:pointer; color:#8a6d1f;
+  }
+  #kinshipResultContent .kr-title{ font-size:15px; font-weight:bold; color:#3a2a1a; margin-bottom:8px; }
+  #kinshipResultContent .kr-row{ font-size:13px; color:#3a2a1a; margin:4px 0; line-height:1.8; }
+  #kinshipResultContent .kr-rel{ background:#8a6d1f; color:#fff; padding:2px 10px; border-radius:10px; font-weight:bold; }
+  circle.dot.kinship-picked{ stroke:#c0392b !important; stroke-width:4px !important; filter:drop-shadow(0 0 4px rgba(192,57,43,.7)); }
+  /* ===== KINSHIP MODE FEATURE END ===== */
+
   /* ---- اللوحة المنسدلة (أجمل: بطاقة عائمة بحركة سلسة) ---- */
   #panel{
     position:fixed; top:14px; left:14px; z-index:11;
@@ -142,11 +181,28 @@
 </head>
 <body>
 <button id="drawerToggle" onclick="toggleDrawer()">⚙</button>
+<!-- ===== KINSHIP MODE FEATURE START ===== -->
+<button id="kinshipModeBtn" title="وضع حساب القرابة">🔗</button>
+<div id="kinshipBanner">
+  <span id="kinshipBannerText">اختر أول شخص</span>
+  <button id="kinshipCancelBtn">✕ إلغاء</button>
+</div>
+<div id="kinshipResultBox">
+  <button id="kinshipResultClose">✕</button>
+  <div id="kinshipResultContent"></div>
+</div>
+<!-- ===== KINSHIP MODE FEATURE END ===== -->
 <div id="panel">
   <h3>إعدادات المشجرة</h3>
   <div class="row"><label>التباعد بين الأجيال:</label>
     <span class="val" id="ringVal">255</span>
     <input type="range" id="ringSlider" min="60" max="400" value="255" step="5"></div>
+  <div class="row"><label>حجم الدوائر:</label>
+    <span class="val" id="dotScaleVal">100%</span>
+    <input type="range" id="dotScaleSlider" min="100" max="300" value="100" step="5"></div>
+  <div class="row"><label>حجم النصوص:</label>
+    <span class="val" id="textScaleVal">100%</span>
+    <input type="range" id="textScaleSlider" min="100" max="300" value="100" step="5"></div>
   <div class="row" id="master-off"><label>مسافة النص - الكل معاً:</label>
     <span class="val" id="masterOffVal">6</span>
     <input type="range" id="masterOff" min="-5" max="150" value="6" step="1"></div>
@@ -2184,6 +2240,31 @@ document.getElementById('ringSlider').addEventListener('input', e => {
   document.getElementById('ringVal').textContent = RING;
   recompute();
 });
+// ===== تكبير الدوائر والنصوص (شريطان جديدان) — نخزّن الحجم الأصلي مرة واحدة =====
+document.querySelectorAll('circle.dot').forEach(c => { c.dataset.baseR = c.getAttribute('r'); });
+document.querySelectorAll('text.lbl').forEach(t => { t.dataset.baseFs = t.getAttribute('font-size'); });
+let DOT_SCALE = 1, TEXT_SCALE = 1;
+function applyDotScale(){
+  document.querySelectorAll('circle.dot').forEach(c => {
+    c.setAttribute('r', (parseFloat(c.dataset.baseR) * DOT_SCALE).toFixed(2));
+  });
+}
+function applyTextScale(){
+  document.querySelectorAll('text.lbl').forEach(t => {
+    t.setAttribute('font-size', (parseFloat(t.dataset.baseFs) * TEXT_SCALE).toFixed(2));
+  });
+}
+document.getElementById('dotScaleSlider').addEventListener('input', e => {
+  DOT_SCALE = parseFloat(e.target.value) / 100;
+  document.getElementById('dotScaleVal').textContent = e.target.value + '%';
+  applyDotScale();
+});
+document.getElementById('textScaleSlider').addEventListener('input', e => {
+  TEXT_SCALE = parseFloat(e.target.value) / 100;
+  document.getElementById('textScaleVal').textContent = e.target.value + '%';
+  applyTextScale();
+});
+
 document.getElementById('rotateSlider').addEventListener('input', e => {
   const deg = parseFloat(e.target.value);
   currentRotateDeg = deg;
@@ -2503,8 +2584,147 @@ document.getElementById('mainsvg').addEventListener('click', (e) => {
   const el = e.target.closest('[data-pid]');
   if (!el) return;
   e.stopPropagation();
+  if (kinshipMode){ handleKinshipPick(el.getAttribute('data-pid'), el); return; }
   openPInfo(el.getAttribute('data-pid'));
 });
+
+// ===== KINSHIP CALCULATOR FEATURE START (اختيار مباشر من الخريطة) =====
+let kinshipMode = false;
+let kinshipSelection = []; // [{pid, el}]
+
+function highlightSelected(el, on){
+  const pid = el.getAttribute('data-pid');
+  const dot = document.querySelector(`circle.dot[data-pid="${pid}"]`);
+  if (dot) dot.classList.toggle('kinship-picked', on);
+}
+
+document.getElementById('kinshipModeBtn').addEventListener('click', () => {
+  kinshipMode = !kinshipMode;
+  document.getElementById('kinshipModeBtn').classList.toggle('active', kinshipMode);
+  document.getElementById('kinshipBanner').classList.toggle('show', kinshipMode);
+  if (kinshipMode){
+    document.getElementById('kinshipBannerText').textContent = 'اختر أول شخص';
+  } else {
+    resetKinshipSelection();
+  }
+});
+document.getElementById('kinshipCancelBtn').addEventListener('click', () => {
+  kinshipMode = false;
+  document.getElementById('kinshipModeBtn').classList.remove('active');
+  document.getElementById('kinshipBanner').classList.remove('show');
+  resetKinshipSelection();
+});
+document.getElementById('kinshipResultClose').addEventListener('click', () => {
+  document.getElementById('kinshipResultBox').classList.remove('show');
+});
+
+function resetKinshipSelection(){
+  kinshipSelection.forEach(s => highlightSelected(s.el, false));
+  kinshipSelection = [];
+  clearKinshipPath();
+}
+
+async function handleKinshipPick(pid, el){
+  if (kinshipSelection.find(s => s.pid === pid)) return; // نفس الشخص مرتين
+  kinshipSelection.push({ pid, el });
+  highlightSelected(el, true);
+  if (kinshipSelection.length === 1){
+    document.getElementById('kinshipBannerText').textContent = 'اختر الشخص الثاني';
+    return;
+  }
+  document.getElementById('kinshipBannerText').textContent = 'جارِ الحساب…';
+  await computeAndShowKinship(kinshipSelection[0].pid, kinshipSelection[1].pid);
+  document.getElementById('kinshipBannerText').textContent = 'اختر أول شخص';
+  resetSelectionOnly();
+}
+function resetSelectionOnly(){
+  kinshipSelection.forEach(s => highlightSelected(s.el, false));
+  kinshipSelection = [];
+}
+
+function clearKinshipPath(){
+  const old = document.getElementById('kinshipPathLine');
+  if (old) old.remove();
+}
+
+// يبحث عن أقرب جد مشترك بين شخصين عبر تقاطع قوائم ancestorIds (بترتيب من الجذر للشخص)
+function findCommonAncestor(personA, personB){
+  const aIds = personA.ancestorIds || [personA.id];
+  const bSet = new Set(personB.ancestorIds || [personB.id]);
+  let common = null;
+  for (const id of aIds){ if (bSet.has(id)) common = id; } // آخر تطابق بترتيب الجذر←الشخص = الأقرب
+  return common;
+}
+
+// موضع نقطة على الخريطة (x,y) بمعرفها الرقمي nid وعمقها d، أو null لو غير معروضة كعقدة مرسومة
+function nidPosition(nid, d){
+  const a = ANGLES[nid];
+  if (a === undefined) return null;
+  const r = radiusFor(d);
+  return { x: Math.cos(a)*r, y: Math.sin(a)*r };
+}
+
+async function computeAndShowKinship(pidA, pidB){
+  const personA = await fetchPerson(pidA), personB = await fetchPerson(pidB);
+  if (!personA || !personB) return;
+  const commonId = findCommonAncestor(personA, personB);
+  const rel = await shortKinshipLabelByIds(pidA, pidB);
+  const chainA = await buildChainNames(personA);
+  const chainB = await buildChainNames(personB);
+  const commonPerson = commonId ? await fetchPerson(commonId) : null;
+  const commonChain = commonPerson ? await buildChainNames(commonPerson) : null;
+
+  // ---------- رسم مسار مرئي على الخريطة (من الأول إلى الجد المشترك، ثم إلى الثاني) ----------
+  clearKinshipPath();
+  const elA = document.querySelector(`[data-pid="${pidA}"].dot`) || document.querySelector(`[data-pid="${pidA}"]`);
+  const elB = document.querySelector(`[data-pid="${pidB}"].dot`) || document.querySelector(`[data-pid="${pidB}"]`);
+  const nidA = elA ? elA.getAttribute('data-nid') : null;
+  const nidB = elB ? elB.getAttribute('data-nid') : null;
+  const dA = elA ? parseInt(elA.getAttribute('data-d')) : null;
+  const dB = elB ? parseInt(elB.getAttribute('data-d')) : null;
+  const posA = nidA !== null ? nidPosition(nidA, dA) : null;
+  const posB = nidB !== null ? nidPosition(nidB, dB) : null;
+  // نقطة الوسط: موضع الجد المشترك إن كان معروضًا كعقدة، وإلا مركز الخريطة (0,0) كتقريب معقول
+  let mid = { x: 0, y: 0 };
+  if (commonId){
+    const commonEl = document.querySelector(`[data-pid="${commonId}"].dot`);
+    if (commonEl){
+      const midPos = nidPosition(commonEl.getAttribute('data-nid'), parseInt(commonEl.getAttribute('data-d')));
+      if (midPos) mid = midPos;
+    }
+  }
+  if (posA && posB){
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('id', 'kinshipPathLine');
+    path.setAttribute('d', `M ${posA.x.toFixed(1)},${posA.y.toFixed(1)} L ${mid.x.toFixed(1)},${mid.y.toFixed(1)} L ${posB.x.toFixed(1)},${posB.y.toFixed(1)}`);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#c0392b');
+    path.setAttribute('stroke-width', '4');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('opacity', '0.85');
+    document.getElementById('mainsvg').appendChild(path);
+  }
+
+  // ---------- نتيجة مفصَّلة ----------
+  const nameA = chainA.slice(0,5).join(' ');
+  const nameB = chainB.slice(0,5).join(' ');
+  let html = `<div class="kr-title">نتيجة حساب القرابة</div>`;
+  html += `<div class="kr-row"><b>الأول:</b> ${nameA}</div>`;
+  html += `<div class="kr-row"><b>الثاني:</b> ${nameB}</div>`;
+  if (commonChain){
+    html += `<div class="kr-row"><b>الجد المشترك:</b> ${commonChain[0]}</div>`;
+  }
+  if (rel){
+    html += `<div class="kr-row">العلاقة: <span class="kr-rel">${rel}</span> (الثاني هو ${rel} الأول)</div>`;
+  } else {
+    html += `<div class="kr-row">لم يُحدَّد نوع علاقة دم مباشرة ضمن الفئات الست المعتمَدة (قد تكون قرابة أبعد).</div>`;
+  }
+  document.getElementById('kinshipResultContent').innerHTML = html;
+  document.getElementById('kinshipResultBox').classList.add('show');
+}
+// ===== KINSHIP CALCULATOR FEATURE END =====
 </script>
 <!-- ===== PERSON CARD LINK FEATURE END ===== -->
 </body>
