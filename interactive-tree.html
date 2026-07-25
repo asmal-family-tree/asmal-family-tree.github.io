@@ -135,6 +135,7 @@
 </style>
 <!-- ===== PERSON CARD LINK FEATURE START (قراءة فقط من Firestore — بلا أي كتابة) ===== -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <!-- ===== PERSON CARD LINK FEATURE END ===== -->
@@ -2306,7 +2307,22 @@ const firebaseConfig = {
   measurementId: "G-5W6N75Q1PS"
 };
 firebase.initializeApp(firebaseConfig);
+const pauth = firebase.auth();
 const pdb = firebase.firestore();
+let _authReady = false, _authUser = null;
+pauth.onAuthStateChanged((u) => {
+  _authReady = true;
+  _authUser = u;
+  if (!u){
+    console.warn("لا توجد جلسة تسجيل دخول — افتح الموقع الرئيسي وسجّل دخولك أولًا، ثم عد لهذه الصفحة.");
+  }
+});
+function waitForAuth(){
+  return new Promise((resolve) => {
+    if (_authReady){ resolve(_authUser); return; }
+    const unsub = pauth.onAuthStateChanged((u) => { unsub(); resolve(u); });
+  });
+}
 const _personCache = new Map(); // تفادي إعادة جلب نفس الشخص مرتين بنفس الجلسة
 
 async function fetchPerson(pid){
@@ -2375,6 +2391,13 @@ async function openPInfo(pid){
   const content = document.getElementById('pInfoContent');
   overlay.classList.add('show');
   loading.style.display = 'block'; content.style.display = 'none';
+  loading.textContent = 'جارِ التحميل…';
+
+  const user = await waitForAuth();
+  if (!user){
+    loading.textContent = 'يجب تسجيل الدخول أولًا — افتح الموقع الرئيسي (asmal-family-tree.github.io) وسجّل دخولك، ثم عد لهذه الصفحة وأعد المحاولة.';
+    return;
+  }
 
   try{
     const person = await fetchPerson(pid);
