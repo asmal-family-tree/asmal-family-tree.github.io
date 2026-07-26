@@ -60,7 +60,7 @@
   circle.dot.kinship-picked{ stroke:#c0392b !important; stroke-width:4px !important; filter:drop-shadow(0 0 4px rgba(192,57,43,.7)); }
   /* ===== جدول سلاسل النسب الكامل (منقول من الموقع الرئيسي) ===== */
   .chain-grid{ direction:rtl; overflow-x:auto; margin-top:10px; padding-bottom:6px; }
-  .chain-divider{ height:2px; background:#d8c9a3; margin:8px 0 12px; border-radius:2px; }
+  .chain-after-label{ font-size:11.5px; color:#8a7550; margin:10px 0 2px; font-weight:700; }
   .chain-row{ display:flex; }
   .chain-cell{ flex:0 0 auto; min-width:52px; text-align:center; font-size:11.5px; padding:6px 3px; color:#3a2a1a; white-space:nowrap; }
   .chain-cell.dot{ color:#d8d0c0; }
@@ -2654,7 +2654,16 @@ async function buildReportByIds(pidA, pidB){
     lines.push({ name: nameMap.get(pid2), word: rel.word, literal: rel.literal });
   }
   const shallowPersonId = deepIsB ? pidA : pidB;
-  return { lca: nameMap.get(lcaId), lcaId, diff, lcaIndex: deepG, deepChain, shallowChain, refName: nameMap.get(shallowPersonId), lines, aIsDeep: !deepIsB };
+  // ---------- استكمال السلسلة بعد الاسم المشترك صعودًا حتى الجذر الحقيقي (علي إبراهيم) ----------
+  // بما أن upA مرتَّبة من الشخص صعودًا للجذر، فإن upA.slice(gA) تُعطي بالضبط:
+  // [الاسم المشترك، والده، جده، ...، الجذر النهائي] — نفس السلسلة لكلا الشخصين من هذه النقطة فصاعدًا
+  const afterLcaIds = upA.slice(gA);
+  const afterMap = new Map(nameMap);
+  await Promise.all(afterLcaIds.filter(id => !afterMap.has(id)).map(async id => {
+    const p = await fetchPerson(id); afterMap.set(id, p ? p.name : '؟');
+  }));
+  const afterLcaChain = afterLcaIds.map(id => afterMap.get(id));
+  return { lca: nameMap.get(lcaId), lcaId, diff, lcaIndex: deepG, deepChain, shallowChain, refName: nameMap.get(shallowPersonId), lines, aIsDeep: !deepIsB, afterLcaChain };
 }
 
 function lineSentence(ref, word, literal, names, isFirst){
@@ -2672,7 +2681,6 @@ function renderChainGrid(rep){
   // الشخص الأول (A) يظهر دومًا بالسطر العلوي — بغض النظر عن أيّهما أعمق بالشجرة
   const aRow = rep.aIsDeep ? rep.deepChain : [...dots, ...rep.shallowChain];
   const bRow = rep.aIsDeep ? [...dots, ...rep.shallowChain] : rep.deepChain;
-  const aLcaIndex = rep.aIsDeep ? rep.lcaIndex : rep.lcaIndex; // نفس الفهرس بكلتا الحالتين لأن الجد المشترك بنفس العمود دومًا
   const cell = (txt, i) => {
     const isDot = txt === "·";
     const isLca = i === rep.lcaIndex && !isDot;
@@ -2680,7 +2688,14 @@ function renderChainGrid(rep){
   };
   const topHtml = aRow.map((t, i) => cell(t, i)).join("");
   const bottomHtml = bRow.map((t, i) => cell(t, i)).join("");
-  return `<div class="chain-grid"><div class="chain-row top">${topHtml}</div><div class="chain-row bottom">${bottomHtml}</div></div><div class="chain-divider"></div>`;
+  let html = `<div class="chain-grid"><div class="chain-row top">${topHtml}</div><div class="chain-row bottom">${bottomHtml}</div></div>`;
+  // استكمال السلسلة الموحَّدة بعد الاسم المشترك صعودًا حتى الجذر (علي إبراهيم)
+  if (rep.afterLcaChain && rep.afterLcaChain.length > 1){
+    const afterHtml = rep.afterLcaChain.map((t, i) => `<div class="chain-cell ${i === 0 ? "lca" : ""}">${t}</div>`).join("");
+    html += `<div class="chain-after-label">سلسلة الاسم المشترك صعودًا حتى الجد الجامع</div>`;
+    html += `<div class="chain-grid"><div class="chain-row">${afterHtml}</div></div>`;
+  }
+  return html;
 }
 
 function renderSimpleRelation(rep){
