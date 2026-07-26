@@ -1289,6 +1289,20 @@ function applyLayoutStyle(layoutStyle){
     bindActiveSync("deleteBadgeToggle", flDelete);
   }
 
+  const flInteractiveTree = document.getElementById("asmalFlInteractiveTree");
+  if (flInteractiveTree) flInteractiveTree.onclick = () => { location.href = "interactive-tree.html"; };
+
+  // تفويض عام: أي زر .dt-tab يُفعِّل هدفه (data-target) عند الضغط
+  const dtTabsNav = document.querySelector(".dt-tabs");
+  if (dtTabsNav){
+    dtTabsNav.addEventListener("click", (e) => {
+      const btn = e.target.closest(".dt-tab");
+      if (!btn) return;
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.click();
+    });
+  }
+
   const flRefresh = document.getElementById("asmalFlRefresh");
   if (flRefresh){
     flRefresh.onclick = () => {
@@ -1490,7 +1504,8 @@ const TAB_PERMS = [
   { id: "attachmentsToggle", page: "attachments", mode: "hide" },
   { id: "ioToggle",          page: "io",       mode: "hide" },
   { id: "deleteBadgeToggle", page: "deleteMode", mode: "hide" },
-  { id: "usersToggle",       page: "users",    mode: "hide" }
+  { id: "usersToggle",       page: "users",    mode: "hide" },
+  { id: "interactiveTreeToggle", page: "interactiveTree", mode: "hide" }
 ];
 
 function applyRolePermissions(){
@@ -2336,7 +2351,8 @@ let editingScope = null;   // { id, name, ancestorIds } — العقدة الم�
 const ACTION_LABELS = {
   view: "مشاهدة", edit: "تعديل", delete: "حذف",
   exportOne: "تصدير فرد", exportAll: "تصدير الكل",
-  myCard: "بطاقة معلوماتي", myNode: "بطاقة عقدتي", all: "جميع البطاقات"
+  myCard: "بطاقة معلوماتي", myNode: "بطاقة عقدتي", all: "جميع البطاقات",
+  relCalc: "حاسبة النسب (خيوط النسب)"
 };
 
 function openPermsEditor(uid, userData){
@@ -2424,6 +2440,63 @@ function openPermsEditor(uid, userData){
       continue; // تخطَّ منطق الأعمدة الثلاثة العادي بالكامل لهذه الصفحة
     }
     // ===== END QR/SHARE FEATURE special-case =====
+
+    // ===== INTERACTIVE TREE FEATURE: عرض هرمي خاص (مشاهدة، حاسبة النسب) =====
+    if (page === "interactiveTree"){
+      const itTitle = document.createElement("div");
+      itTitle.className = "perms-row";
+      const itLabel = document.createElement("span");
+      itLabel.className = "perms-row-label";
+      itLabel.textContent = cfg.label;
+      itTitle.appendChild(itLabel);
+      itTitle.appendChild(document.createElement("span"));
+      itTitle.appendChild(document.createElement("span"));
+      itTitle.appendChild(document.createElement("span"));
+      grid.appendChild(itTitle);
+
+      const itOrder = ["view", "relCalc"];
+      const itCheckboxes = {};
+      itOrder.forEach(action => {
+        const erow = document.createElement("div");
+        erow.className = "perms-row";
+        erow.style.paddingRight = "18px";
+        const elabel = document.createElement("span");
+        elabel.className = "perms-row-label";
+        elabel.style.color = "#6a5c42"; elabel.style.fontSize = "14.5px"; elabel.style.fontWeight = "700";
+        elabel.textContent = "↳ " + (action === "view" ? "مشاهدة (تكبير وتدوير)" : ACTION_LABELS[action]);
+        erow.appendChild(elabel);
+        const cell = document.createElement("span");
+        cell.className = "perms-cell";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!(editingPerms.interactiveTree && editingPerms.interactiveTree[action]);
+        itCheckboxes[action] = cb;
+        cb.onchange = () => {
+          editingPerms.interactiveTree = editingPerms.interactiveTree || {};
+          editingPerms.interactiveTree[action] = cb.checked;
+          if (cb.checked){
+            const idx = itOrder.indexOf(action);
+            for (let i = 0; i < idx; i++){
+              editingPerms.interactiveTree[itOrder[i]] = true;
+              itCheckboxes[itOrder[i]].checked = true;
+            }
+          } else {
+            const idx = itOrder.indexOf(action);
+            for (let i = idx + 1; i < itOrder.length; i++){
+              editingPerms.interactiveTree[itOrder[i]] = false;
+              itCheckboxes[itOrder[i]].checked = false;
+            }
+          }
+        };
+        cell.appendChild(cb);
+        erow.appendChild(cell);
+        erow.appendChild(document.createElement("span"));
+        erow.appendChild(document.createElement("span"));
+        grid.appendChild(erow);
+      });
+      continue;
+    }
+    // ===== END INTERACTIVE TREE FEATURE special-case =====
 
     const row = document.createElement("div");
     row.className = "perms-row";
@@ -6479,6 +6552,9 @@ const bgToggle = document.getElementById("bgToggle");
 const bgPanel = document.getElementById("bgPanel");
 bgToggle.onclick = () => { if (!guard("background")) return; openOnlyPanel(bgPanel); };
 designToggle.onclick = () => { if (!guard("design")) return; openOnlyPanel(designPanel); renderDesignScopeNote(); };
+
+const interactiveTreeToggle = document.getElementById("interactiveTreeToggle");
+if (interactiveTreeToggle) interactiveTreeToggle.onclick = () => { location.href = "interactive-tree.html"; };
 
 const usersToggle = document.getElementById("usersToggle");
 const usersPanel = document.getElementById("usersPanel");

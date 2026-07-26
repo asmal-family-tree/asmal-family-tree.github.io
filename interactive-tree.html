@@ -84,20 +84,20 @@
 
   /* ---- اللوحة المنسدلة (أجمل: بطاقة عائمة بحركة سلسة) ---- */
   #panel{
-    position:fixed; top:14px; left:14px; z-index:11;
-    width:340px; max-width:88vw; max-height:0; opacity:0;
+    position:fixed; top:14px; left:14px; z-index:15;
+    width:360px; max-width:92vw; max-height:0; opacity:0;
     background:#fffdf7; color:#3a2a1a; border-radius:18px;
     box-shadow:0 12px 40px rgba(0,0,0,.28);
     overflow:hidden;
     transition:max-height .35s cubic-bezier(.2,.8,.2,1), opacity .25s ease, padding .35s ease;
-    padding:0 18px;
+    padding:0 18px; box-sizing:border-box;
   }
-  #panel.open{ max-height:80vh; opacity:1; padding:64px 18px 18px; overflow-y:auto; }
+  #panel.open{ max-height:80vh; opacity:1; padding:64px 18px 18px; overflow-y:auto; overflow-x:hidden; }
   #panel h3{margin:0 0 10px;font-size:15px;color:#8a6d1f;border-bottom:2px solid #eee0c0;padding-bottom:6px}
-  .row{display:flex;align-items:center;gap:10px;padding:6px 0}
-  .row.sub label{width:150px;font-weight:normal;font-size:11.5px;color:#5a4a30}
-  .row label{width:180px;font-size:13px;flex-shrink:0;font-weight:bold;color:#4a3a10}
-  .row input[type=range]{flex:1;accent-color:#8a6d1f}
+  .row{display:flex;align-items:center;gap:8px;padding:6px 0}
+  .row.sub label{width:120px;flex-shrink:0;font-weight:normal;font-size:11.5px;color:#5a4a30}
+  .row label{width:150px;flex-shrink:0;font-size:13px;font-weight:bold;color:#4a3a10}
+  .row input[type=range]{flex:1; min-width:0; accent-color:#8a6d1f}
   .val{min-width:38px;text-align:center;font-weight:bold;background:#f3ecd8;color:#4a3a10;
         border-radius:5px;padding:2px 6px;font-size:11.5px}
   #master-off{background:#f3ecd8;margin:6px -18px;padding:8px 18px;border-radius:0}
@@ -194,16 +194,42 @@
 #pInfoLoading{ padding:40px 20px; text-align:center; color:#8a7550; font-size:14px; }
 /* ===== PERSON CARD LINK FEATURE END ===== */
 
+/* ===== AUTH GATE FEATURE START ===== */
+.it-auth-gate{ text-align:center; padding:80px 20px; color:#3a2a1a; opacity:.65; font-size:14px; font-family:Tajawal,Arial,sans-serif; }
+.it-topbar{
+  position:fixed; top:0; right:0; left:0; z-index:20;
+  background:#fffdf7; border-bottom:1px solid #eee0c0; padding:10px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:Tajawal,Arial,sans-serif; box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.it-back-link{ color:#8a6d1f; text-decoration:none; font-size:22px; width:28px; text-align:center; font-weight:bold; }
+.it-username{ font-size:12.5px; font-weight:700; color:#4a3a10; white-space:nowrap; }
+#itPageWrap #drawerToggle{ top:64px; }
+#itPageWrap #kinshipModeBtn{ top:64px; }
+#itPageWrap #kinshipBanner{ top:64px; }
+#itPageWrap #panel{ top:64px; }
+#itPageWrap #canvas-wrap{ height:calc(100vh - 50px); margin-top:50px; }
+/* ===== AUTH GATE FEATURE END ===== */
+
 </style>
 <!-- ===== PERSON CARD LINK FEATURE START (قراءة فقط من Firestore — بلا أي كتابة) ===== -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="auth.js?v=10"></script>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <!-- ===== PERSON CARD LINK FEATURE END ===== -->
 </head>
 <body>
-<button id="drawerToggle" onclick="toggleDrawer()">⚙</button>
+<!-- ===== AUTH GATE FEATURE START (مطابق تمامًا لآلية news.html) ===== -->
+<div id="authGate" class="it-auth-gate">جارٍ التحقق من الدخول...</div>
+<div id="itTopBar" class="it-topbar" style="display:none;">
+  <a href="index.html" class="it-back-link" title="رجوع للشجرة الرئيسية">→</a>
+  <span id="itUserName" class="it-username"></span>
+</div>
+<div id="itPageWrap" style="display:none;">
+<!-- ===== AUTH GATE FEATURE END ===== -->
+<button id="drawerToggle" onclick="toggleDrawer()" style="display:none;">⚙</button>
 <!-- ===== KINSHIP MODE FEATURE START ===== -->
 <button id="kinshipModeBtn" title="وضع حساب القرابة">🔗</button>
 <div id="kinshipBanner">
@@ -220,6 +246,8 @@
 <!-- ===== KINSHIP MODE FEATURE END ===== -->
 <div id="panel">
   <h3>إعدادات المشجرة</h3>
+  <button id="itSaveSettingsBtn" style="width:100%; margin-bottom:10px; padding:9px; border:none; border-radius:10px; background:#8a6d1f; color:#fff; font-weight:bold; font-size:13px; cursor:pointer;">💾 حفظ كإعدادات افتراضية للجميع</button>
+  <div id="itSaveSettingsMsg" style="font-size:11px; color:#5a4a30; text-align:center; margin-bottom:8px; min-height:14px;"></div>
   <div class="row"><label>التباعد بين الأجيال:</label>
     <span class="val" id="ringVal">255</span>
     <input type="range" id="ringSlider" min="60" max="400" value="255" step="5"></div>
@@ -277,7 +305,7 @@
 </div>
 
 <div id="rotatePanel">
-  <span class="lbl">تدوير الخريطة</span>
+  <span class="lbl">تدوير المشجرة</span>
   <span class="val" id="rotateVal">0°</span>
   <input type="range" id="rotateSlider" min="0" max="360" value="0" step="1">
 </div>
@@ -2291,6 +2319,66 @@ document.getElementById('textScaleSlider').addEventListener('input', e => {
   applyTextScale();
 });
 
+// ===== إعدادات محفوظة (تحميل تلقائي للجميع + حفظ كافتراضي حصري للأدمن) =====
+async function initInteractiveTreeSettings(){
+  try{
+    const snap = await pdb.collection('meta').doc('interactiveTreeSettings').get();
+    if (snap.exists){
+      const d = snap.data();
+      if (typeof d.ring === 'number'){
+        RING = d.ring;
+        document.getElementById('ringSlider').value = RING;
+        document.getElementById('ringVal').textContent = RING;
+      }
+      if (typeof d.dotScale === 'number'){
+        DOT_SCALE = d.dotScale;
+        document.getElementById('dotScaleSlider').value = Math.round(DOT_SCALE*100);
+        document.getElementById('dotScaleVal').textContent = Math.round(DOT_SCALE*100) + '%';
+      }
+      if (typeof d.textScale === 'number'){
+        TEXT_SCALE = d.textScale;
+        document.getElementById('textScaleSlider').value = Math.round(TEXT_SCALE*100);
+        document.getElementById('textScaleVal').textContent = Math.round(TEXT_SCALE*100) + '%';
+      }
+      if (d.off && typeof d.off === 'object'){
+        for (let dpt=0; dpt<=MAXD; dpt++){
+          if (typeof d.off[dpt] === 'number'){
+            OFF[dpt] = d.off[dpt];
+            const sl = document.querySelector(`.offSlider[data-depth="${dpt}"]`);
+            if (sl) sl.value = OFF[dpt];
+            const vl = document.querySelector(`.val[data-off-val="${dpt}"]`);
+            if (vl) vl.textContent = OFF[dpt];
+          }
+        }
+        const vals = Object.values(OFF);
+        if (vals.every(v => v === vals[0])){
+          document.getElementById('masterOff').value = vals[0];
+          document.getElementById('masterOffVal').textContent = vals[0];
+        }
+      }
+      recompute();
+      applyDotScale();
+      applyTextScale();
+    }
+  }catch(e){ console.warn('تعذّر تحميل إعدادات المشجرة المحفوظة:', e); }
+
+  const saveBtn = document.getElementById('itSaveSettingsBtn');
+  if (!isAdminUser()){ saveBtn.style.display = 'none'; return; }
+  saveBtn.onclick = async () => {
+    const msg = document.getElementById('itSaveSettingsMsg');
+    msg.textContent = 'جارِ الحفظ...';
+    try{
+      await pdb.collection('meta').doc('interactiveTreeSettings').set({
+        ring: RING, dotScale: DOT_SCALE, textScale: TEXT_SCALE, off: Object.assign({}, OFF)
+      });
+      msg.textContent = '✅ تم الحفظ — أصبحت هذه الإعدادات افتراضية لجميع المستخدمين.';
+      setTimeout(() => { msg.textContent = ''; }, 4000);
+    }catch(e){
+      msg.textContent = 'تعذّر الحفظ: ' + (e.message || e.code);
+    }
+  };
+}
+
 document.getElementById('rotateSlider').addEventListener('input', e => {
   const deg = parseFloat(e.target.value);
   currentRotateDeg = deg;
@@ -2444,11 +2532,47 @@ firebase.initializeApp(firebaseConfig);
 const pauth = firebase.auth();
 const pdb = firebase.firestore();
 let _authReady = false, _authUser = null;
-pauth.onAuthStateChanged((u) => {
-  _authReady = true;
-  _authUser = u;
-  if (!u){
-    console.warn("لا توجد جلسة تسجيل دخول — افتح الموقع الرئيسي وسجّل دخولك أولًا، ثم عد لهذه الصفحة.");
+
+// ===== AUTH GATE FEATURE START (مطابق تمامًا لآلية news.html — حماية دخول كاملة) =====
+pauth.onAuthStateChanged(async (user) => {
+  _authReady = true; _authUser = user;
+  const gate = document.getElementById("authGate");
+  if (!user){
+    gate.textContent = "يجب تسجيل الدخول أولًا — سيتم تحويلك للصفحة الرئيسية...";
+    setTimeout(() => location.href = "index.html", 1500);
+    return;
+  }
+  try{
+    const snap = await pdb.collection("users").doc(user.uid).get();
+    if (!snap.exists){
+      gate.textContent = "حسابك غير مكتمل. راجع الصفحة الرئيسية أولًا.";
+      return;
+    }
+    window.authUser = buildAuthUser(user.uid, snap.data());
+    if (window.authUser.status !== "active"){
+      gate.textContent = "حسابك بانتظار التفعيل أو محظور. راجع المشرف.";
+      return;
+    }
+    if (!can("interactiveTree", "view")){
+      gate.textContent = "لا تملك صلاحية مشاهدة الشجرة التفاعلية.";
+      return;
+    }
+    gate.style.display = "none";
+    document.getElementById("itTopBar").style.display = "flex";
+    document.getElementById("itPageWrap").style.display = "";
+    document.getElementById("itUserName").textContent = window.authUser.displayName || "";
+    // زر الإعدادات: حصري للأدمن فقط
+    if (isAdminUser()){
+      document.getElementById("drawerToggle").style.display = "";
+    }
+    // زر حساب القرابة: يحتاج صلاحية relCalc تحديدًا (وليس فقط view)
+    if (!can("interactiveTree", "relCalc")){
+      const kb = document.getElementById("kinshipModeBtn");
+      if (kb) kb.style.display = "none";
+    }
+    await initInteractiveTreeSettings();
+  }catch(e){
+    gate.textContent = "حدث خطأ أثناء التحقق: " + (e.message || e.code);
   }
 });
 function waitForAuth(){
@@ -2457,6 +2581,8 @@ function waitForAuth(){
     const unsub = pauth.onAuthStateChanged((u) => { unsub(); resolve(u); });
   });
 }
+// ===== AUTH GATE FEATURE END =====
+
 const _personCache = new Map(); // تفادي إعادة جلب نفس الشخص مرتين بنفس الجلسة
 
 async function fetchPerson(pid){
@@ -3030,5 +3156,6 @@ async function computeAndShowKinship(pidA, pidB){
 // ===== KINSHIP CALCULATOR FEATURE END =====
 </script>
 <!-- ===== PERSON CARD LINK FEATURE END ===== -->
+</div><!-- إغلاق itPageWrap -->
 </body>
 </html>
